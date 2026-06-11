@@ -1,10 +1,11 @@
+import Link from "next/link";
+
 import { EmptyState } from "@/components/empty-state";
 import { SectionTitle } from "@/components/section-title";
 import { StatCard } from "@/components/stat-card";
 import { DataCard } from "@/components/data-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
 
 const overview = [
   { label: "Bolsas activas", value: "—", helper: "Sin operaciones cargadas", status: "pendiente" as const },
@@ -33,10 +34,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
-        <DataCard
-          description="Espacio preparado para los módulos que todavía no tienen lógica."
-          title="Estado general"
-        >
+        <DataCard description="Espacio preparado para los módulos que todavía no tienen lógica." title="Estado general">
           <div className="space-y-3 text-sm text-brandBlack">
             <p>• El layout ya está listo para navegar entre módulos.</p>
             <p>• Los componentes base quedan reutilizables para futuras pantallas.</p>
@@ -44,14 +42,14 @@ export default function DashboardPage() {
           </div>
         </DataCard>
 
-      <EmptyState
-        actionLabel="Abrir bolsas"
-        actionHref="/bolsas"
-        secondaryActionLabel="Ver cajas"
-        secondaryActionHref="/cajas"
-        description="Cuando empiece la etapa operativa, acá se va a visualizar la actividad diaria, revisiones y alertas."
-        title="Sin datos cargados"
-      />
+        <EmptyState
+          actionLabel="Abrir bolsas"
+          actionHref="/bolsas"
+          secondaryActionLabel="Ver cajas"
+          secondaryActionHref="/cajas"
+          description="Cuando empiece la etapa operativa, acá se va a visualizar la actividad diaria, revisiones y alertas."
+          title="Sin datos cargados"
+        />
       </div>
 
       <div className="flex flex-wrap gap-3">
