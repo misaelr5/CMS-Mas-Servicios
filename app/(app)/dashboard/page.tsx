@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import { EmptyState } from "@/components/empty-state";
+import { ImportantNotesWidget } from "@/components/notes/important-notes-widget";
+import { NotesPanel } from "@/components/notes/notes-panel";
 import { SectionTitle } from "@/components/section-title";
 import { StatCard } from "@/components/stat-card";
 import { DataCard } from "@/components/data-card";
@@ -49,6 +51,17 @@ export default function DashboardPage() {
           secondaryActionHref="/cajas"
           description="Cuando empiece la etapa operativa, acá se va a visualizar la actividad diaria, revisiones y alertas."
           title="Sin datos cargados"
+        />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+        <ImportantNotesWidget />
+        <NotesPanel
+          description="Notas generales del sistema para seguimiento interno."
+          entityHref="/dashboard"
+          entityLabel="Dashboard"
+          entityType="general"
+          title="Notas generales"
         />
       </div>
 

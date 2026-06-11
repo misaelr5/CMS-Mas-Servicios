@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/empty-state";
+import { NotesPanel } from "@/components/notes/notes-panel";
 import { SectionTitle } from "@/components/section-title";
 import { DataCard } from "@/components/data-card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,12 @@ export default function BolsaDetallePage({ params }: { params: { id: string } })
         actionLabel="Cargar operación"
         description="Más adelante este detalle va a mostrar el historial, los movimientos y el cierre de la bolsa."
         title="Detalle sin movimientos"
+      />
+      <NotesPanel
+        entityHref={`/bolsas/${params.id}`}
+        entityId={params.id}
+        entityLabel={`Bolsa ${params.id}`}
+        entityType="bag"
       />
     </div>
   );

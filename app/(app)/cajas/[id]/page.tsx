@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/empty-state";
+import { NotesPanel } from "@/components/notes/notes-panel";
 import { SectionTitle } from "@/components/section-title";
 import { DataCard } from "@/components/data-card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,12 @@ export default function CajaDetallePage({ params }: { params: { id: string } }) 
         actionLabel="Cargar movimiento"
         description="La vista ya queda preparada para la secuencia de carga, control y cierre de caja."
         title="Sin movimientos cargados"
+      />
+      <NotesPanel
+        entityHref={`/cajas/${params.id}`}
+        entityId={params.id}
+        entityLabel={`Caja ${params.id}`}
+        entityType="cash_register"
       />
     </div>
   );

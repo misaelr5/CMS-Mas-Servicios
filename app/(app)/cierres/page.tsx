@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/empty-state";
+import { NotesPanel } from "@/components/notes/notes-panel";
 import { SectionTitle } from "@/components/section-title";
 import { StatCard } from "@/components/stat-card";
 import { DataCard } from "@/components/data-card";
@@ -29,6 +30,12 @@ export default function CierresPage() {
         actionLabel="Abrir cierre"
         description="No hay cierres generados todavía. Esta pantalla ya deja preparada la navegación y el diseño del módulo."
         title="Sin cierres cargados"
+      />
+      <NotesPanel
+        description="Notas de seguimiento para cierres operativos."
+        entityHref="/cierres"
+        entityLabel="Cierres"
+        entityType="closure"
       />
     </div>
   );

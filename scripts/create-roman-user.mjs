@@ -18,7 +18,7 @@ const supabase = createClient(url, serviceRoleKey, {
 const email = process.env.ROMAN_EMAIL ?? "roman@masservicios.com";
 const fullName = process.env.ROMAN_FULL_NAME ?? "Roman";
 const password = process.env.ROMAN_PASSWORD ?? "1234";
-const role = process.env.ROMAN_ROLE ?? "viewer";
+const role = process.env.ROMAN_ROLE ?? "admin";
 const status = process.env.ROMAN_STATUS ?? "active";
 
 async function ensureAuthUser() {

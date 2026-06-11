@@ -25,7 +25,12 @@ export function normalizeRole(role?: string | null): Role {
   return "viewer";
 }
 
+export function isAdmin(role: Role) {
+  return role === "admin";
+}
+
 export function canAccessPath(role: Role, pathname: string) {
+  if (isAdmin(role)) return true;
   const match = routePermissions.find((entry) => entry.pattern.test(pathname));
   if (!match) return true;
   return match.roles.includes(role);
@@ -34,4 +39,3 @@ export function canAccessPath(role: Role, pathname: string) {
 export function allowedRolesForPath(pathname: string) {
   return routePermissions.find((entry) => entry.pattern.test(pathname))?.roles ?? roles;
 }
-

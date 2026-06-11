@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "seed:roman": "node scripts/create-roman-user.mjs"
+    "seed:roman": "node scripts/create-roman-user.mjs",
+    "seed:operational": "node scripts/seed-operational-data.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.6",

@@ -1,6 +1,6 @@
 # MAS SERVICIOS CMS interno
 
-Aplicación interna de **Más Servicios** con branding, layout y rutas base ya armadas.
+Aplicacion interna de **Mas Servicios** con branding, layout, autenticacion, roles y base operativa preparada.
 
 ## Stack
 
@@ -8,7 +8,8 @@ Aplicación interna de **Más Servicios** con branding, layout y rutas base ya a
 - TypeScript
 - Tailwind CSS
 - shadcn/ui
-- Supabase Auth con sesión persistente de 12 horas
+- Supabase Auth
+- Supabase Postgres con RLS
 
 ## Correr el proyecto
 
@@ -34,45 +35,86 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 ```
 
-## Lógica de sesión
+Reglas:
 
-- Al iniciar sesión se guarda `session_started_at`.
+- `NEXT_PUBLIC_SUPABASE_*` puede usarse en navegador.
+- `SUPABASE_SERVICE_ROLE_KEY` solo se usa en servidor y scripts.
+- No hardcodear claves en componentes cliente.
+
+## Logica de sesion
+
+- Al iniciar sesion se guarda `session_started_at`.
 - La app calcula `session_expires_at` con una ventana de 12 horas.
-- Si la sesión vence, la ruta protegida redirige a `/login` con el mensaje `Tu sesión venció. Volvé a iniciar sesión.`
-- El cierre manual limpia la sesión de Supabase y la ventana local de la app.
+- Si la sesion vence, la ruta protegida redirige a `/login` con el mensaje `Tu sesion vencio. Volve a iniciar sesion.`
+- El cierre manual limpia la sesion de Supabase y la ventana local de la app.
 
-## Cómo probar
+## Migraciones y seeds
 
-1. Abrir `/login`.
-2. Ingresar con un usuario creado por admin.
-3. Confirmar acceso a `/dashboard`.
-4. Cerrar la pestaña y volver a abrir dentro de las 12 horas.
-5. Verificar que la sesión siga activa.
-6. Cerrar sesión desde el header y confirmar que vuelve a `/login`.
-7. Forzar la expiración local borrando la cookie `mas_servicios_session_window` o esperando 12 horas para validar la redirección.
+Primero aplicar en Supabase SQL Editor:
 
-## Base de datos
+```bash
+supabase/schema.sql
+supabase/migrations/20260611_operational_notes.sql
+```
 
-El archivo [`supabase/schema.sql`](./supabase/schema.sql) deja listas las tablas `profiles` y `user_roles` con RLS para la siguiente etapa.
-
-## Crear el usuario Roman
-
-Con las variables de Supabase cargadas, podés crear el usuario interno con:
+Despues, con `.env.local` cargado, correr seeds idempotentes:
 
 ```bash
 pnpm seed:roman
+pnpm seed:operational
 ```
 
-Por defecto crea:
+El seed operativo deja:
 
-- Email: `roman@masservicios.com`
-- Nombre: `Roman`
-- Contraseña: `1234`
+- Sucursales: Centro, Terminal.
+- Cajas: Lourdes/Centro, Vicky/Centro, Antonella manana/Centro, Roman/Terminal, Anto tarde/Terminal.
+- Bolsas: Bolsa 1 a Bolsa 4 con base ARS 2.000.000 y Bolsa 5 con base ARS 5.000.000.
 
-Si querés cambiar esos datos sin tocar el script, usá:
+## Tablas preparadas
 
-- `ROMAN_EMAIL`
-- `ROMAN_FULL_NAME`
-- `ROMAN_PASSWORD`
-- `ROMAN_ROLE`
-- `ROMAN_STATUS`
+- `profiles`
+- `user_roles`
+- `branches`
+- `cash_registers`
+- `bags`
+- `bag_assignments`
+- `audit_logs`
+- `notes`
+
+## Notas internas
+
+Las notas soportan:
+
+- Entidades: `bag`, `bag_operation`, `cash_register`, `cash_daily_report`, `daily_report`, `expense`, `closure`, `general`.
+- Prioridad: `normal`, `importante`, `urgente`.
+- Estado: `abierta`, `resuelta`, `anulada`.
+- Sin borrado fisico: una nota se resuelve o se anula con motivo.
+- Auditoria por accion: crear, marcar prioridad, resolver y anular.
+
+## Como probar notas
+
+1. Iniciar sesion en `/login`.
+2. Entrar a `/dashboard`, `/bolsas/[id]`, `/cajas/[id]`, `/gastos` o `/cierres`.
+3. Crear una nota normal, importante o urgente.
+4. Verificar que la nota aparece en el panel.
+5. Si es importante o urgente y esta abierta, verificar que aparece en `Notas importantes` del dashboard.
+6. Con rol admin o encargado, probar `Resolver`, `Marcar` y `Anular` con motivo.
+7. Revisar `audit_logs` en Supabase para confirmar el registro de acciones.
+
+## Como verificar datos iniciales
+
+En `/configuracion`, con rol admin, deben verse:
+
+- 2 sucursales.
+- 5 cajas.
+- 5 bolsas.
+- Estado de fuente de datos: `Supabase` si la migracion existe, `Seeds locales` si todavia no esta aplicada.
+
+## RLS a revisar
+
+- Admin: lectura y escritura completa.
+- Encargado: lectura operativa y gestion de notas.
+- Cajero: lectura/acciones asignadas y creacion de notas operativas.
+- Viewer: solo lectura.
+
+Las politicas base estan en `supabase/migrations/20260611_operational_notes.sql` y deben revisarse antes de cargar operaciones reales.
