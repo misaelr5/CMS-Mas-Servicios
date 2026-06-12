@@ -56,6 +56,66 @@ export type CashDailyReportLine = {
   updated_at: string;
 };
 
+export type DailyReportStatus = "abierto" | "cerrado" | "revisar";
+
+export type DailyReportAdjustmentType =
+  | "pf_manual_positive"
+  | "pf_manual_negative"
+  | "currency_manual_positive"
+  | "currency_manual_negative";
+
+export type ExpenseStatus = "pendiente" | "pagado" | "imputado" | "anulado";
+
+export type ExpensePaidFrom = "caja" | "ganancia" | "cuenta" | "otro";
+
+export type DailyReport = {
+  id: string;
+  branch_id: string;
+  report_date: string;
+  automatic_pf_profit_ars: number;
+  manual_pf_adjustment_ars: number;
+  automatic_currency_profit_ars: number;
+  manual_currency_adjustment_ars: number;
+  gross_profit_ars: number;
+  expenses_ars: number;
+  available_profit_ars: number;
+  status: DailyReportStatus;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ReportAdjustment = {
+  id: string;
+  daily_report_id: string;
+  adjustment_type: DailyReportAdjustmentType;
+  amount_ars: number;
+  reason: string;
+  created_by: string | null;
+  created_at: string;
+  annulled_at: string | null;
+  annulled_by: string | null;
+  annulment_reason: string | null;
+};
+
+export type DailyReportAdjustment = ReportAdjustment;
+
+export type Expense = {
+  id: string;
+  branch_id: string;
+  date: string;
+  amount_ars: number;
+  category: string;
+  detail: string;
+  status: ExpenseStatus;
+  paid_from: ExpensePaidFrom;
+  created_by: string | null;
+  created_at: string;
+  annulled_at: string | null;
+  annulled_by: string | null;
+  annulment_reason: string | null;
+};
+
 export type Bag = {
   id: string;
   name: string;

@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 
+import { AccessDenied } from "@/components/access-denied";
 import { EmptyState } from "@/components/empty-state";
 import { ImportantNotesWidget } from "@/components/notes/important-notes-widget";
 import { NotesPanel } from "@/components/notes/notes-panel";
@@ -8,14 +10,33 @@ import { StatCard } from "@/components/stat-card";
 import { DataCard } from "@/components/data-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getServerAuthContext } from "@/lib/auth/server";
 import { getCashModuleData } from "@/lib/cash/cash-service";
 import { getBagsOverview } from "@/lib/bags/bag-service";
 import { formatUsd } from "@/lib/bags/bag-calculations";
+import { getExpensePageData } from "@/lib/finance/expense-service";
+import { getDailyReportViewData } from "@/lib/finance/daily-report-service";
+import { getBuenosAiresDateString } from "@/lib/finance/report-dates";
 import { formatArs } from "@/lib/operations/seed-data";
 
+function resolveReportStatus(branches: Awaited<ReturnType<typeof getDailyReportViewData>>["branches"]) {
+  if (branches.length === 0) return "Sin datos";
+  if (branches.some((branch) => branch.hasNegativeAvailable)) return "Revisar";
+  if (branches.every((branch) => branch.dailyReport?.status === "cerrado")) return "Cerrado";
+  return "Abierto";
+}
+
 export default async function DashboardPage() {
+  const auth = await getServerAuthContext(cookies());
+  if (!auth) {
+    return <AccessDenied />;
+  }
+
+  const today = getBuenosAiresDateString();
   const bags = await getBagsOverview();
   const cashData = await getCashModuleData();
+  const reportData = await getDailyReportViewData(today, { role: auth.role, userId: auth.userId });
+  const expenseData = await getExpensePageData({ date: today }, { role: auth.role, userId: auth.userId });
   const totals = bags.reduce(
     (acc, bag) => {
       acc.cash += Number(bag.current_cash_ars ?? 0);
@@ -28,6 +49,7 @@ export default async function DashboardPage() {
     },
     { cash: 0, account: 0, usd: 0, borrowed: 0, profit: 0, review: 0 }
   );
+  const reportStatus = resolveReportStatus(reportData.branches);
 
   return (
     <div className="space-y-6">
@@ -61,6 +83,13 @@ export default async function DashboardPage() {
         <StatCard label="Operado Pago Facil" status="neutral" value={formatArs(cashData.summary.total_operated_today)} />
         <StatCard label="Ganancia Centro" status="ok" value={formatArs(cashData.summary.center_profit_today)} />
         <StatCard label="Ganancia Terminal" status="ok" value={formatArs(cashData.summary.terminal_profit_today)} />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Gastos hoy" status="neutral" value={formatArs(expenseData.totals.amount_ars)} />
+        <StatCard label="Ganancia libre hoy" status={reportData.totals.availableProfitArs < 0 ? "error" : "ok"} value={formatArs(reportData.totals.availableProfitArs)} />
+        <StatCard label="Gastos pendientes" status="pendiente" value={formatArs(expenseData.totals.pending_amount_ars)} />
+        <StatCard label="Estado del reporte diario" status={reportData.totals.availableProfitArs < 0 ? "revisar" : "ok"} value={reportStatus} />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">

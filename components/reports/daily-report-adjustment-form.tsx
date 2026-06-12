@@ -1,0 +1,89 @@
+"use client";
+
+import { useActionState } from "react";
+
+import { createDailyReportAdjustmentAction } from "@/app/actions/finance";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import type { Branch } from "@/lib/db/types";
+import { dailyReportAdjustmentTypeLabels } from "@/lib/finance/daily-report-calculations";
+
+const initialState = { ok: false, message: "" };
+
+export function DailyReportAdjustmentForm({
+  date,
+  branches,
+  fixedBranchId,
+  canWrite
+}: {
+  date: string;
+  branches: Branch[];
+  fixedBranchId?: string;
+  canWrite: boolean;
+}) {
+  const [state, formAction, isPending] = useActionState(createDailyReportAdjustmentAction, initialState);
+
+  if (!canWrite) {
+    return <p className="text-sm text-mediumGray">Solo admin o encargado pueden crear ajustes.</p>;
+  }
+
+  return (
+    <form action={formAction} className="space-y-4">
+      <input name="date" type="hidden" value={date} />
+      <input name="current_path" type="hidden" value="/reporte-diario" />
+      {fixedBranchId ? (
+        <input name="branch_id" type="hidden" value={fixedBranchId} />
+      ) : (
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-brandBlack" htmlFor="branch_id">
+            Sucursal
+          </label>
+          <select className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-brandBlack shadow-sm" id="branch_id" name="branch_id" required>
+            <option value="">Elegí sucursal</option>
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id}>
+                {branch.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-brandBlack" htmlFor="adjustment_type">
+            Tipo de ajuste
+          </label>
+          <select className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-brandBlack shadow-sm" id="adjustment_type" name="adjustment_type" required>
+            {Object.entries(dailyReportAdjustmentTypeLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-brandBlack" htmlFor="amount_ars">
+            Monto
+          </label>
+          <Input id="amount_ars" min="1" name="amount_ars" placeholder="0" required type="number" />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-brandBlack" htmlFor="reason">
+            Motivo
+          </label>
+          <Input id="reason" name="reason" placeholder="Motivo del ajuste" required />
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button disabled={isPending} type="submit">
+          {isPending ? "Guardando..." : "Crear ajuste"}
+        </Button>
+        {state.message ? (
+          <p className={state.ok ? "text-sm font-semibold text-success" : "text-sm font-semibold text-danger"}>{state.message}</p>
+        ) : null}
+      </div>
+    </form>
+  );
+}

@@ -56,6 +56,7 @@ Primero aplicar en Supabase SQL Editor:
 supabase/schema.sql
 supabase/migrations/20260611_operational_notes.sql
 supabase/migrations/20260612_cash_pay_facil.sql
+supabase/migrations/20260613_daily_reports_expenses.sql
 ```
 
 Despues, con `.env.local` cargado, correr seeds idempotentes:
@@ -140,6 +141,28 @@ Reglas principales:
 - Viewer ve solo lectura.
 - Cada carga se guarda por caja y fecha, sin duplicar registros.
 - Las cargas de hoy alimentan el bloque parcial del dashboard.
+
+## Reporte diario y gastos
+
+Rutas disponibles:
+
+- `/reporte-diario`
+- `/gastos`
+
+Flujo de prueba recomendado:
+
+1. Entrar a `/reporte-diario` con rol admin o encargado.
+2. Cambiar la fecha y confirmar que el resumen por sucursal se actualiza.
+3. Crear un ajuste manual y luego anularlo con motivo.
+4. Entrar a `/gastos`, crear un gasto, filtrarlo por fecha/sucursal/estado/categoría y anularlo.
+5. Revisar el dashboard para verificar gastos hoy, ganancia libre y estado del reporte diario.
+
+Reglas principales:
+
+- Los montos operados no se confunden con la ganancia.
+- Los gastos se descuentan de la ganancia libre.
+- Los ajustes manuales siempre llevan motivo.
+- No se borra nada: ajustes y gastos se anulan.
 
 ## Notas internas
 
