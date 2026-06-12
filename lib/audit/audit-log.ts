@@ -25,7 +25,7 @@ export async function createAuditLog({
   }
 
   const { error } = await (admin.from("audit_logs") as any).insert({
-    actor_id: actorId,
+    user_id: actorId,
     action,
     entity_type: entityType,
     entity_id: entityId,

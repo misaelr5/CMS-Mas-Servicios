@@ -70,6 +70,34 @@ El seed operativo deja:
 - Cajas: Lourdes/Centro, Vicky/Centro, Antonella manana/Centro, Roman/Terminal, Anto tarde/Terminal.
 - Bolsas: Bolsa 1 a Bolsa 4 con base ARS 2.000.000 y Bolsa 5 con base ARS 5.000.000.
 
+## Modulo de bolsas
+
+Rutas disponibles:
+
+- `/bolsas`
+- `/bolsas/[id]`
+- `/bolsas/nueva-operacion`
+- `/bolsas/[id]/cierre-diario`
+- `/api/bolsas/[id]/csv`
+
+Flujo de prueba recomendado:
+
+1. Entrar a `/bolsas`.
+2. Abrir una bolsa.
+3. Cargar una compra USD o venta USD desde `/bolsas/nueva-operacion`.
+4. Verificar que la operacion quede en el historial.
+5. Probar un ajuste manual con nota obligatoria.
+6. Probar anulacion de una operacion con motivo.
+7. Abrir `/bolsas/[id]/cierre-diario` y guardar un snapshot.
+8. Exportar CSV desde el detalle de bolsa.
+
+Validaciones principales:
+
+- No vender mas USD que los disponibles.
+- No cargar compra/venta sin cotizacion y cantidad.
+- No permitir prestamo, ajuste o anulacion sin nota o motivo.
+- Las operaciones quedan auditadas y pueden generar notas relacionadas.
+
 ## Tablas preparadas
 
 - `profiles`
@@ -80,6 +108,8 @@ El seed operativo deja:
 - `bag_assignments`
 - `audit_logs`
 - `notes`
+- `bag_operations`
+- `bag_daily_snapshots`
 
 ## Notas internas
 
@@ -100,6 +130,7 @@ Las notas soportan:
 5. Si es importante o urgente y esta abierta, verificar que aparece en `Notas importantes` del dashboard.
 6. Con rol admin o encargado, probar `Resolver`, `Marcar` y `Anular` con motivo.
 7. Revisar `audit_logs` en Supabase para confirmar el registro de acciones.
+8. Crear una nota desde una bolsa o desde una operacion y verificar que queda vinculada.
 
 ## Como verificar datos iniciales
 
@@ -108,6 +139,7 @@ En `/configuracion`, con rol admin, deben verse:
 - 2 sucursales.
 - 5 cajas.
 - 5 bolsas.
+- Las bolsas muestran saldos, USD, prestado, ganancia y estado operativo.
 - Estado de fuente de datos: `Supabase` si la migracion existe, `Seeds locales` si todavia no esta aplicada.
 
 ## RLS a revisar

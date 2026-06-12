@@ -1,29 +1,25 @@
-import { EmptyState } from "@/components/empty-state";
-import { SectionTitle } from "@/components/section-title";
+import { BagOperationForm } from "@/components/bags/bag-operation-form";
 import { DataCard } from "@/components/data-card";
+import { SectionTitle } from "@/components/section-title";
+import { getBagsOverview } from "@/lib/bags/bag-service";
 
-export default function NuevaOperacionPage() {
+export default async function NuevaOperacionPage({
+  searchParams
+}: {
+  searchParams?: { bagId?: string };
+}) {
+  const bags = await getBagsOverview();
+
   return (
     <div className="space-y-6">
       <SectionTitle
-        description="Pantalla lista para el alta de una nueva operación de bolsa. La lógica de captura vendrá después."
-        title="Nueva operación"
+        description="Carga operativa de compra, venta, prestamos, ajustes y movimientos de pesos."
+        title="Nueva operacion"
       />
 
-      <DataCard description="Formulario reservado para la siguiente etapa." title="Carga inicial">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-border bg-white/5 p-4 text-sm text-lightGray">Tipo de operación</div>
-          <div className="rounded-2xl border border-border bg-white/5 p-4 text-sm text-lightGray">Monto y moneda</div>
-          <div className="rounded-2xl border border-border bg-white/5 p-4 text-sm text-lightGray">Referencia interna</div>
-          <div className="rounded-2xl border border-border bg-white/5 p-4 text-sm text-lightGray">Observación</div>
-        </div>
+      <DataCard description="Formulario operativo mobile-first con vista previa del impacto." title="Carga de operacion">
+        <BagOperationForm bags={bags} defaultBagId={searchParams?.bagId} />
       </DataCard>
-
-      <EmptyState
-        actionLabel="Guardar borrador"
-        description="En esta etapa todavía no se registra nada. Solo queda listo el contenedor visual para la próxima implementación."
-        title="Formulario preparado"
-      />
     </div>
   );
 }

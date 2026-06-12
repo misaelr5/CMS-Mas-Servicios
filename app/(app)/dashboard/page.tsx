@@ -8,19 +8,29 @@ import { StatCard } from "@/components/stat-card";
 import { DataCard } from "@/components/data-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getBagsOverview } from "@/lib/bags/bag-service";
+import { formatUsd } from "@/lib/bags/bag-calculations";
+import { formatArs } from "@/lib/operations/seed-data";
 
-const overview = [
-  { label: "Bolsas activas", value: "—", helper: "Sin operaciones cargadas", status: "pendiente" as const },
-  { label: "Cajas abiertas", value: "—", helper: "Preparadas para vincular movimientos", status: "pendiente" as const },
-  { label: "Diferencias", value: "—", helper: "Se mostrarán cuando llegue la lógica", status: "revisar" as const },
-  { label: "Notas internas", value: "—", helper: "Espacio listo para el equipo", status: "ok" as const }
-];
+export default async function DashboardPage() {
+  const bags = await getBagsOverview();
+  const totals = bags.reduce(
+    (acc, bag) => {
+      acc.cash += Number(bag.current_cash_ars ?? 0);
+      acc.account += Number(bag.current_account_ars ?? 0);
+      acc.usd += Number(bag.current_usd ?? 0);
+      acc.borrowed += Number(bag.borrowed_ars ?? 0);
+      acc.profit += Number(bag.accumulated_profit_ars ?? 0);
+      if (bag.status !== "ok") acc.review += 1;
+      return acc;
+    },
+    { cash: 0, account: 0, usd: 0, borrowed: 0, profit: 0, review: 0 }
+  );
 
-export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <SectionTitle
-        description="Vista principal para Nico. Esta pantalla ya deja lista la estructura visual del control interno, sin cálculos ni operaciones reales todavía."
+        description="Vista principal para Nico. Conecta bolsas, notas y alertas operativas sin perder el layout interno."
         title="Dashboard"
         rightSlot={
           <Badge className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.2em]" variant="outline">
@@ -30,27 +40,35 @@ export default function DashboardPage() {
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {overview.map((item) => (
-          <StatCard key={item.label} className="min-h-[170px]" {...item} />
-        ))}
+        <StatCard label="Bolsas activas" value={`${bags.length}`} />
+        <StatCard label="Bolsas para revisar" value={`${totals.review}`} />
+        <StatCard label="Total USD" value={formatUsd(totals.usd)} />
+        <StatCard label="Ganancia divisas" value={formatArs(totals.profit)} />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Total efectivo" value={formatArs(totals.cash)} />
+        <StatCard label="Total cuenta" value={formatArs(totals.account)} />
+        <StatCard label="Total prestado" value={formatArs(totals.borrowed)} />
+        <StatCard label="Notas internas" value="Activas" helper="Base lista para seguimiento" status="ok" />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
-        <DataCard description="Espacio preparado para los módulos que todavía no tienen lógica." title="Estado general">
+        <DataCard description="Resumen de control de divisas." title="Estado de bolsas">
           <div className="space-y-3 text-sm text-brandBlack">
-            <p>• El layout ya está listo para navegar entre módulos.</p>
-            <p>• Los componentes base quedan reutilizables para futuras pantallas.</p>
-            <p>• Supabase quedó preparado, sin enlazar aún procesos complejos.</p>
+            <p>• Bolsas con diferencia o revisión: {totals.review}</p>
+            <p>• Saldos cargados por día y por operación.</p>
+            <p>• Exportación CSV disponible por bolsa.</p>
           </div>
         </DataCard>
 
         <EmptyState
           actionLabel="Abrir bolsas"
           actionHref="/bolsas"
-          secondaryActionLabel="Ver cajas"
-          secondaryActionHref="/cajas"
-          description="Cuando empiece la etapa operativa, acá se va a visualizar la actividad diaria, revisiones y alertas."
-          title="Sin datos cargados"
+          secondaryActionLabel="Nueva operacion"
+          secondaryActionHref="/bolsas/nueva-operacion"
+          description="Acá se centraliza el seguimiento diario de las cinco bolsas con sus movimientos y cierres."
+          title="Control operativo listo"
         />
       </div>
 

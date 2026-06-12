@@ -25,7 +25,14 @@ export type Bag = {
   name: string;
   slug: string;
   base_limit_ars: number;
-  status: "active" | "inactive";
+  current_cash_ars?: number;
+  current_account_ars?: number;
+  current_usd?: number;
+  borrowed_ars?: number;
+  average_usd_cost?: number;
+  accumulated_profit_ars?: number;
+  responsible_user_id?: string | null;
+  status: "ok" | "revisar" | "diferencia" | "pendiente_cierre" | "active" | "inactive";
   created_at?: string;
   updated_at?: string;
 };
@@ -74,12 +81,71 @@ export type Note = {
 
 export type AuditLog = {
   id: string;
-  actor_id: string | null;
+  user_id: string | null;
   action: string;
   entity_type: string;
   entity_id: string | null;
   old_data: Record<string, unknown> | null;
   new_data: Record<string, unknown> | null;
   reason: string | null;
+  created_at: string;
+};
+
+export type BagOperationType =
+  | "compra_usd"
+  | "venta_usd"
+  | "ingreso_pesos_efectivo"
+  | "egreso_pesos_efectivo"
+  | "ingreso_pesos_cuenta"
+  | "egreso_pesos_cuenta"
+  | "prestamo_entregado"
+  | "prestamo_recibido"
+  | "devolucion_prestamo"
+  | "ajuste_manual"
+  | "anulacion_operacion";
+
+export type BagOperation = {
+  id: string;
+  bag_id: string;
+  operation_type: BagOperationType;
+  amount_usd: number;
+  rate_ars: number;
+  total_ars: number;
+  money_source: "efectivo" | "cuenta" | null;
+  money_destination: "efectivo" | "cuenta" | null;
+  profit_ars: number;
+  previous_cash_ars: number;
+  previous_account_ars: number;
+  previous_usd: number;
+  previous_borrowed_ars: number;
+  new_cash_ars: number;
+  new_account_ars: number;
+  new_usd: number;
+  new_borrowed_ars: number;
+  notes: string | null;
+  status: "confirmada" | "revisar" | "anulada";
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  annulled_at: string | null;
+  annulled_by: string | null;
+  annulment_reason: string | null;
+};
+
+export type BagDailySnapshot = {
+  id: string;
+  bag_id: string;
+  date: string;
+  cash_ars: number;
+  account_ars: number;
+  usd_amount: number;
+  borrowed_ars: number;
+  average_usd_cost: number;
+  total_estimated_ars: number;
+  base_limit_ars: number;
+  difference_ars: number;
+  profit_day_ars: number;
+  status: "ok" | "revisar" | "diferencia" | "pendiente_cierre";
+  created_by: string | null;
   created_at: string;
 };

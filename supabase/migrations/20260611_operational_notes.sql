@@ -25,10 +25,42 @@ create table if not exists public.bags (
   name text not null,
   slug text not null unique,
   base_limit_ars numeric(14, 2) not null default 0 check (base_limit_ars >= 0),
-  status text not null default 'active' check (status in ('active', 'inactive')),
+  current_cash_ars numeric(14, 2) not null default 0,
+  current_account_ars numeric(14, 2) not null default 0,
+  current_usd numeric(14, 4) not null default 0,
+  borrowed_ars numeric(14, 2) not null default 0,
+  average_usd_cost numeric(14, 4) not null default 0,
+  accumulated_profit_ars numeric(14, 2) not null default 0,
+  responsible_user_id uuid references public.profiles (id) on delete set null,
+  status text not null default 'ok' check (status in ('ok', 'revisar', 'diferencia', 'pendiente_cierre', 'active', 'inactive')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.bags
+  add column if not exists current_cash_ars numeric(14, 2) not null default 0,
+  add column if not exists current_account_ars numeric(14, 2) not null default 0,
+  add column if not exists current_usd numeric(14, 4) not null default 0,
+  add column if not exists borrowed_ars numeric(14, 2) not null default 0,
+  add column if not exists average_usd_cost numeric(14, 4) not null default 0,
+  add column if not exists accumulated_profit_ars numeric(14, 2) not null default 0,
+  add column if not exists responsible_user_id uuid references public.profiles (id) on delete set null;
+
+alter table public.bags
+  alter column status set default 'ok';
+
+do $$
+begin
+  begin
+    alter table public.bags drop constraint if exists bags_status_check;
+  exception
+    when undefined_object then null;
+  end;
+end
+$$;
+
+alter table public.bags
+  add constraint bags_status_check check (status in ('ok', 'revisar', 'diferencia', 'pendiente_cierre', 'active', 'inactive'));
 
 create table if not exists public.bag_assignments (
   id uuid primary key default gen_random_uuid(),
@@ -41,7 +73,7 @@ create table if not exists public.bag_assignments (
 
 create table if not exists public.audit_logs (
   id uuid primary key default gen_random_uuid(),
-  actor_id uuid references public.profiles (id) on delete set null,
+  user_id uuid references public.profiles (id) on delete set null,
   action text not null,
   entity_type text not null,
   entity_id uuid,
@@ -85,13 +117,65 @@ create table if not exists public.notes (
   )
 );
 
+create table if not exists public.bag_operations (
+  id uuid primary key default gen_random_uuid(),
+  bag_id uuid not null references public.bags (id) on delete cascade,
+  operation_type text not null,
+  amount_usd numeric(14, 4) not null default 0,
+  rate_ars numeric(14, 4) not null default 0,
+  total_ars numeric(14, 2) not null default 0,
+  money_source text,
+  money_destination text,
+  profit_ars numeric(14, 2) not null default 0,
+  previous_cash_ars numeric(14, 2) not null default 0,
+  previous_account_ars numeric(14, 2) not null default 0,
+  previous_usd numeric(14, 4) not null default 0,
+  previous_borrowed_ars numeric(14, 2) not null default 0,
+  new_cash_ars numeric(14, 2) not null default 0,
+  new_account_ars numeric(14, 2) not null default 0,
+  new_usd numeric(14, 4) not null default 0,
+  new_borrowed_ars numeric(14, 2) not null default 0,
+  notes text,
+  status text not null default 'confirmada',
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  annulled_at timestamptz,
+  annulled_by uuid references public.profiles (id) on delete set null,
+  annulment_reason text
+);
+
+create table if not exists public.bag_daily_snapshots (
+  id uuid primary key default gen_random_uuid(),
+  bag_id uuid not null references public.bags (id) on delete cascade,
+  date date not null,
+  cash_ars numeric(14, 2) not null default 0,
+  account_ars numeric(14, 2) not null default 0,
+  usd_amount numeric(14, 4) not null default 0,
+  borrowed_ars numeric(14, 2) not null default 0,
+  average_usd_cost numeric(14, 4) not null default 0,
+  total_estimated_ars numeric(14, 2) not null default 0,
+  base_limit_ars numeric(14, 2) not null default 0,
+  difference_ars numeric(14, 2) not null default 0,
+  profit_day_ars numeric(14, 2) not null default 0,
+  status text not null default 'ok',
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists idx_cash_registers_branch_id on public.cash_registers (branch_id);
 create index if not exists idx_bag_assignments_user_id on public.bag_assignments (user_id);
 create index if not exists idx_audit_logs_entity on public.audit_logs (entity_type, entity_id);
-create index if not exists idx_audit_logs_actor on public.audit_logs (actor_id);
+create index if not exists idx_audit_logs_actor on public.audit_logs (user_id);
 create index if not exists idx_notes_entity on public.notes (entity_type, entity_id);
 create index if not exists idx_notes_priority_status on public.notes (priority, status);
 create index if not exists idx_notes_created_at on public.notes (created_at desc);
+create index if not exists idx_bag_operations_bag_id on public.bag_operations (bag_id);
+create index if not exists idx_bag_operations_type on public.bag_operations (operation_type);
+create index if not exists idx_bag_operations_status on public.bag_operations (status);
+create index if not exists idx_bag_operations_created_at on public.bag_operations (created_at desc);
+create index if not exists idx_bag_snapshots_bag_id on public.bag_daily_snapshots (bag_id);
+create index if not exists idx_bag_snapshots_date on public.bag_daily_snapshots (date desc);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -121,6 +205,11 @@ for each row execute function public.set_updated_at();
 drop trigger if exists set_notes_updated_at on public.notes;
 create trigger set_notes_updated_at
 before update on public.notes
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_bag_operations_updated_at on public.bag_operations;
+create trigger set_bag_operations_updated_at
+before update on public.bag_operations
 for each row execute function public.set_updated_at();
 
 create or replace function public.has_role(target_role text)
@@ -238,7 +327,7 @@ create policy "audit_logs_insert_authenticated"
 on public.audit_logs
 for insert
 to authenticated
-with check (actor_id = auth.uid() or public.has_role('admin'));
+with check (user_id = auth.uid() or public.has_role('admin'));
 
 drop policy if exists "notes_read_authenticated" on public.notes;
 create policy "notes_read_authenticated"
@@ -268,6 +357,39 @@ to authenticated
 using (public.current_role() in ('admin', 'encargado'))
 with check (public.current_role() in ('admin', 'encargado'));
 
+alter table public.bag_operations enable row level security;
+alter table public.bag_daily_snapshots enable row level security;
+
+drop policy if exists "bag_operations_read_authenticated" on public.bag_operations;
+create policy "bag_operations_read_authenticated"
+on public.bag_operations
+for select
+to authenticated
+using (true);
+
+drop policy if exists "bag_operations_operational_write" on public.bag_operations;
+create policy "bag_operations_operational_write"
+on public.bag_operations
+for all
+to authenticated
+using (public.current_role() in ('admin', 'encargado', 'cajero'))
+with check (public.current_role() in ('admin', 'encargado', 'cajero'));
+
+drop policy if exists "bag_snapshots_read_authenticated" on public.bag_daily_snapshots;
+create policy "bag_snapshots_read_authenticated"
+on public.bag_daily_snapshots
+for select
+to authenticated
+using (true);
+
+drop policy if exists "bag_snapshots_operational_write" on public.bag_daily_snapshots;
+create policy "bag_snapshots_operational_write"
+on public.bag_daily_snapshots
+for all
+to authenticated
+using (public.current_role() in ('admin', 'encargado'))
+with check (public.current_role() in ('admin', 'encargado'));
+
 insert into public.branches (id, name, slug, status)
 values
   ('00000000-0000-4000-8000-000000000101', 'Centro', 'centro', 'active'),
@@ -290,12 +412,16 @@ set branch_id = excluded.branch_id,
 
 insert into public.bags (id, name, slug, base_limit_ars, status)
 values
-  ('00000000-0000-4000-8000-000000000301', 'Bolsa 1', 'bolsa-1', 2000000, 'active'),
-  ('00000000-0000-4000-8000-000000000302', 'Bolsa 2', 'bolsa-2', 2000000, 'active'),
-  ('00000000-0000-4000-8000-000000000303', 'Bolsa 3', 'bolsa-3', 2000000, 'active'),
-  ('00000000-0000-4000-8000-000000000304', 'Bolsa 4', 'bolsa-4', 2000000, 'active'),
-  ('00000000-0000-4000-8000-000000000305', 'Bolsa 5', 'bolsa-5', 5000000, 'active')
+  ('00000000-0000-4000-8000-000000000301', 'Bolsa 1', 'bolsa-1', 2000000, 'ok'),
+  ('00000000-0000-4000-8000-000000000302', 'Bolsa 2', 'bolsa-2', 2000000, 'ok'),
+  ('00000000-0000-4000-8000-000000000303', 'Bolsa 3', 'bolsa-3', 2000000, 'ok'),
+  ('00000000-0000-4000-8000-000000000304', 'Bolsa 4', 'bolsa-4', 2000000, 'ok'),
+  ('00000000-0000-4000-8000-000000000305', 'Bolsa 5', 'bolsa-5', 5000000, 'ok')
 on conflict (slug) do update
 set name = excluded.name,
     base_limit_ars = excluded.base_limit_ars,
     status = excluded.status;
+
+update public.bags
+set status = 'ok'
+where status in ('active', 'inactive');

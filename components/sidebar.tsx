@@ -39,7 +39,7 @@ export function Sidebar() {
         <div className="rounded-2xl border border-brandYellow/25 bg-brandYellow/10 p-4 text-sm text-lightGray">
           <p className="font-heading text-base font-bold text-white">Más Servicios</p>
           <p className="mt-2 text-xs leading-relaxed text-lightGray/80">
-            Base interna preparada para operar con alto contraste, foco comercial y crecimiento por módulos.
+            Base interna preparada para operar ordenadamente.
           </p>
         </div>
       </div>

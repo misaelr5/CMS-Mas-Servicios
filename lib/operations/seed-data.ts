@@ -64,35 +64,35 @@ export const seedBags: Bag[] = [
     name: "Bolsa 1",
     slug: "bolsa-1",
     base_limit_ars: 2000000,
-    status: "active"
+    status: "ok"
   },
   {
     id: "00000000-0000-4000-8000-000000000302",
     name: "Bolsa 2",
     slug: "bolsa-2",
     base_limit_ars: 2000000,
-    status: "active"
+    status: "ok"
   },
   {
     id: "00000000-0000-4000-8000-000000000303",
     name: "Bolsa 3",
     slug: "bolsa-3",
     base_limit_ars: 2000000,
-    status: "active"
+    status: "ok"
   },
   {
     id: "00000000-0000-4000-8000-000000000304",
     name: "Bolsa 4",
     slug: "bolsa-4",
     base_limit_ars: 2000000,
-    status: "active"
+    status: "ok"
   },
   {
     id: "00000000-0000-4000-8000-000000000305",
     name: "Bolsa 5",
     slug: "bolsa-5",
     base_limit_ars: 5000000,
-    status: "active"
+    status: "ok"
   }
 ];
 
