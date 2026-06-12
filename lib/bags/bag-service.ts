@@ -1,3 +1,5 @@
+import { randomUUID } from "crypto";
+
 import { createAuditLog } from "@/lib/audit/audit-log";
 import type { Bag, BagDailySnapshot, BagOperation, BagOperationType, Note } from "@/lib/db/types";
 import { getOperationalConfigData } from "@/lib/operations/operational-data";
@@ -46,6 +48,47 @@ function mapBagRow(row: Record<string, any>): Bag {
     created_at: row.created_at,
     updated_at: row.updated_at
   };
+}
+
+function looksLikeMissingTableError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return message.includes("Could not find the table") || message.includes("schema cache") || message.includes("relation");
+}
+
+function parseOperationNote(note: Note): BagOperation | null {
+  try {
+    const parsed = JSON.parse(note.body) as Partial<BagOperation>;
+    if (!parsed.id || !parsed.operation_type) return null;
+    return {
+      id: parsed.id,
+      bag_id: parsed.bag_id ?? note.entity_id ?? "",
+      operation_type: parsed.operation_type,
+      amount_usd: Number(parsed.amount_usd ?? 0),
+      rate_ars: Number(parsed.rate_ars ?? 0),
+      total_ars: Number(parsed.total_ars ?? 0),
+      money_source: parsed.money_source ?? null,
+      money_destination: parsed.money_destination ?? null,
+      profit_ars: Number(parsed.profit_ars ?? 0),
+      previous_cash_ars: Number(parsed.previous_cash_ars ?? 0),
+      previous_account_ars: Number(parsed.previous_account_ars ?? 0),
+      previous_usd: Number(parsed.previous_usd ?? 0),
+      previous_borrowed_ars: Number(parsed.previous_borrowed_ars ?? 0),
+      new_cash_ars: Number(parsed.new_cash_ars ?? 0),
+      new_account_ars: Number(parsed.new_account_ars ?? 0),
+      new_usd: Number(parsed.new_usd ?? 0),
+      new_borrowed_ars: Number(parsed.new_borrowed_ars ?? 0),
+      notes: parsed.notes ?? note.body,
+      status: (parsed.status as BagOperation["status"]) ?? (note.status === "anulada" ? "anulada" : "confirmada"),
+      created_by: parsed.created_by ?? note.created_by,
+      created_at: parsed.created_at ?? note.created_at,
+      updated_at: parsed.updated_at ?? note.updated_at,
+      annulled_at: parsed.annulled_at ?? note.annulled_at,
+      annulled_by: parsed.annulled_by ?? note.annulled_by,
+      annulment_reason: parsed.annulment_reason ?? note.annul_reason
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function getBagsOverview() {
@@ -112,28 +155,28 @@ export async function getBagDetail(bagId: string): Promise<BagDetail | null> {
   const admin = getSupabaseAdminClient();
   if (!admin) return null;
 
-  const [{ data: bagData, error: bagError }, { data: operationsData, error: operationsError }, { data: snapshotsData, error: snapshotsError }, { data: notesData, error: notesError }] = await Promise.all([
+  const [{ data: bagData, error: bagError }, operationsResult, snapshotsResult, notesResult, operationNotesResult] = await Promise.all([
     admin
       .from("bags")
       .select("id,name,slug,base_limit_ars,current_cash_ars,current_account_ars,current_usd,borrowed_ars,average_usd_cost,accumulated_profit_ars,status,created_at,updated_at")
       .eq("id", bagId)
       .maybeSingle(),
-    admin
-      .from("bag_operations")
-      .select("*")
-      .eq("bag_id", bagId)
-      .order("created_at", { ascending: false })
-      .limit(30),
-    admin
-      .from("bag_daily_snapshots")
-      .select("*")
-      .eq("bag_id", bagId)
-      .order("date", { ascending: false })
-      .limit(14),
-    admin.from("notes").select("*").eq("entity_type", "bag").eq("entity_id", bagId).order("created_at", { ascending: false }).limit(20)
+    admin.from("bag_operations").select("*").eq("bag_id", bagId).order("created_at", { ascending: false }).limit(30),
+    admin.from("bag_daily_snapshots").select("*").eq("bag_id", bagId).order("date", { ascending: false }).limit(14),
+    admin.from("notes").select("*").eq("entity_type", "bag").eq("entity_id", bagId).order("created_at", { ascending: false }).limit(20),
+    admin.from("notes").select("*").eq("entity_type", "bag_operation").eq("entity_id", bagId).order("created_at", { ascending: false }).limit(30)
   ]);
 
-  if (bagError || operationsError || snapshotsError || notesError || !bagData) {
+  const operationsData = "data" in operationsResult ? operationsResult.data : null;
+  const operationsError = "error" in operationsResult ? operationsResult.error : null;
+  const snapshotsData = "data" in snapshotsResult ? snapshotsResult.data : null;
+  const snapshotsError = "error" in snapshotsResult ? snapshotsResult.error : null;
+  const notesData = "data" in notesResult ? notesResult.data : null;
+  const notesError = "error" in notesResult ? notesResult.error : null;
+  const operationNotesData = "data" in operationNotesResult ? operationNotesResult.data : null;
+  const operationNotesError = "error" in operationNotesResult ? operationNotesResult.error : null;
+
+  if (bagError || !bagData) {
     return null;
   }
 
@@ -141,9 +184,15 @@ export async function getBagDetail(bagId: string): Promise<BagDetail | null> {
   const referenceRate = bag.average_usd_cost && bag.average_usd_cost > 0 ? bag.average_usd_cost : null;
   const estimatedTotal = estimateTotal(bag, referenceRate);
   const difference = estimatedTotal - Number(bag.base_limit_ars);
+  const operations = (operationsData ?? [])
+    .map((row: Record<string, any>) => row as BagOperation)
+    .sort((left: BagOperation, right: BagOperation) => right.created_at.localeCompare(left.created_at));
+  const fallbackOperations = (operationNotesData ?? [])
+    .map((note: Note) => parseOperationNote(note))
+    .filter((operation): operation is BagOperation => Boolean(operation));
   return {
     bag,
-    operations: (operationsData ?? []) as BagOperation[],
+    operations: operations.length > 0 ? operations : fallbackOperations,
     snapshots: (snapshotsData ?? []) as BagDailySnapshot[],
     notes: (notesData ?? []) as Note[],
     estimated_total_ars: estimatedTotal,
@@ -343,7 +392,31 @@ export async function processBagOperation({
   };
 
   const { data: inserted, error: insertError } = await (admin.from("bag_operations") as any).insert(operationPayload).select("*").single();
-  if (insertError) {
+  const fallbackOperationId = randomUUID();
+  if (insertError && looksLikeMissingTableError(insertError)) {
+    const fallbackNotePayload = {
+      ...operationPayload,
+      id: fallbackOperationId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { error: noteError } = await (admin.from("notes") as any).insert({
+      entity_type: "bag_operation",
+      entity_id: bagId,
+      entity_label: "Operacion de bolsa",
+      entity_href: `/bolsas/${bagId}`,
+      title: `Operacion ${operationType}`,
+      body: JSON.stringify(fallbackNotePayload),
+      priority: "normal",
+      status: confirmAsReview ? "abierta" : "resuelta",
+      created_by: actorId
+    });
+
+    if (noteError) {
+      return { ok: false, message: `No se pudo crear la operacion: ${noteError.message}` };
+    }
+  } else if (insertError) {
     return { ok: false, message: `No se pudo crear la operacion: ${insertError.message}` };
   }
 
@@ -368,7 +441,7 @@ export async function processBagOperation({
     actorId,
     action: `bag_operation.${operationType}`,
     entityType: "bag_operation",
-    entityId: inserted.id,
+    entityId: inserted?.id ?? fallbackOperationId,
     oldData: {
       current_cash_ars: previousCash,
       current_account_ars: previousAccount,
@@ -391,7 +464,14 @@ export async function processBagOperation({
   return {
     ok: true,
     message: "Operacion guardada.",
-    operation: inserted,
+    operation:
+      inserted ??
+      ({
+        id: fallbackOperationId,
+        ...operationPayload,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      } as BagOperation),
     bag: {
       ...bag,
       ...nextBag,
