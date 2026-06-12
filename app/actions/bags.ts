@@ -7,7 +7,7 @@ import { createAuditLog } from "@/lib/audit/audit-log";
 import { getServerAuthContext } from "@/lib/auth/server";
 import { type Role } from "@/lib/auth/roles";
 import type { BagOperationType } from "@/lib/db/types";
-import { createDailySnapshot, annullBagOperation, getAssignedBagIdsForUser, processBagOperation } from "@/lib/bags/bag-service";
+import { annulInternalBagTransfer, createDailySnapshot, annullBagOperation, createInternalBagTransfer, getAssignedBagIdsForUser, processBagOperation } from "@/lib/bags/bag-service";
 import { bagOperationTypes } from "@/lib/bags/bag-calculations";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -209,6 +209,67 @@ export async function createBagSnapshotAction(_prevState: ActionState, formData:
   return { ok: true, message: "Cierre diario guardado." };
 }
 
+export async function createInternalBagTransferAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const auth = await getServerAuthContext(cookies());
+  if (!auth || !canOperate(auth.role)) {
+    return { ok: false, message: "No tenes permiso para vender a otra bolsa." };
+  }
+
+  const originBagId = getString(formData, "origin_bag_id");
+  const destinationBagId = getString(formData, "destination_bag_id");
+  const amountUsd = getNumber(formData, "amount_usd");
+  const internalRateArs = getNumber(formData, "internal_rate_ars");
+  const destinationPaymentSource = getString(formData, "destination_payment_source") as "efectivo" | "cuenta" | "";
+  const originReceiveDestination = getString(formData, "origin_receive_destination") as "efectivo" | "cuenta" | "";
+  const reason = getString(formData, "reason");
+  const note = getString(formData, "note");
+
+  if (!originBagId || !destinationBagId) {
+    return { ok: false, message: "Elegí bolsa origen y bolsa destino." };
+  }
+
+  if (auth.role === "cajero") {
+    const assignedBagIds = await getAssignedBagIdsForUser(auth.userId);
+    if (!assignedBagIds.includes(originBagId)) {
+      return { ok: false, message: "Como cajero solo podes vender desde tu bolsa asignada." };
+    }
+  }
+
+  if (destinationPaymentSource !== "efectivo" && destinationPaymentSource !== "cuenta") {
+    return { ok: false, message: "Elegí desde dónde paga la bolsa destino." };
+  }
+
+  if (originReceiveDestination !== "efectivo" && originReceiveDestination !== "cuenta") {
+    return { ok: false, message: "Elegí dónde recibe pesos la bolsa origen." };
+  }
+
+  const result = await createInternalBagTransfer({
+    actorId: auth.userId,
+    originBagId,
+    destinationBagId,
+    amountUsd,
+    internalRateArs,
+    destinationPaymentSource,
+    originReceiveDestination,
+    reason,
+    note
+  });
+
+  if (!result.ok) {
+    return { ok: false, message: result.message ?? "No se pudo guardar la venta interna." };
+  }
+
+  revalidatePath("/bolsas");
+  revalidatePath(`/bolsas/${originBagId}`);
+  revalidatePath(`/bolsas/${destinationBagId}`);
+  revalidatePath("/dashboard");
+
+  return {
+    ok: true,
+    message: result.message
+  };
+}
+
 export async function annulBagOperationAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await getServerAuthContext(cookies());
   if (!auth || !canManage(auth.role)) {
@@ -240,4 +301,68 @@ export async function annulBagOperationAction(_prevState: ActionState, formData:
   revalidatePath(`/bolsas/${bagId}`);
   revalidatePath("/dashboard");
   return { ok: true, message: "Operacion anulada." };
+}
+
+export async function annulInternalBagTransferAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const auth = await getServerAuthContext(cookies());
+  if (!auth || !canManage(auth.role)) {
+    return { ok: false, message: "No tenes permiso para anular ventas internas." };
+  }
+
+  const transferId = getString(formData, "internal_transfer_id");
+  const reason = getString(formData, "reason");
+  const note = getString(formData, "note");
+
+  if (!transferId || !reason || !note) {
+    return { ok: false, message: "Falta transferencia, motivo o nota." };
+  }
+
+  const result = await annulInternalBagTransfer({
+    transferId,
+    actorId: auth.userId,
+    reason,
+    note
+  });
+
+  if (!result.ok) {
+    return { ok: false, message: result.message ?? "No se pudo anular la venta interna." };
+  }
+
+  revalidatePath("/bolsas");
+  if (result.originBagId) revalidatePath(`/bolsas/${result.originBagId}`);
+  if (result.destinationBagId) revalidatePath(`/bolsas/${result.destinationBagId}`);
+  revalidatePath("/dashboard");
+
+  return { ok: true, message: result.message };
+}
+
+export async function annulInternalBagTransferFormAction(formData: FormData) {
+  const auth = await getServerAuthContext(cookies());
+  if (!auth || !canManage(auth.role)) {
+    throw new Error("No tenes permiso para anular ventas internas.");
+  }
+
+  const transferId = getString(formData, "internal_transfer_id");
+  const reason = getString(formData, "reason");
+  const note = getString(formData, "note");
+
+  if (!transferId || !reason || !note) {
+    throw new Error("Falta transferencia, motivo o nota.");
+  }
+
+  const result = await annulInternalBagTransfer({
+    transferId,
+    actorId: auth.userId,
+    reason,
+    note
+  });
+
+  if (!result.ok) {
+    throw new Error(result.message ?? "No se pudo anular la venta interna.");
+  }
+
+  revalidatePath("/bolsas");
+  if (result.originBagId) revalidatePath(`/bolsas/${result.originBagId}`);
+  if (result.destinationBagId) revalidatePath(`/bolsas/${result.destinationBagId}`);
+  revalidatePath("/dashboard");
 }

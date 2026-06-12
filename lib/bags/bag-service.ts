@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 
 import { createAuditLog } from "@/lib/audit/audit-log";
-import type { Bag, BagDailySnapshot, BagOperation, BagOperationType, Note } from "@/lib/db/types";
+import type { Bag, BagDailySnapshot, BagInternalTransfer, BagOperation, BagOperationType, Note } from "@/lib/db/types";
 import { getOperationalConfigData } from "@/lib/operations/operational-data";
 import { getDefaultBagOpeningBalances, seedBags } from "@/lib/operations/seed-data";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
@@ -13,6 +13,10 @@ export type BagOverview = Bag & {
   estimated_total_ars: number;
   difference_ars: number;
   last_updated: string | null;
+};
+
+export type InternalTransferBagOption = BagOverview & {
+  display_label: string;
 };
 
 export type BagDetail = {
@@ -29,6 +33,26 @@ export type BagDetail = {
 function asNumber(value: unknown) {
   const numeric = Number(value ?? 0);
   return Number.isFinite(numeric) ? numeric : 0;
+}
+
+const defaultBagResponsibleBySlug: Record<string, string> = {
+  "bolsa-1": "Lourdes",
+  "bolsa-2": "Victoria",
+  "bolsa-3": "Antonella",
+  "bolsa-4": "Román",
+  "bolsa-5": "Rocío"
+};
+
+const bagSortOrderBySlug: Record<string, number> = {
+  "bolsa-1": 1,
+  "bolsa-2": 2,
+  "bolsa-3": 3,
+  "bolsa-4": 4,
+  "bolsa-5": 5
+};
+
+export function getBagDisplayLabel(bag: Pick<BagOverview, "name" | "slug" | "responsible_name">) {
+  return `${bag.name} — ${bag.responsible_name ?? defaultBagResponsibleBySlug[bag.slug] ?? "Sin responsable"}`;
 }
 
 function mapBagRow(row: Record<string, any>): Bag {
@@ -84,11 +108,25 @@ function parseOperationNote(note: Note): BagOperation | null {
       updated_at: parsed.updated_at ?? note.updated_at,
       annulled_at: parsed.annulled_at ?? note.annulled_at,
       annulled_by: parsed.annulled_by ?? note.annulled_by,
-      annulment_reason: parsed.annulment_reason ?? note.annul_reason
+      annulment_reason: parsed.annulment_reason ?? note.annul_reason,
+      internal_transfer_id: parsed.internal_transfer_id ?? null,
+      related_operation_id: parsed.related_operation_id ?? null,
+      is_internal: Boolean(parsed.is_internal ?? false),
+      affects_profit: parsed.affects_profit ?? true
     };
   } catch {
     return null;
   }
+}
+
+export async function getInternalTransferBagOptions() {
+  const bags = await getBagsOverview();
+  return [...bags]
+    .sort((left, right) => (bagSortOrderBySlug[left.slug] ?? 999) - (bagSortOrderBySlug[right.slug] ?? 999))
+    .map((bag) => ({
+      ...bag,
+      display_label: getBagDisplayLabel(bag)
+    })) satisfies InternalTransferBagOption[];
 }
 
 export async function getBagsOverview() {
@@ -161,7 +199,7 @@ export async function getBagDetail(bagId: string): Promise<BagDetail | null> {
       .select("id,name,slug,base_limit_ars,current_cash_ars,current_account_ars,current_usd,borrowed_ars,average_usd_cost,accumulated_profit_ars,status,created_at,updated_at")
       .eq("id", bagId)
       .maybeSingle(),
-    admin.from("bag_operations").select("*").eq("bag_id", bagId).order("created_at", { ascending: false }).limit(30),
+    admin.from("bag_operations").select("*").eq("bag_id", bagId).order("created_at", { ascending: false }).limit(100),
     admin.from("bag_daily_snapshots").select("*").eq("bag_id", bagId).order("date", { ascending: false }).limit(14),
     admin.from("notes").select("*").eq("entity_type", "bag").eq("entity_id", bagId).order("created_at", { ascending: false }).limit(20),
     admin.from("notes").select("*").eq("entity_type", "bag_operation").eq("entity_id", bagId).order("created_at", { ascending: false }).limit(30)
@@ -223,6 +261,558 @@ export async function getAssignedBagIdsForUser(userId: string) {
   }
 
   return (data ?? []).map((row: { bag_id: string }) => row.bag_id);
+}
+
+function bagStatusFromBagState(bag: Pick<Bag, "current_cash_ars" | "current_account_ars" | "current_usd" | "borrowed_ars" | "average_usd_cost" | "base_limit_ars">) {
+  const estimated = estimateTotal(bag, Number(bag.average_usd_cost ?? 0) || 0);
+  return bagStatusFromDifference(estimated - Number(bag.base_limit_ars), true) as Bag["status"];
+}
+
+export type InternalBagTransferInput = {
+  originBagId: string;
+  destinationBagId: string;
+  amountUsd: number;
+  internalRateArs: number;
+  destinationPaymentSource: "efectivo" | "cuenta";
+  originReceiveDestination: "efectivo" | "cuenta";
+  reason: string;
+  note: string;
+};
+
+export async function createInternalBagTransfer({
+  actorId,
+  originBagId,
+  destinationBagId,
+  amountUsd,
+  internalRateArs,
+  destinationPaymentSource,
+  originReceiveDestination,
+  reason,
+  note
+}: InternalBagTransferInput & { actorId: string }) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return { ok: false, message: "Falta configurar Supabase." };
+
+  if (originBagId === destinationBagId) {
+    return { ok: false, message: "No se puede elegir la misma bolsa como destino." };
+  }
+
+  if (amountUsd <= 0) {
+    return { ok: false, message: "USD a vender debe ser mayor a 0." };
+  }
+
+  if (internalRateArs <= 0) {
+    return { ok: false, message: "Cotizacion interna debe ser mayor a 0." };
+  }
+
+  if (!reason || !note) {
+    return { ok: false, message: "Motivo y nota son obligatorios." };
+  }
+
+  const [{ data: originData, error: originError }, { data: destinationData, error: destinationError }] = await Promise.all([
+    (admin.from("bags") as any).select("*").eq("id", originBagId).maybeSingle(),
+    (admin.from("bags") as any).select("*").eq("id", destinationBagId).maybeSingle()
+  ]);
+
+  if (originError || !originData) return { ok: false, message: "No se pudo encontrar la bolsa origen." };
+  if (destinationError || !destinationData) return { ok: false, message: "No se pudo encontrar la bolsa destino." };
+
+  const origin = mapBagRow(originData);
+  const destination = mapBagRow(destinationData);
+  const totalArs = amountUsd * internalRateArs;
+
+  if (Number(origin.current_usd ?? 0) < amountUsd) {
+    return { ok: false, message: "No hay USD suficientes en la bolsa origen." };
+  }
+
+  const destinationPaymentBalance = destinationPaymentSource === "efectivo" ? Number(destination.current_cash_ars ?? 0) : Number(destination.current_account_ars ?? 0);
+  if (destinationPaymentBalance < totalArs) {
+    return { ok: false, message: "La bolsa destino no tiene saldo suficiente en el origen de pago seleccionado." };
+  }
+
+  const originPrevious = {
+    cash: Number(origin.current_cash_ars ?? 0),
+    account: Number(origin.current_account_ars ?? 0),
+    usd: Number(origin.current_usd ?? 0),
+    borrowed: Number(origin.borrowed_ars ?? 0),
+    average: Number(origin.average_usd_cost ?? 0)
+  };
+  const destinationPrevious = {
+    cash: Number(destination.current_cash_ars ?? 0),
+    account: Number(destination.current_account_ars ?? 0),
+    usd: Number(destination.current_usd ?? 0),
+    borrowed: Number(destination.borrowed_ars ?? 0),
+    average: Number(destination.average_usd_cost ?? 0)
+  };
+
+  const originNext = {
+    cash: originPrevious.cash + (originReceiveDestination === "efectivo" ? totalArs : 0),
+    account: originPrevious.account + (originReceiveDestination === "cuenta" ? totalArs : 0),
+    usd: originPrevious.usd - amountUsd,
+    borrowed: originPrevious.borrowed,
+    average: originPrevious.usd - amountUsd <= 0 ? 0 : originPrevious.average
+  };
+  const destinationNextUsd = destinationPrevious.usd + amountUsd;
+  const destinationNextAverage =
+    destinationNextUsd > 0
+      ? (destinationPrevious.usd * destinationPrevious.average + amountUsd * internalRateArs) / destinationNextUsd
+      : 0;
+  const destinationNext = {
+    cash: destinationPrevious.cash - (destinationPaymentSource === "efectivo" ? totalArs : 0),
+    account: destinationPrevious.account - (destinationPaymentSource === "cuenta" ? totalArs : 0),
+    usd: destinationNextUsd,
+    borrowed: destinationPrevious.borrowed,
+    average: destinationNextAverage
+  };
+
+  const { data: transfer, error: transferError } = await (admin.from("bag_internal_transfers") as any)
+    .insert({
+      origin_bag_id: originBagId,
+      destination_bag_id: destinationBagId,
+      amount_usd: amountUsd,
+      internal_rate_ars: internalRateArs,
+      total_ars: totalArs,
+      destination_payment_source: destinationPaymentSource,
+      origin_receive_destination: originReceiveDestination,
+      reason,
+      note,
+      status: "confirmada",
+      created_by: actorId
+    })
+    .select("*")
+    .single();
+
+  if (transferError || !transfer) {
+    return { ok: false, message: `No se pudo crear la transferencia interna: ${transferError?.message ?? "error desconocido"}` };
+  }
+
+  const transferId = transfer.id as string;
+  const originLabel = getBagDisplayLabel({ ...origin, responsible_name: null });
+  const destinationLabel = getBagDisplayLabel({ ...destination, responsible_name: null });
+
+  const originOperationPayload = {
+    bag_id: originBagId,
+    operation_type: "venta_interna_bolsa",
+    amount_usd: amountUsd,
+    rate_ars: internalRateArs,
+    total_ars: totalArs,
+    money_source: null,
+    money_destination: originReceiveDestination,
+    profit_ars: 0,
+    previous_cash_ars: originPrevious.cash,
+    previous_account_ars: originPrevious.account,
+    previous_usd: originPrevious.usd,
+    previous_borrowed_ars: originPrevious.borrowed,
+    new_cash_ars: originNext.cash,
+    new_account_ars: originNext.account,
+    new_usd: originNext.usd,
+    new_borrowed_ars: originNext.borrowed,
+    notes: `Venta interna a ${destinationLabel}. ${note}`,
+    status: "confirmada",
+    created_by: actorId,
+    internal_transfer_id: transferId,
+    is_internal: true,
+    affects_profit: false
+  };
+  const destinationOperationPayload = {
+    bag_id: destinationBagId,
+    operation_type: "compra_interna_bolsa",
+    amount_usd: amountUsd,
+    rate_ars: internalRateArs,
+    total_ars: totalArs,
+    money_source: destinationPaymentSource,
+    money_destination: null,
+    profit_ars: 0,
+    previous_cash_ars: destinationPrevious.cash,
+    previous_account_ars: destinationPrevious.account,
+    previous_usd: destinationPrevious.usd,
+    previous_borrowed_ars: destinationPrevious.borrowed,
+    new_cash_ars: destinationNext.cash,
+    new_account_ars: destinationNext.account,
+    new_usd: destinationNext.usd,
+    new_borrowed_ars: destinationNext.borrowed,
+    notes: `Compra interna desde ${originLabel}. ${note}`,
+    status: "confirmada",
+    created_by: actorId,
+    internal_transfer_id: transferId,
+    is_internal: true,
+    affects_profit: false
+  };
+
+  const [{ data: originOperation, error: originOperationError }, { data: destinationOperation, error: destinationOperationError }] = await Promise.all([
+    (admin.from("bag_operations") as any).insert(originOperationPayload).select("*").single(),
+    (admin.from("bag_operations") as any).insert(destinationOperationPayload).select("*").single()
+  ]);
+
+  if (originOperationError || destinationOperationError || !originOperation || !destinationOperation) {
+    return { ok: false, message: `No se pudieron crear las operaciones internas: ${originOperationError?.message ?? destinationOperationError?.message ?? "error desconocido"}` };
+  }
+
+  await Promise.all([
+    (admin.from("bag_operations") as any).update({ related_operation_id: destinationOperation.id }).eq("id", originOperation.id),
+    (admin.from("bag_operations") as any).update({ related_operation_id: originOperation.id }).eq("id", destinationOperation.id),
+    (admin.from("bag_internal_transfers") as any)
+      .update({
+        origin_operation_id: originOperation.id,
+        destination_operation_id: destinationOperation.id
+      })
+      .eq("id", transferId)
+  ]);
+
+  const originNextBag = {
+    current_cash_ars: originNext.cash,
+    current_account_ars: originNext.account,
+    current_usd: originNext.usd,
+    borrowed_ars: originNext.borrowed,
+    average_usd_cost: originNext.average,
+    status: bagStatusFromBagState({
+      ...origin,
+      current_cash_ars: originNext.cash,
+      current_account_ars: originNext.account,
+      current_usd: originNext.usd,
+      borrowed_ars: originNext.borrowed,
+      average_usd_cost: originNext.average
+    })
+  };
+  const destinationNextBag = {
+    current_cash_ars: destinationNext.cash,
+    current_account_ars: destinationNext.account,
+    current_usd: destinationNext.usd,
+    borrowed_ars: destinationNext.borrowed,
+    average_usd_cost: destinationNext.average,
+    status: bagStatusFromBagState({
+      ...destination,
+      current_cash_ars: destinationNext.cash,
+      current_account_ars: destinationNext.account,
+      current_usd: destinationNext.usd,
+      borrowed_ars: destinationNext.borrowed,
+      average_usd_cost: destinationNext.average
+    })
+  };
+
+  const [{ error: originUpdateError }, { error: destinationUpdateError }] = await Promise.all([
+    (admin.from("bags") as any).update(originNextBag).eq("id", originBagId),
+    (admin.from("bags") as any).update(destinationNextBag).eq("id", destinationBagId)
+  ]);
+
+  if (originUpdateError || destinationUpdateError) {
+    return { ok: false, message: `Se creo la transferencia pero fallo actualizar saldos: ${originUpdateError?.message ?? destinationUpdateError?.message}` };
+  }
+
+  await Promise.all([
+    (admin.from("notes") as any).insert({
+      entity_type: "bag_internal_transfer",
+      entity_id: transferId,
+      entity_label: `Venta interna: ${originLabel} a ${destinationLabel}`,
+      entity_href: `/bolsas/${originBagId}`,
+      title: "Venta interna a otra bolsa",
+      body: note,
+      priority: "normal",
+      status: "abierta",
+      created_by: actorId
+    }),
+    (admin.from("notes") as any).insert({
+      entity_type: "bag",
+      entity_id: originBagId,
+      entity_label: originLabel,
+      entity_href: `/bolsas/${originBagId}`,
+      title: "Venta interna a otra bolsa",
+      body: `${destinationLabel}. ${note}`,
+      priority: "normal",
+      status: "abierta",
+      created_by: actorId
+    }),
+    (admin.from("notes") as any).insert({
+      entity_type: "bag",
+      entity_id: destinationBagId,
+      entity_label: destinationLabel,
+      entity_href: `/bolsas/${destinationBagId}`,
+      title: "Compra interna desde otra bolsa",
+      body: `${originLabel}. ${note}`,
+      priority: "normal",
+      status: "abierta",
+      created_by: actorId
+    }),
+    createAuditLog({
+      actorId,
+      action: "crear_transferencia_interna",
+      entityType: "bag_internal_transfer",
+      entityId: transferId,
+      newData: transfer as Record<string, unknown>,
+      reason
+    }),
+    createAuditLog({
+      actorId,
+      action: "venta_interna_bolsa",
+      entityType: "bag_operation",
+      entityId: originOperation.id,
+      oldData: originPrevious,
+      newData: originNextBag,
+      reason
+    }),
+    createAuditLog({
+      actorId,
+      action: "compra_interna_bolsa",
+      entityType: "bag_operation",
+      entityId: destinationOperation.id,
+      oldData: destinationPrevious,
+      newData: destinationNextBag,
+      reason
+    })
+  ]);
+
+  return {
+    ok: true,
+    message: "Venta interna guardada.",
+    transfer: transfer as BagInternalTransfer,
+    originOperation: originOperation as BagOperation,
+    destinationOperation: destinationOperation as BagOperation
+  };
+}
+
+export async function annulInternalBagTransfer({
+  transferId,
+  actorId,
+  reason,
+  note
+}: {
+  transferId: string;
+  actorId: string;
+  reason: string;
+  note: string;
+}) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return { ok: false, message: "Falta configurar Supabase." };
+
+  if (!reason || !note) {
+    return { ok: false, message: "Motivo y nota son obligatorios." };
+  }
+
+  const { data: transfer, error: transferError } = await (admin.from("bag_internal_transfers") as any)
+    .select("*")
+    .eq("id", transferId)
+    .maybeSingle();
+
+  if (transferError || !transfer) return { ok: false, message: "No se encontro la transferencia interna." };
+  if (transfer.status === "anulada") return { ok: false, message: "La transferencia interna ya estaba anulada." };
+
+  const [{ data: originData }, { data: destinationData }, { data: originOperation }, { data: destinationOperation }] = await Promise.all([
+    (admin.from("bags") as any).select("*").eq("id", transfer.origin_bag_id).maybeSingle(),
+    (admin.from("bags") as any).select("*").eq("id", transfer.destination_bag_id).maybeSingle(),
+    (admin.from("bag_operations") as any).select("*").eq("id", transfer.origin_operation_id).maybeSingle(),
+    (admin.from("bag_operations") as any).select("*").eq("id", transfer.destination_operation_id).maybeSingle()
+  ]);
+
+  if (!originData || !destinationData || !originOperation || !destinationOperation) {
+    return { ok: false, message: "No se pudo cargar la transferencia completa para anular." };
+  }
+
+  const origin = mapBagRow(originData);
+  const destination = mapBagRow(destinationData);
+  const amountUsd = Number(transfer.amount_usd ?? 0);
+  const totalArs = Number(transfer.total_ars ?? 0);
+  const originReceiveDestination = transfer.origin_receive_destination as "efectivo" | "cuenta";
+  const destinationPaymentSource = transfer.destination_payment_source as "efectivo" | "cuenta";
+
+  const originCurrentCash = Number(origin.current_cash_ars ?? 0);
+  const originCurrentAccount = Number(origin.current_account_ars ?? 0);
+  const destinationCurrentUsd = Number(destination.current_usd ?? 0);
+  const originReceiveBalance = originReceiveDestination === "efectivo" ? originCurrentCash : originCurrentAccount;
+
+  if (originReceiveBalance < totalArs) {
+    return { ok: false, message: "La bolsa origen no tiene saldo suficiente para compensar la anulacion." };
+  }
+
+  if (destinationCurrentUsd < amountUsd) {
+    return { ok: false, message: "La bolsa destino no tiene USD suficientes para compensar la anulacion." };
+  }
+
+  const originPrevious = {
+    cash: originCurrentCash,
+    account: originCurrentAccount,
+    usd: Number(origin.current_usd ?? 0),
+    borrowed: Number(origin.borrowed_ars ?? 0),
+    average: Number(origin.average_usd_cost ?? 0)
+  };
+  const destinationPrevious = {
+    cash: Number(destination.current_cash_ars ?? 0),
+    account: Number(destination.current_account_ars ?? 0),
+    usd: destinationCurrentUsd,
+    borrowed: Number(destination.borrowed_ars ?? 0),
+    average: Number(destination.average_usd_cost ?? 0)
+  };
+
+  const restoredOriginUsd = originPrevious.usd + amountUsd;
+  const returnedUsdRate = Number(originOperation.previous_usd ?? 0) > 0
+    ? Number(originData.average_usd_cost ?? origin.average_usd_cost ?? 0)
+    : Number(transfer.internal_rate_ars ?? 0);
+  const originNextAverage = restoredOriginUsd > 0
+    ? (originPrevious.usd * originPrevious.average + amountUsd * returnedUsdRate) / restoredOriginUsd
+    : 0;
+  const destinationNextUsd = destinationPrevious.usd - amountUsd;
+  const destinationNextAverage = destinationNextUsd > 0 ? destinationPrevious.average : 0;
+
+  const originNext = {
+    cash: originPrevious.cash - (originReceiveDestination === "efectivo" ? totalArs : 0),
+    account: originPrevious.account - (originReceiveDestination === "cuenta" ? totalArs : 0),
+    usd: restoredOriginUsd,
+    borrowed: originPrevious.borrowed,
+    average: originNextAverage
+  };
+  const destinationNext = {
+    cash: destinationPrevious.cash + (destinationPaymentSource === "efectivo" ? totalArs : 0),
+    account: destinationPrevious.account + (destinationPaymentSource === "cuenta" ? totalArs : 0),
+    usd: destinationNextUsd,
+    borrowed: destinationPrevious.borrowed,
+    average: destinationNextAverage
+  };
+
+  const originLabel = getBagDisplayLabel({ ...origin, responsible_name: null });
+  const destinationLabel = getBagDisplayLabel({ ...destination, responsible_name: null });
+
+  const [{ data: originCompensation, error: originCompensationError }, { data: destinationCompensation, error: destinationCompensationError }] = await Promise.all([
+    (admin.from("bag_operations") as any).insert({
+      bag_id: transfer.origin_bag_id,
+      operation_type: "anulacion_operacion",
+      amount_usd: amountUsd,
+      rate_ars: Number(transfer.internal_rate_ars ?? 0),
+      total_ars: totalArs,
+      money_source: originReceiveDestination,
+      money_destination: null,
+      profit_ars: 0,
+      previous_cash_ars: originPrevious.cash,
+      previous_account_ars: originPrevious.account,
+      previous_usd: originPrevious.usd,
+      previous_borrowed_ars: originPrevious.borrowed,
+      new_cash_ars: originNext.cash,
+      new_account_ars: originNext.account,
+      new_usd: originNext.usd,
+      new_borrowed_ars: originNext.borrowed,
+      notes: `Compensacion por anulacion de venta interna a ${destinationLabel}. ${note}`,
+      status: "confirmada",
+      created_by: actorId,
+      internal_transfer_id: transferId,
+      related_operation_id: transfer.origin_operation_id,
+      is_internal: true,
+      affects_profit: false
+    }).select("*").single(),
+    (admin.from("bag_operations") as any).insert({
+      bag_id: transfer.destination_bag_id,
+      operation_type: "anulacion_operacion",
+      amount_usd: amountUsd,
+      rate_ars: Number(transfer.internal_rate_ars ?? 0),
+      total_ars: totalArs,
+      money_source: null,
+      money_destination: destinationPaymentSource,
+      profit_ars: 0,
+      previous_cash_ars: destinationPrevious.cash,
+      previous_account_ars: destinationPrevious.account,
+      previous_usd: destinationPrevious.usd,
+      previous_borrowed_ars: destinationPrevious.borrowed,
+      new_cash_ars: destinationNext.cash,
+      new_account_ars: destinationNext.account,
+      new_usd: destinationNext.usd,
+      new_borrowed_ars: destinationNext.borrowed,
+      notes: `Compensacion por anulacion de compra interna desde ${originLabel}. ${note}`,
+      status: "confirmada",
+      created_by: actorId,
+      internal_transfer_id: transferId,
+      related_operation_id: transfer.destination_operation_id,
+      is_internal: true,
+      affects_profit: false
+    }).select("*").single()
+  ]);
+
+  if (originCompensationError || destinationCompensationError || !originCompensation || !destinationCompensation) {
+    return { ok: false, message: `No se pudieron crear operaciones compensatorias: ${originCompensationError?.message ?? destinationCompensationError?.message ?? "error desconocido"}` };
+  }
+
+  const originNextBag = {
+    current_cash_ars: originNext.cash,
+    current_account_ars: originNext.account,
+    current_usd: originNext.usd,
+    borrowed_ars: originNext.borrowed,
+    average_usd_cost: originNext.average,
+    status: bagStatusFromBagState({ ...origin, current_cash_ars: originNext.cash, current_account_ars: originNext.account, current_usd: originNext.usd, borrowed_ars: originNext.borrowed, average_usd_cost: originNext.average })
+  };
+  const destinationNextBag = {
+    current_cash_ars: destinationNext.cash,
+    current_account_ars: destinationNext.account,
+    current_usd: destinationNext.usd,
+    borrowed_ars: destinationNext.borrowed,
+    average_usd_cost: destinationNext.average,
+    status: bagStatusFromBagState({ ...destination, current_cash_ars: destinationNext.cash, current_account_ars: destinationNext.account, current_usd: destinationNext.usd, borrowed_ars: destinationNext.borrowed, average_usd_cost: destinationNext.average })
+  };
+
+  await Promise.all([
+    (admin.from("bags") as any).update(originNextBag).eq("id", transfer.origin_bag_id),
+    (admin.from("bags") as any).update(destinationNextBag).eq("id", transfer.destination_bag_id),
+    (admin.from("bag_internal_transfers") as any)
+      .update({
+        status: "anulada",
+        annulled_at: new Date().toISOString(),
+        annulled_by: actorId,
+        annulment_reason: reason
+      })
+      .eq("id", transferId),
+    (admin.from("bag_operations") as any)
+      .update({
+        status: "anulada",
+        annulled_at: new Date().toISOString(),
+        annulled_by: actorId,
+        annulment_reason: reason
+      })
+      .in("id", [transfer.origin_operation_id, transfer.destination_operation_id]),
+    (admin.from("notes") as any).insert({
+      entity_type: "bag_internal_transfer",
+      entity_id: transferId,
+      entity_label: `Anulacion venta interna: ${originLabel} a ${destinationLabel}`,
+      entity_href: `/bolsas/${transfer.origin_bag_id}`,
+      title: "Venta interna anulada",
+      body: note,
+      priority: "importante",
+      status: "abierta",
+      created_by: actorId
+    }),
+    (admin.from("notes") as any).insert({
+      entity_type: "bag",
+      entity_id: transfer.origin_bag_id,
+      entity_label: originLabel,
+      entity_href: `/bolsas/${transfer.origin_bag_id}`,
+      title: "Venta interna anulada",
+      body: `${destinationLabel}. ${note}`,
+      priority: "importante",
+      status: "abierta",
+      created_by: actorId
+    }),
+    (admin.from("notes") as any).insert({
+      entity_type: "bag",
+      entity_id: transfer.destination_bag_id,
+      entity_label: destinationLabel,
+      entity_href: `/bolsas/${transfer.destination_bag_id}`,
+      title: "Compra interna anulada",
+      body: `${originLabel}. ${note}`,
+      priority: "importante",
+      status: "abierta",
+      created_by: actorId
+    }),
+    createAuditLog({
+      actorId,
+      action: "anular_transferencia_interna",
+      entityType: "bag_internal_transfer",
+      entityId: transferId,
+      oldData: transfer as Record<string, unknown>,
+      newData: { status: "anulada", reason, originCompensationId: originCompensation.id, destinationCompensationId: destinationCompensation.id },
+      reason
+    })
+  ]);
+
+  return {
+    ok: true,
+    message: "Venta interna anulada.",
+    originBagId: transfer.origin_bag_id as string,
+    destinationBagId: transfer.destination_bag_id as string
+  };
 }
 
 export type BagOperationInput = {

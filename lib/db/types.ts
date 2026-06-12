@@ -48,6 +48,7 @@ export type BagAssignment = {
 export type NoteEntityType =
   | "bag"
   | "bag_operation"
+  | "bag_internal_transfer"
   | "cash_register"
   | "cash_daily_report"
   | "daily_report"
@@ -94,6 +95,8 @@ export type AuditLog = {
 export type BagOperationType =
   | "compra_usd"
   | "venta_usd"
+  | "venta_interna_bolsa"
+  | "compra_interna_bolsa"
   | "ingreso_pesos_efectivo"
   | "egreso_pesos_efectivo"
   | "ingreso_pesos_cuenta"
@@ -124,6 +127,32 @@ export type BagOperation = {
   new_borrowed_ars: number;
   notes: string | null;
   status: "confirmada" | "revisar" | "anulada";
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  annulled_at: string | null;
+  annulled_by: string | null;
+  annulment_reason: string | null;
+  internal_transfer_id?: string | null;
+  related_operation_id?: string | null;
+  is_internal?: boolean;
+  affects_profit?: boolean;
+};
+
+export type BagInternalTransfer = {
+  id: string;
+  origin_bag_id: string;
+  destination_bag_id: string;
+  origin_operation_id: string | null;
+  destination_operation_id: string | null;
+  amount_usd: number;
+  internal_rate_ars: number;
+  total_ars: number;
+  destination_payment_source: "efectivo" | "cuenta";
+  origin_receive_destination: "efectivo" | "cuenta";
+  reason: string;
+  note: string;
+  status: "confirmada" | "anulada";
   created_by: string | null;
   created_at: string;
   updated_at: string;

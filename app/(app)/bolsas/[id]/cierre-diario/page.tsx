@@ -14,15 +14,16 @@ import { getAssignedBagIdsForUser, getBagDetail, getBagByIdOrSeed } from "@/lib/
 import { formatArs } from "@/lib/operations/seed-data";
 import { formatUsd } from "@/lib/bags/bag-calculations";
 
-export default async function CierreDiarioPage({ params }: { params: { id: string } }) {
+export default async function CierreDiarioPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await getServerAuthContext(cookies());
   const assignedBagIds = auth?.role === "cajero" ? await getAssignedBagIdsForUser(auth.userId) : [];
-  if (auth?.role === "cajero" && !assignedBagIds.includes(params.id)) {
+  if (auth?.role === "cajero" && !assignedBagIds.includes(id)) {
     return <AccessDenied />;
   }
 
-  const detail = await getBagDetail(params.id);
-  const bag = detail?.bag ?? (await getBagByIdOrSeed(params.id));
+  const detail = await getBagDetail(id);
+  const bag = detail?.bag ?? (await getBagByIdOrSeed(id));
 
   if (!bag) {
     return <EmptyState description="No se encontro la bolsa para cerrar." title="Bolsa no encontrada" />;

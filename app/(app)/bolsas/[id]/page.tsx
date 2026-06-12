@@ -14,16 +14,18 @@ import { getAssignedBagIdsForUser, getBagDetail, getBagByIdOrSeed } from "@/lib/
 import { formatUsd } from "@/lib/bags/bag-calculations";
 import { formatArs, getDefaultBagOpeningBalances } from "@/lib/operations/seed-data";
 
-export default async function BolsaDetallePage({ params }: { params: { id: string } }) {
+export default async function BolsaDetallePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await getServerAuthContext(cookies());
   const isCashier = auth?.role === "cajero";
+  const canManageInternalTransfers = auth?.role === "admin" || auth?.role === "encargado";
   const assignedBagIds = auth?.role === "cajero" ? await getAssignedBagIdsForUser(auth.userId) : [];
-  if (isCashier && !assignedBagIds.includes(params.id)) {
+  if (isCashier && !assignedBagIds.includes(id)) {
     return <AccessDenied />;
   }
 
-  const detail = await getBagDetail(params.id);
-  const bag = detail?.bag ?? (await getBagByIdOrSeed(params.id));
+  const detail = await getBagDetail(id);
+  const bag = detail?.bag ?? (await getBagByIdOrSeed(id));
 
   if (!bag) {
     return <EmptyState description="No se encontro la bolsa solicitada." title="Bolsa no encontrada" />;
@@ -106,6 +108,12 @@ export default async function BolsaDetallePage({ params }: { params: { id: strin
         <Button asChild>
           <Link href={`/bolsas/nueva-operacion?bagId=${bag.id}`}>Nueva operacion</Link>
         </Button>
+        {!isCashier ? <Button asChild variant="outline">
+          <Link href={`/bolsas/nueva-operacion?bagId=${bag.id}`}>Crear ajuste</Link>
+        </Button> : null}
+        <Button asChild variant="secondary">
+          <Link href={`/bolsas/${bag.id}/vender-a-bolsa`}>Vender a otra bolsa</Link>
+        </Button>
         {!isCashier ? <Button asChild variant="secondary">
           <Link href={`/bolsas/${bag.id}/cierre-diario`}>Cierre diario</Link>
         </Button> : null}
@@ -114,9 +122,11 @@ export default async function BolsaDetallePage({ params }: { params: { id: strin
         </Button> : null}
       </div>
 
-      <DataCard description="Historial de movimientos cargados en esta bolsa." title="Operaciones">
-        {detail ? <BagOperationsTable bagId={bag.id} operations={detail.operations} /> : <EmptyState description="Aun no hay movimientos registrados." title="Sin operaciones" />}
-      </DataCard>
+      <section id="historial" className="scroll-mt-24">
+        <DataCard description="Movimientos confirmados de esta bolsa con saldo anterior, saldo nuevo, origen, destino y notas." title="Historial de la bolsa">
+          {detail ? <BagOperationsTable bagId={bag.id} canManageInternalTransfers={canManageInternalTransfers} operations={detail.operations} /> : <EmptyState description="Aun no hay movimientos registrados." title="Sin operaciones" />}
+        </DataCard>
+      </section>
 
       <NotesPanel
         description="Notas abiertas, importantes, urgentes y resueltas para esta bolsa."
