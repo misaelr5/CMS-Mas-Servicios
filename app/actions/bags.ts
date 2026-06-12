@@ -7,7 +7,7 @@ import { createAuditLog } from "@/lib/audit/audit-log";
 import { getServerAuthContext } from "@/lib/auth/server";
 import { type Role } from "@/lib/auth/roles";
 import type { BagOperationType } from "@/lib/db/types";
-import { createDailySnapshot, annullBagOperation, processBagOperation } from "@/lib/bags/bag-service";
+import { createDailySnapshot, annullBagOperation, getAssignedBagIdsForUser, processBagOperation } from "@/lib/bags/bag-service";
 import { bagOperationTypes } from "@/lib/bags/bag-calculations";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -104,21 +104,8 @@ export async function createBagOperationAction(_prevState: ActionState, formData
   }
 
   if (auth.role === "cajero") {
-    const admin = getSupabaseAdminClient();
-    if (!admin) {
-      return { ok: false, message: "Falta configurar Supabase." };
-    }
-
-    const { data: bagData, error: bagError } = await (admin.from("bags") as any)
-      .select("id,responsible_user_id")
-      .eq("id", bagId)
-      .maybeSingle();
-
-    if (bagError || !bagData) {
-      return { ok: false, message: "No se pudo encontrar la bolsa seleccionada." };
-    }
-
-    if (bagData.responsible_user_id !== auth.userId) {
+    const assignedBagIds = await getAssignedBagIdsForUser(auth.userId);
+    if (!assignedBagIds.includes(bagId)) {
       return { ok: false, message: "Como cajero solo podes operar tu bolsa asignada." };
     }
   }

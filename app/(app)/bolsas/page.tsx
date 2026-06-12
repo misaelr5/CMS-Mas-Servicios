@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 
 import { DataCard } from "@/components/data-card";
 import { EmptyState } from "@/components/empty-state";
@@ -6,14 +7,18 @@ import { SectionTitle } from "@/components/section-title";
 import { StatCard } from "@/components/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getBagsOverview } from "@/lib/bags/bag-service";
+import { getServerAuthContext } from "@/lib/auth/server";
+import { getAssignedBagIdsForUser, getBagsOverview } from "@/lib/bags/bag-service";
 import { formatUsd } from "@/lib/bags/bag-calculations";
 import { formatArs } from "@/lib/operations/seed-data";
 
 export default async function BolsasPage() {
+  const auth = await getServerAuthContext(cookies());
   const bags = await getBagsOverview();
+  const assignedBagIds = auth?.role === "cajero" ? await getAssignedBagIdsForUser(auth.userId) : [];
+  const visibleBags = auth?.role === "cajero" ? bags.filter((bag) => assignedBagIds.includes(bag.id)) : bags;
 
-  const totals = bags.reduce(
+  const totals = visibleBags.reduce(
     (acc, bag) => {
       acc.cash += Number(bag.current_cash_ars ?? 0);
       acc.account += Number(bag.current_account_ars ?? 0);
@@ -27,12 +32,14 @@ export default async function BolsasPage() {
     { cash: 0, account: 0, usd: 0, borrowed: 0, profit: 0, ok: 0, review: 0 }
   );
 
+  const isCashier = auth?.role === "cajero";
+
   return (
     <div className="space-y-6">
       <SectionTitle
-        description="Control operativo de las cinco bolsas de divisas con saldos, diferencias y acceso a movimientos."
+        description={isCashier ? "Vista limitada a la bolsa asignada. Sin paneo general." : "Control operativo de las cinco bolsas de divisas con saldos, diferencias y acceso a movimientos."}
         title="Bolsas de divisas"
-        rightSlot={<Badge variant="outline">{bags.length} bolsas</Badge>}
+        rightSlot={<Badge variant="outline">{visibleBags.length} bolsas</Badge>}
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
@@ -45,12 +52,8 @@ export default async function BolsasPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        {bags.map((bag) => (
-          <DataCard
-            key={bag.id}
-            description={`Responsable: ${bag.responsible_name ?? "Sin asignar"}`}
-            title={bag.name}
-          >
+        {visibleBags.map((bag) => (
+          <DataCard key={bag.id} description={`Responsable: ${bag.responsible_name ?? "Sin asignar"}`} title={bag.name}>
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
@@ -98,8 +101,11 @@ export default async function BolsasPage() {
         ))}
       </div>
 
-      {bags.length === 0 ? (
-        <EmptyState description="No hay bolsas cargadas." title="Sin bolsas" />
+      {visibleBags.length === 0 ? (
+        <EmptyState
+          description={isCashier ? "No tenes una bolsa asignada para ver." : "No hay bolsas cargadas."}
+          title={isCashier ? "Sin bolsa asignada" : "Sin bolsas"}
+        />
       ) : null}
     </div>
   );

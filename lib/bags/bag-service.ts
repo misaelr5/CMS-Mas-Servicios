@@ -64,20 +64,24 @@ export async function getBagsOverview() {
   }
 
   try {
-    const [bagsResult, profilesResult] = await Promise.all([
+    const [bagsResult, assignmentsResult] = await Promise.all([
       admin
         .from("bags")
-        .select("id,name,slug,base_limit_ars,current_cash_ars,current_account_ars,current_usd,borrowed_ars,average_usd_cost,accumulated_profit_ars,responsible_user_id,status,created_at,updated_at")
+        .select("id,name,slug,base_limit_ars,current_cash_ars,current_account_ars,current_usd,borrowed_ars,average_usd_cost,accumulated_profit_ars,status,created_at,updated_at")
         .order("name"),
-      admin.from("profiles").select("id, full_name")
+      admin.from("bag_assignments").select("bag_id,user_id,status,profiles(full_name)").eq("status", "active")
     ]);
 
-    if (bagsResult.error || profilesResult.error) {
-      throw bagsResult.error ?? profilesResult.error;
+    if (bagsResult.error || assignmentsResult.error) {
+      throw bagsResult.error ?? assignmentsResult.error;
     }
 
-    const profileMap = new Map<string, string>();
-    (profilesResult.data ?? []).forEach((row: any) => profileMap.set(row.id, row.full_name ?? "Usuario"));
+    const assignmentMap = new Map<string, string>();
+    (assignmentsResult.data ?? []).forEach((row: any) => {
+      if (!assignmentMap.has(row.bag_id)) {
+        assignmentMap.set(row.bag_id, row.profiles?.full_name ?? "Usuario");
+      }
+    });
 
     const bags = (bagsResult.data ?? []).map((row: any) => mapBagRow(row));
     return bags.map((bag) => {
@@ -86,7 +90,7 @@ export async function getBagsOverview() {
       return {
         ...bag,
         branch_name: null,
-        responsible_name: bag.responsible_user_id ? profileMap.get(bag.responsible_user_id) ?? null : null,
+        responsible_name: assignmentMap.get(bag.id) ?? null,
         estimated_total_ars: estimatedTotal,
         difference_ars: difference,
         last_updated: bag.updated_at ?? null
@@ -111,7 +115,7 @@ export async function getBagDetail(bagId: string): Promise<BagDetail | null> {
   const [{ data: bagData, error: bagError }, { data: operationsData, error: operationsError }, { data: snapshotsData, error: snapshotsError }, { data: notesData, error: notesError }] = await Promise.all([
     admin
       .from("bags")
-      .select("id,name,slug,base_limit_ars,current_cash_ars,current_account_ars,current_usd,borrowed_ars,average_usd_cost,accumulated_profit_ars,responsible_user_id,status,created_at,updated_at")
+      .select("id,name,slug,base_limit_ars,current_cash_ars,current_account_ars,current_usd,borrowed_ars,average_usd_cost,accumulated_profit_ars,status,created_at,updated_at")
       .eq("id", bagId)
       .maybeSingle(),
     admin
@@ -153,6 +157,23 @@ export async function getBagByIdOrSeed(bagId: string) {
   const detail = await getBagDetail(bagId);
   if (detail) return detail.bag;
   return seedBags.find((bag) => bag.id === bagId) ?? null;
+}
+
+export async function getAssignedBagIdsForUser(userId: string) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return [] as string[];
+
+  const { data, error } = await admin
+    .from("bag_assignments")
+    .select("bag_id")
+    .eq("user_id", userId)
+    .eq("status", "active");
+
+  if (error) {
+    return [] as string[];
+  }
+
+  return (data ?? []).map((row: { bag_id: string }) => row.bag_id);
 }
 
 export type BagOperationInput = {

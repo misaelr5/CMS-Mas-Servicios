@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getServerAuthContext } from "@/lib/auth/server";
+import { getAssignedBagIdsForUser } from "@/lib/bags/bag-service";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
 function csvEscape(value: unknown) {
@@ -19,6 +20,10 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   }
 
   const { id } = await params;
+  const assignedBagIds = auth.role === "cajero" ? await getAssignedBagIdsForUser(auth.userId) : [];
+  if (auth.role === "cajero" && !assignedBagIds.includes(id)) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
 
   const admin = getSupabaseAdminClient();
   if (!admin) {

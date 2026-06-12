@@ -6,6 +6,7 @@ import { DataCard } from "@/components/data-card";
 import { EmptyState } from "@/components/empty-state";
 import { SectionTitle } from "@/components/section-title";
 import { getBagsOverview } from "@/lib/bags/bag-service";
+import { getAssignedBagIdsForUser } from "@/lib/bags/bag-service";
 import { getServerAuthContext } from "@/lib/auth/server";
 import { Button } from "@/components/ui/button";
 
@@ -16,7 +17,8 @@ export default async function NuevaOperacionPage({
 }) {
   const auth = await getServerAuthContext(cookies());
   const bags = await getBagsOverview();
-  const assignedBags = auth?.role === "cajero" ? bags.filter((bag) => bag.responsible_user_id === auth.userId) : bags;
+  const assignedBagIds = auth?.role === "cajero" ? await getAssignedBagIdsForUser(auth.userId) : [];
+  const assignedBags = auth?.role === "cajero" ? bags.filter((bag) => assignedBagIds.includes(bag.id)) : bags;
   const lockedBag = auth?.role === "cajero" ? assignedBags[0] ?? null : null;
   const defaultBagId = lockedBag?.id ?? searchParams?.bagId;
 

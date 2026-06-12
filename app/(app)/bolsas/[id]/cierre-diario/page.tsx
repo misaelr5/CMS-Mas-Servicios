@@ -1,17 +1,26 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 
 import { NotesPanel } from "@/components/notes/notes-panel";
+import { AccessDenied } from "@/components/access-denied";
 import { BagCloseForm } from "@/components/bags/bag-close-form";
 import { SectionTitle } from "@/components/section-title";
 import { DataCard } from "@/components/data-card";
 import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getBagDetail, getBagByIdOrSeed } from "@/lib/bags/bag-service";
+import { getServerAuthContext } from "@/lib/auth/server";
+import { getAssignedBagIdsForUser, getBagDetail, getBagByIdOrSeed } from "@/lib/bags/bag-service";
 import { formatArs } from "@/lib/operations/seed-data";
 import { formatUsd } from "@/lib/bags/bag-calculations";
 
 export default async function CierreDiarioPage({ params }: { params: { id: string } }) {
+  const auth = await getServerAuthContext(cookies());
+  const assignedBagIds = auth?.role === "cajero" ? await getAssignedBagIdsForUser(auth.userId) : [];
+  if (auth?.role === "cajero" && !assignedBagIds.includes(params.id)) {
+    return <AccessDenied />;
+  }
+
   const detail = await getBagDetail(params.id);
   const bag = detail?.bag ?? (await getBagByIdOrSeed(params.id));
 

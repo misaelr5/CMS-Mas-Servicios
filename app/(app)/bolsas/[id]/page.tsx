@@ -1,17 +1,26 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 
 import { NotesPanel } from "@/components/notes/notes-panel";
 import { BagOperationsTable } from "@/components/bags/bag-operations-table";
+import { AccessDenied } from "@/components/access-denied";
 import { SectionTitle } from "@/components/section-title";
 import { DataCard } from "@/components/data-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
-import { getBagDetail, getBagByIdOrSeed } from "@/lib/bags/bag-service";
+import { getServerAuthContext } from "@/lib/auth/server";
+import { getAssignedBagIdsForUser, getBagDetail, getBagByIdOrSeed } from "@/lib/bags/bag-service";
 import { formatUsd } from "@/lib/bags/bag-calculations";
 import { formatArs } from "@/lib/operations/seed-data";
 
 export default async function BolsaDetallePage({ params }: { params: { id: string } }) {
+  const auth = await getServerAuthContext(cookies());
+  const assignedBagIds = auth?.role === "cajero" ? await getAssignedBagIdsForUser(auth.userId) : [];
+  if (auth?.role === "cajero" && !assignedBagIds.includes(params.id)) {
+    return <AccessDenied />;
+  }
+
   const detail = await getBagDetail(params.id);
   const bag = detail?.bag ?? (await getBagByIdOrSeed(params.id));
 
