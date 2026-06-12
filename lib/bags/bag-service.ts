@@ -250,17 +250,17 @@ export async function getAssignedBagIdsForUser(userId: string) {
   const admin = getSupabaseAdminClient();
   if (!admin) return [] as string[];
 
-  const { data, error } = await admin
-    .from("bag_assignments")
-    .select("bag_id")
-    .eq("user_id", userId)
-    .eq("status", "active");
+  const [{ data: assignmentData, error: assignmentError }, { data: responsibleData, error: responsibleError }] = await Promise.all([
+    admin.from("bag_assignments").select("bag_id").eq("user_id", userId).eq("status", "active"),
+    admin.from("bags").select("id").eq("responsible_user_id", userId)
+  ]);
 
-  if (error) {
-    return [] as string[];
-  }
+  if (assignmentError && responsibleError) return [] as string[];
 
-  return (data ?? []).map((row: { bag_id: string }) => row.bag_id);
+  const assignmentIds = (assignmentData ?? []).map((row: { bag_id: string }) => row.bag_id);
+  const responsibleIds = (responsibleData ?? []).map((row: { id: string }) => row.id);
+
+  return [...new Set([...assignmentIds, ...responsibleIds])];
 }
 
 function bagStatusFromBagState(bag: Pick<Bag, "current_cash_ars" | "current_account_ars" | "current_usd" | "borrowed_ars" | "average_usd_cost" | "base_limit_ars">) {

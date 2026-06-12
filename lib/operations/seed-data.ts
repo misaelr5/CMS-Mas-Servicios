@@ -1,4 +1,4 @@
-import type { Bag, Branch, CashRegister } from "@/lib/db/types";
+import type { Bag, Branch, CashRegister, CashReportCategory } from "@/lib/db/types";
 
 export const seedBranches: Branch[] = [
   {
@@ -20,42 +20,60 @@ export const seedCashRegisters: CashRegister[] = [
     id: "00000000-0000-4000-8000-000000000201",
     branch_id: seedBranches[0].id,
     branch_name: "Centro",
+    register_number: 1,
     name: "Lourdes",
-    slug: "lourdes-centro",
+    slug: "caja-1-lourdes",
     status: "active"
   },
   {
     id: "00000000-0000-4000-8000-000000000202",
     branch_id: seedBranches[0].id,
     branch_name: "Centro",
-    name: "Vicky",
-    slug: "vicky-centro",
+    register_number: 2,
+    name: "Victoria",
+    slug: "caja-2-victoria",
     status: "active"
   },
   {
     id: "00000000-0000-4000-8000-000000000203",
     branch_id: seedBranches[0].id,
     branch_name: "Centro",
-    name: "Antonella manana",
-    slug: "antonella-manana-centro",
+    register_number: 3,
+    name: "Antonella",
+    slug: "caja-3-antonella",
     status: "active"
   },
   {
     id: "00000000-0000-4000-8000-000000000204",
     branch_id: seedBranches[1].id,
     branch_name: "Terminal",
-    name: "Roman",
-    slug: "roman-terminal",
+    register_number: 4,
+    name: "Román",
+    slug: "caja-4-roman",
     status: "active"
   },
   {
     id: "00000000-0000-4000-8000-000000000205",
     branch_id: seedBranches[1].id,
     branch_name: "Terminal",
-    name: "Anto tarde",
-    slug: "anto-tarde-terminal",
+    register_number: 5,
+    name: "Antonella",
+    slug: "caja-5-antonella",
     status: "active"
   }
+];
+
+export const seedCashReportCategories: CashReportCategory[] = [
+  { id: "00000000-0000-4000-8000-000000000401", name: "Envíos internacionales", sort_order: 1, active: true },
+  { id: "00000000-0000-4000-8000-000000000402", name: "Pagos internacionales", sort_order: 2, active: true },
+  { id: "00000000-0000-4000-8000-000000000403", name: "Envíos nacionales", sort_order: 3, active: true },
+  { id: "00000000-0000-4000-8000-000000000404", name: "Pagos nacionales", sort_order: 4, active: true },
+  { id: "00000000-0000-4000-8000-000000000405", name: "Extracciones", sort_order: 5, active: true },
+  { id: "00000000-0000-4000-8000-000000000406", name: "Billetera virtual", sort_order: 6, active: true },
+  { id: "00000000-0000-4000-8000-000000000407", name: "Cobro facturas crédito", sort_order: 7, active: true },
+  { id: "00000000-0000-4000-8000-000000000408", name: "Transferencia x efectivo", sort_order: 8, active: true },
+  { id: "00000000-0000-4000-8000-000000000409", name: "Depósito CBU", sort_order: 9, active: true },
+  { id: "00000000-0000-4000-8000-000000000410", name: "Impresiones / CUS-ISA / tickets", sort_order: 10, active: true }
 ];
 
 export function getDefaultBagOpeningBalances(baseLimitArs: number) {

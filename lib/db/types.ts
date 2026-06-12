@@ -13,11 +13,47 @@ export type CashRegister = {
   id: string;
   branch_id: string;
   branch_name?: string;
+  register_number?: number;
   name: string;
   slug: string;
   status: "active" | "inactive";
+  responsible_user_id?: string | null;
   created_at?: string;
   updated_at?: string;
+};
+
+export type CashReportCategory = {
+  id: string;
+  name: string;
+  sort_order: number;
+  active: boolean;
+  created_at?: string;
+};
+
+export type CashDailyReportStatus = "pendiente" | "parcial" | "cargado" | "revisado";
+
+export type CashDailyReport = {
+  id: string;
+  cash_register_id: string;
+  branch_id: string;
+  report_date: string;
+  total_operated_ars: number;
+  total_profit_ars: number;
+  status: CashDailyReportStatus;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CashDailyReportLine = {
+  id: string;
+  cash_daily_report_id: string;
+  category_id: string;
+  operated_amount_ars: number;
+  profit_amount_ars: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type Bag = {

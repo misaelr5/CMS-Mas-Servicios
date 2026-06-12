@@ -55,6 +55,7 @@ Primero aplicar en Supabase SQL Editor:
 ```bash
 supabase/schema.sql
 supabase/migrations/20260611_operational_notes.sql
+supabase/migrations/20260612_cash_pay_facil.sql
 ```
 
 Despues, con `.env.local` cargado, correr seeds idempotentes:
@@ -67,7 +68,8 @@ pnpm seed:operational
 El seed operativo deja:
 
 - Sucursales: Centro, Terminal.
-- Cajas: Lourdes/Centro, Vicky/Centro, Antonella manana/Centro, Roman/Terminal, Anto tarde/Terminal.
+- Cajas: Caja 1 Lourdes, Caja 2 Victoria, Caja 3 Antonella, Caja 4 Román, Caja 5 Antonella.
+- Categorías Pago Fácil: 10 categorías base.
 - Bolsas: Bolsa 1 a Bolsa 4 con base ARS 2.000.000 y Bolsa 5 con base ARS 5.000.000.
 
 ## Modulo de bolsas
@@ -104,12 +106,40 @@ Validaciones principales:
 - `user_roles`
 - `branches`
 - `cash_registers`
+- `cash_report_categories`
+- `cash_daily_reports`
+- `cash_daily_report_lines`
 - `bags`
 - `bag_assignments`
 - `audit_logs`
 - `notes`
 - `bag_operations`
 - `bag_daily_snapshots`
+
+## Modulo de cajas
+
+Rutas disponibles:
+
+- `/cajas`
+- `/cajas/[id]`
+- `/cajas/[id]/cargar`
+
+Flujo de prueba recomendado:
+
+1. Entrar a `/cajas` con rol admin, encargado o cajero.
+2. Verificar el orden de las 5 cajas.
+3. Abrir una caja y revisar el historial.
+4. Cargar un reporte diario desde `/cajas/[id]/cargar`.
+5. Confirmar que se recalculan total operado y ganancia.
+6. Crear una nota de caja o de reporte y revisar `audit_logs`.
+
+Reglas principales:
+
+- Admin y encargado cargan y revisan todo.
+- Cajero solo carga su caja asignada.
+- Viewer ve solo lectura.
+- Cada carga se guarda por caja y fecha, sin duplicar registros.
+- Las cargas de hoy alimentan el bloque parcial del dashboard.
 
 ## Notas internas
 

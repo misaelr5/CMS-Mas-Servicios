@@ -82,8 +82,25 @@ export default async function ConfiguracionPage() {
           <div className="mt-4 space-y-3">
             {configData.cashRegisters.map((cashRegister) => (
               <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4" key={cashRegister.id}>
-                <p className="font-semibold">{cashRegister.name}</p>
+                <p className="font-semibold">
+                  {cashRegister.register_number ? `Caja ${cashRegister.register_number}` : cashRegister.name} - {cashRegister.name}
+                </p>
                 <p className="text-sm text-mediumGray">Sucursal: {cashRegister.branch_name ?? cashRegister.branch_id}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-border bg-white p-5 text-brandBlack shadow-soft">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="font-heading text-lg font-bold">Categorías Pago Facil</h3>
+            <Badge variant="neutral">{configData.cashReportCategories.length}</Badge>
+          </div>
+          <div className="mt-4 space-y-3">
+            {configData.cashReportCategories.map((category) => (
+              <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4" key={category.id}>
+                <p className="font-semibold">{category.name}</p>
+                <p className="text-sm text-mediumGray">Orden: {category.sort_order}</p>
               </div>
             ))}
           </div>

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { createAuditLog } from "@/lib/audit/audit-log";
 import { getServerAuthContext } from "@/lib/auth/server";
+import { ensureCurrentUserProfile } from "@/lib/auth/profile";
 import { type Role } from "@/lib/auth/roles";
 import type { NoteEntityType, NotePriority } from "@/lib/db/types";
 import { isUuid, normalizePriority } from "@/lib/notes/notes-service";
@@ -45,37 +46,6 @@ function safePath(path: string) {
 function isMissingNotesTableError(error: { message?: string } | null | undefined) {
   const message = error?.message?.toLowerCase() ?? "";
   return message.includes("public.notes") && (message.includes("schema cache") || message.includes("could not find the table"));
-}
-
-function isMissingProfilesTableError(error: { message?: string } | null | undefined) {
-  const message = error?.message?.toLowerCase() ?? "";
-  return message.includes("public.profiles") && (message.includes("schema cache") || message.includes("could not find the table"));
-}
-
-async function ensureCurrentUserProfile(admin: ReturnType<typeof getSupabaseAdminClient>, auth: { userId: string; email: string | null; fullName: string | null }) {
-  if (!admin) {
-    return { ok: false, message: "Falta configurar Supabase en el servidor." };
-  }
-
-  const { error } = await (admin.from("profiles") as any).upsert({
-    id: auth.userId,
-    full_name: auth.fullName ?? null,
-    email: auth.email ?? null,
-    status: "active"
-  });
-
-  if (error) {
-    if (isMissingProfilesTableError(error)) {
-      return {
-        ok: false,
-        message: "Falta aplicar la migracion base de perfiles en Supabase. Ejecuta supabase/schema.sql."
-      };
-    }
-
-    return { ok: false, message: `No se pudo sincronizar el perfil: ${error.message}` };
-  }
-
-  return { ok: true as const };
 }
 
 export async function createNoteAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {

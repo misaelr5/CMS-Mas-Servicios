@@ -8,12 +8,14 @@ import { StatCard } from "@/components/stat-card";
 import { DataCard } from "@/components/data-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getCashModuleData } from "@/lib/cash/cash-service";
 import { getBagsOverview } from "@/lib/bags/bag-service";
 import { formatUsd } from "@/lib/bags/bag-calculations";
 import { formatArs } from "@/lib/operations/seed-data";
 
 export default async function DashboardPage() {
   const bags = await getBagsOverview();
+  const cashData = await getCashModuleData();
   const totals = bags.reduce(
     (acc, bag) => {
       acc.cash += Number(bag.current_cash_ars ?? 0);
@@ -53,6 +55,14 @@ export default async function DashboardPage() {
         <StatCard label="Notas internas" value="Activas" helper="Base lista para seguimiento" status="ok" />
       </div>
 
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <StatCard label="Cajas cargadas" status="ok" value={`${cashData.summary.registers_loaded_today}`} />
+        <StatCard label="Cajas pendientes" status="revisar" value={`${cashData.summary.registers_pending_today}`} />
+        <StatCard label="Operado Pago Facil" status="neutral" value={formatArs(cashData.summary.total_operated_today)} />
+        <StatCard label="Ganancia Centro" status="ok" value={formatArs(cashData.summary.center_profit_today)} />
+        <StatCard label="Ganancia Terminal" status="ok" value={formatArs(cashData.summary.terminal_profit_today)} />
+      </div>
+
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
         <DataCard description="Resumen de control de divisas." title="Estado de bolsas">
           <div className="space-y-3 text-sm text-brandBlack">
@@ -63,12 +73,12 @@ export default async function DashboardPage() {
         </DataCard>
 
         <EmptyState
-          actionLabel="Abrir bolsas"
-          actionHref="/bolsas"
-          secondaryActionLabel="Nueva operacion"
-          secondaryActionHref="/bolsas/nueva-operacion"
-          description="Acá se centraliza el seguimiento diario de las cinco bolsas con sus movimientos y cierres."
-          title="Control operativo listo"
+          actionLabel="Abrir cajas"
+          actionHref="/cajas"
+          secondaryActionLabel="Ver reporte diario"
+          secondaryActionHref="/reporte-diario"
+          description="Acá se centraliza el seguimiento diario de las cajas Pago Fácil y sus cargas por categoría."
+          title="Control de cajas listo"
         />
       </div>
 

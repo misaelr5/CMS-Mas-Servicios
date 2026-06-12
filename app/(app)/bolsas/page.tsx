@@ -96,7 +96,7 @@ export default async function BolsasPage() {
 
               <div className="flex flex-wrap gap-3">
                 <Button asChild>
-                  <Link href={`/bolsas/${bag.id}#historial`}>Ver bolsa</Link>
+                  <Link href={`/bolsas/${bag.id}`}>Ver detalles</Link>
                 </Button>
                 <Button asChild variant="secondary">
                   <Link href={`/bolsas/nueva-operacion?bagId=${bag.id}`}>Nueva operacion</Link>
