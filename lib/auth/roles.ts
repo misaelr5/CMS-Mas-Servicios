@@ -13,8 +13,8 @@ const routePermissions: Array<{ pattern: RegExp; roles: Role[] }> = [
   { pattern: /^\/dashboard(?:\/.*)?$/, roles: ["admin", "encargado", "viewer"] },
   { pattern: /^\/bolsas(?:\/.*)?$/, roles: ["admin", "encargado", "cajero", "viewer"] },
   { pattern: /^\/cajas(?:\/.*)?$/, roles: ["admin", "encargado", "cajero", "viewer"] },
-  { pattern: /^\/reporte-diario(?:\/.*)?$/, roles: ["admin", "encargado", "viewer"] },
-  { pattern: /^\/gastos(?:\/.*)?$/, roles: ["admin", "encargado", "viewer"] },
+  { pattern: /^\/reporte-diario(?:\/.*)?$/, roles: ["admin", "encargado", "cajero", "viewer"] },
+  { pattern: /^\/gastos(?:\/.*)?$/, roles: ["admin", "encargado", "cajero", "viewer"] },
   { pattern: /^\/cierres(?:\/.*)?$/, roles: ["admin", "encargado", "viewer"] },
   { pattern: /^\/usuarios(?:\/.*)?$/, roles: ["admin"] },
   { pattern: /^\/configuracion(?:\/.*)?$/, roles: ["admin"] }
@@ -27,6 +27,10 @@ export function normalizeRole(role?: string | null): Role {
 
 export function isAdmin(role: Role) {
   return role === "admin";
+}
+
+export function getHomePathForRole(role: Role) {
+  return role === "cajero" ? "/bolsas" : "/dashboard";
 }
 
 export function canAccessPath(role: Role, pathname: string) {

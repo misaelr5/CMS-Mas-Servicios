@@ -12,12 +12,13 @@ import { EmptyState } from "@/components/empty-state";
 import { getServerAuthContext } from "@/lib/auth/server";
 import { getAssignedBagIdsForUser, getBagDetail, getBagByIdOrSeed } from "@/lib/bags/bag-service";
 import { formatUsd } from "@/lib/bags/bag-calculations";
-import { formatArs } from "@/lib/operations/seed-data";
+import { formatArs, getDefaultBagOpeningBalances } from "@/lib/operations/seed-data";
 
 export default async function BolsaDetallePage({ params }: { params: { id: string } }) {
   const auth = await getServerAuthContext(cookies());
+  const isCashier = auth?.role === "cajero";
   const assignedBagIds = auth?.role === "cajero" ? await getAssignedBagIdsForUser(auth.userId) : [];
-  if (auth?.role === "cajero" && !assignedBagIds.includes(params.id)) {
+  if (isCashier && !assignedBagIds.includes(params.id)) {
     return <AccessDenied />;
   }
 
@@ -29,6 +30,9 @@ export default async function BolsaDetallePage({ params }: { params: { id: strin
   }
 
   const latestUpdate = bag.updated_at ? new Date(bag.updated_at).toLocaleString("es-AR") : "Sin datos";
+  const openingBalances = getDefaultBagOpeningBalances(Number(bag.base_limit_ars ?? 0));
+  const openingTotal = openingBalances.current_cash_ars + openingBalances.current_account_ars;
+  const openingDifference = openingTotal - Number(bag.base_limit_ars ?? 0);
 
   return (
     <div className="space-y-6">
@@ -40,12 +44,14 @@ export default async function BolsaDetallePage({ params }: { params: { id: strin
             <Button asChild variant="outline">
               <Link href="/bolsas">Volver atras</Link>
             </Button>
-            <Badge variant={detail ? (detail.status_label === "ok" ? "success" : detail.status_label === "revisar" ? "warning" : "danger") : "neutral"}>{detail?.status_label ?? bag.status}</Badge>
+            {!isCashier ? (
+              <Badge variant={detail ? (detail.status_label === "ok" ? "success" : detail.status_label === "revisar" ? "warning" : "danger") : "neutral"}>{detail?.status_label ?? bag.status}</Badge>
+            ) : null}
           </div>
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className={isCashier ? "grid gap-4 md:grid-cols-2 xl:grid-cols-3" : "grid gap-4 md:grid-cols-2 xl:grid-cols-4"}>
         <DataCard description="Capacidad base" title="Base / limite">
           <p className="text-2xl font-black text-brandBlack">{formatArs(Number(bag.base_limit_ars ?? 0))}</p>
         </DataCard>
@@ -61,26 +67,51 @@ export default async function BolsaDetallePage({ params }: { params: { id: strin
           <p className="mt-2 text-sm text-mediumGray">Costo promedio</p>
           <p className="font-semibold text-brandBlack">{formatArs(Number(bag.average_usd_cost ?? 0))}</p>
         </DataCard>
-        <DataCard description="Utilidad y diferencia" title="Resultados">
+        {!isCashier ? <DataCard description="Utilidad y diferencia" title="Resultados">
           <p className="text-sm text-mediumGray">Ganancia acumulada</p>
           <p className="font-semibold text-brandBlack">{formatArs(Number(bag.accumulated_profit_ars ?? 0))}</p>
           <p className="mt-2 text-sm text-mediumGray">Diferencia estimada</p>
           <p className="font-semibold text-brandBlack">{formatArs(Number(detail?.difference_ars ?? 0))}</p>
           <p className="mt-2 text-xs uppercase tracking-[0.2em] text-mediumGray">Ultima actualizacion</p>
           <p className="text-sm font-semibold text-brandBlack">{latestUpdate}</p>
-        </DataCard>
+        </DataCard> : null}
       </div>
+
+      {!isCashier ? <DataCard description="Reparto base esperado antes de operar. Efectivo y cuenta son saldos separados." title="Configuracion inicial ideal">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
+            <p className="text-mediumGray">Base</p>
+            <p className="font-semibold text-brandBlack">{formatArs(Number(bag.base_limit_ars ?? 0))}</p>
+          </div>
+          <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
+            <p className="text-mediumGray">Efectivo ideal</p>
+            <p className="font-semibold text-brandBlack">{formatArs(openingBalances.current_cash_ars)}</p>
+          </div>
+          <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
+            <p className="text-mediumGray">Cuenta ideal</p>
+            <p className="font-semibold text-brandBlack">{formatArs(openingBalances.current_account_ars)}</p>
+          </div>
+          <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
+            <p className="text-mediumGray">Total inicial</p>
+            <p className="font-semibold text-brandBlack">{formatArs(openingTotal)}</p>
+          </div>
+          <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
+            <p className="text-mediumGray">Diferencia inicial</p>
+            <p className="font-semibold text-brandBlack">{formatArs(openingDifference)}</p>
+          </div>
+        </div>
+      </DataCard> : null}
 
       <div className="flex flex-wrap gap-3">
         <Button asChild>
           <Link href={`/bolsas/nueva-operacion?bagId=${bag.id}`}>Nueva operacion</Link>
         </Button>
-        <Button asChild variant="secondary">
+        {!isCashier ? <Button asChild variant="secondary">
           <Link href={`/bolsas/${bag.id}/cierre-diario`}>Cierre diario</Link>
-        </Button>
-        <Button asChild variant="outline">
+        </Button> : null}
+        {!isCashier ? <Button asChild variant="outline">
           <Link href={`/api/bolsas/${bag.id}/csv`}>Exportar CSV</Link>
-        </Button>
+        </Button> : null}
       </div>
 
       <DataCard description="Historial de movimientos cargados en esta bolsa." title="Operaciones">

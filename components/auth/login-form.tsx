@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 
 import { clearSessionWindow, setSessionWindow } from "@/lib/auth/session";
+import { getHomePathForRole, normalizeRole } from "@/lib/auth/roles";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,7 +44,9 @@ export function LoginForm({ notice }: { notice?: string }) {
       }
 
       setSessionWindow(data.user.id);
-      router.replace("/dashboard");
+      const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id).maybeSingle();
+      const role = normalizeRole(roleData?.role ?? data.user.user_metadata?.role);
+      router.replace(getHomePathForRole(role));
       router.refresh();
     } catch (loginError) {
       clearSessionWindow();

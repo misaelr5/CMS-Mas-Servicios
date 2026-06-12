@@ -1,9 +1,16 @@
+"use client";
+
 import Link from "next/link";
 
 import { PrimaryButton } from "@/components/primary-button";
 import { Card } from "@/components/ui/card";
+import { useAuth } from "@/components/auth/auth-provider";
+import { getHomePathForRole } from "@/lib/auth/roles";
 
 export function AccessDenied() {
+  const auth = useAuth();
+  const homePath = getHomePathForRole(auth.role);
+
   return (
     <Card className="mx-auto max-w-xl bg-white/96 p-6 text-brandBlack shadow-medium">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-mediumGray">Acceso restringido</p>
@@ -13,7 +20,7 @@ export function AccessDenied() {
       </p>
       <div className="mt-6">
         <PrimaryButton asChild>
-          <Link href="/dashboard">Volver al dashboard</Link>
+          <Link href={homePath}>Volver al inicio</Link>
         </PrimaryButton>
       </div>
     </Card>

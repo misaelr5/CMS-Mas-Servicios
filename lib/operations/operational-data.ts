@@ -27,7 +27,10 @@ export async function getOperationalConfigData(): Promise<OperationalConfigData>
         .from("cash_registers")
         .select("id,branch_id,name,slug,status,created_at,updated_at,branches(name)")
         .order("name"),
-      admin.from("bags").select("id,name,slug,base_limit_ars,status,created_at,updated_at").order("name")
+      admin
+        .from("bags")
+        .select("id,name,slug,base_limit_ars,current_cash_ars,current_account_ars,current_usd,borrowed_ars,average_usd_cost,accumulated_profit_ars,status,created_at,updated_at")
+        .order("name")
     ]);
 
     if (branchesResult.error || cashRegistersResult.error || bagsResult.error) {

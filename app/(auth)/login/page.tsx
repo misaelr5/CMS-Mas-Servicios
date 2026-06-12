@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AppLogo } from "@/components/app-logo";
 import { LoginForm } from "@/components/auth/login-form";
 import { EmptyState } from "@/components/empty-state";
+import { getHomePathForRole } from "@/lib/auth/roles";
 import { getServerAuthContext } from "@/lib/auth/server";
 
 export default async function LoginPage({
@@ -13,7 +14,7 @@ export default async function LoginPage({
 }) {
   const auth = await getServerAuthContext(cookies());
   if (auth) {
-    redirect("/dashboard");
+    redirect(getHomePathForRole(auth.role));
   }
 
   const params = (await searchParams) ?? {};

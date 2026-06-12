@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { DataCard } from "@/components/data-card";
 import { EmptyState } from "@/components/empty-state";
@@ -17,6 +18,11 @@ export default async function BolsasPage() {
   const bags = await getBagsOverview();
   const assignedBagIds = auth?.role === "cajero" ? await getAssignedBagIdsForUser(auth.userId) : [];
   const visibleBags = auth?.role === "cajero" ? bags.filter((bag) => assignedBagIds.includes(bag.id)) : bags;
+  const isCashier = auth?.role === "cajero";
+
+  if (isCashier && visibleBags.length === 1) {
+    redirect(`/bolsas/${visibleBags[0].id}`);
+  }
 
   const totals = visibleBags.reduce(
     (acc, bag) => {
@@ -32,8 +38,6 @@ export default async function BolsasPage() {
     { cash: 0, account: 0, usd: 0, borrowed: 0, profit: 0, ok: 0, review: 0 }
   );
 
-  const isCashier = auth?.role === "cajero";
-
   return (
     <div className="space-y-6">
       <SectionTitle
@@ -42,13 +46,13 @@ export default async function BolsasPage() {
         rightSlot={<Badge variant="outline">{visibleBags.length} bolsas</Badge>}
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+      <div className={isCashier ? "grid gap-4 md:grid-cols-2 xl:grid-cols-4" : "grid gap-4 md:grid-cols-2 xl:grid-cols-6"}>
         <StatCard label="Total efectivo" value={formatArs(totals.cash)} />
         <StatCard label="Total cuenta" value={formatArs(totals.account)} />
         <StatCard label="Total USD" value={formatUsd(totals.usd)} />
         <StatCard label="Total prestado" value={formatArs(totals.borrowed)} />
-        <StatCard label="Ganancia acumulada" value={formatArs(totals.profit)} />
-        <StatCard helper={`${totals.review} para revisar`} label="Bolsas OK" value={`${totals.ok}`} />
+        {!isCashier ? <StatCard label="Ganancia acumulada" value={formatArs(totals.profit)} /> : null}
+        {!isCashier ? <StatCard helper={`${totals.review} para revisar`} label="Bolsas OK" value={`${totals.ok}`} /> : null}
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
@@ -82,11 +86,13 @@ export default async function BolsasPage() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={bag.status === "ok" ? "success" : bag.status === "revisar" ? "warning" : "danger"}>{bag.status}</Badge>
-                <Badge variant="neutral">Diferencia: {formatArs(Number(bag.difference_ars ?? 0))}</Badge>
-                {bag.responsible_name ? <Badge variant="outline">{bag.responsible_name}</Badge> : null}
-              </div>
+              {!isCashier ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={bag.status === "ok" ? "success" : bag.status === "revisar" ? "warning" : "danger"}>{bag.status}</Badge>
+                  <Badge variant="neutral">Diferencia: {formatArs(Number(bag.difference_ars ?? 0))}</Badge>
+                  {bag.responsible_name ? <Badge variant="outline">{bag.responsible_name}</Badge> : null}
+                </div>
+              ) : null}
 
               <div className="flex flex-wrap gap-3">
                 <Button asChild>

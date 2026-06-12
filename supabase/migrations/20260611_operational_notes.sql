@@ -410,16 +410,56 @@ set branch_id = excluded.branch_id,
     name = excluded.name,
     status = excluded.status;
 
-insert into public.bags (id, name, slug, base_limit_ars, status)
+insert into public.bags (
+  id,
+  name,
+  slug,
+  base_limit_ars,
+  current_cash_ars,
+  current_account_ars,
+  current_usd,
+  borrowed_ars,
+  average_usd_cost,
+  accumulated_profit_ars,
+  status
+)
 values
-  ('00000000-0000-4000-8000-000000000301', 'Bolsa 1', 'bolsa-1', 2000000, 'ok'),
-  ('00000000-0000-4000-8000-000000000302', 'Bolsa 2', 'bolsa-2', 2000000, 'ok'),
-  ('00000000-0000-4000-8000-000000000303', 'Bolsa 3', 'bolsa-3', 2000000, 'ok'),
-  ('00000000-0000-4000-8000-000000000304', 'Bolsa 4', 'bolsa-4', 2000000, 'ok'),
-  ('00000000-0000-4000-8000-000000000305', 'Bolsa 5', 'bolsa-5', 5000000, 'ok')
+  ('00000000-0000-4000-8000-000000000301', 'Bolsa 1', 'bolsa-1', 2000000, 1700000, 300000, 0, 0, 0, 0, 'ok'),
+  ('00000000-0000-4000-8000-000000000302', 'Bolsa 2', 'bolsa-2', 2000000, 1700000, 300000, 0, 0, 0, 0, 'ok'),
+  ('00000000-0000-4000-8000-000000000303', 'Bolsa 3', 'bolsa-3', 2000000, 1700000, 300000, 0, 0, 0, 0, 'ok'),
+  ('00000000-0000-4000-8000-000000000304', 'Bolsa 4', 'bolsa-4', 2000000, 1700000, 300000, 0, 0, 0, 0, 'ok'),
+  ('00000000-0000-4000-8000-000000000305', 'Bolsa 5', 'bolsa-5', 5000000, 4700000, 300000, 0, 0, 0, 0, 'ok')
 on conflict (slug) do update
 set name = excluded.name,
     base_limit_ars = excluded.base_limit_ars,
+    current_cash_ars = case
+      when public.bags.current_cash_ars = 0
+        and public.bags.current_account_ars = 0
+        and public.bags.current_usd = 0
+        and public.bags.borrowed_ars = 0
+        and not exists (
+          select 1
+          from public.bag_operations
+          where bag_id = public.bags.id
+            and status <> 'anulada'
+        )
+      then excluded.current_cash_ars
+      else public.bags.current_cash_ars
+    end,
+    current_account_ars = case
+      when public.bags.current_cash_ars = 0
+        and public.bags.current_account_ars = 0
+        and public.bags.current_usd = 0
+        and public.bags.borrowed_ars = 0
+        and not exists (
+          select 1
+          from public.bag_operations
+          where bag_id = public.bags.id
+            and status <> 'anulada'
+        )
+      then excluded.current_account_ars
+      else public.bags.current_account_ars
+    end,
     status = excluded.status;
 
 update public.bags

@@ -36,8 +36,8 @@ export default async function NuevaOperacionPage({
 
       {auth?.role === "cajero" && assignedBags.length === 0 ? (
         <EmptyState
-          actionHref="/dashboard"
-          actionLabel="Volver al dashboard"
+          actionHref="/bolsas"
+          actionLabel="Volver a bolsas"
           description="No tenes una bolsa asignada para cargar operaciones."
           title="Bolsa no asignada"
         />

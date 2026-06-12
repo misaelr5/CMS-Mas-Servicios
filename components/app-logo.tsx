@@ -2,9 +2,9 @@ import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 
-export function AppLogo({ className }: { className?: string }) {
+export function AppLogo({ className, href = "/dashboard" }: { className?: string; href?: string }) {
   return (
-    <Link className={cn("group flex items-center gap-3", className)} href="/dashboard">
+    <Link className={cn("group flex items-center gap-3", className)} href={href}>
       <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brandYellow text-sm font-black text-brandBlack shadow-yellowGlow">
         MS
       </span>

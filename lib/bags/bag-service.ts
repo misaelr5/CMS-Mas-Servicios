@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { createAuditLog } from "@/lib/audit/audit-log";
 import type { Bag, BagDailySnapshot, BagOperation, BagOperationType, Note } from "@/lib/db/types";
 import { getOperationalConfigData } from "@/lib/operations/operational-data";
-import { seedBags } from "@/lib/operations/seed-data";
+import { getDefaultBagOpeningBalances, seedBags } from "@/lib/operations/seed-data";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { bagStatusFromDifference, estimateTotal } from "@/lib/bags/bag-calculations";
 
@@ -270,8 +270,20 @@ export async function processBagOperation({
   }
 
   const bag = mapBagRow(bagData);
-  const previousCash = bag.current_cash_ars ?? 0;
-  const previousAccount = bag.current_account_ars ?? 0;
+  const { count: existingOperationsCount } = await (admin.from("bag_operations") as any)
+    .select("id", { count: "exact", head: true })
+    .eq("bag_id", bagId)
+    .neq("status", "anulada");
+  const shouldUseOpeningCash =
+    existingOperationsCount === 0 &&
+    (bag.current_cash_ars ?? 0) === 0 &&
+    (bag.current_account_ars ?? 0) === 0 &&
+    (bag.current_usd ?? 0) === 0 &&
+    (bag.borrowed_ars ?? 0) === 0;
+
+  const openingBalances = getDefaultBagOpeningBalances(bag.base_limit_ars);
+  const previousCash = shouldUseOpeningCash ? openingBalances.current_cash_ars : bag.current_cash_ars ?? 0;
+  const previousAccount = shouldUseOpeningCash ? openingBalances.current_account_ars : bag.current_account_ars ?? 0;
   const previousUsd = bag.current_usd ?? 0;
   const previousBorrowed = bag.borrowed_ars ?? 0;
   const previousAverage = bag.average_usd_cost ?? 0;
@@ -351,15 +363,15 @@ export async function processBagOperation({
   }
 
   const hasNegativeBalance = nextCash < 0 || nextAccount < 0 || nextUsd < 0 || nextBorrowed < 0;
-  if (hasNegativeBalance && bag.status !== "ok") {
+  if (hasNegativeBalance) {
     return { ok: false, message: "La operacion dejaria saldos negativos." };
   }
 
   const nextBag = {
-    current_cash_ars: Math.max(0, nextCash),
-    current_account_ars: Math.max(0, nextAccount),
-    current_usd: Math.max(0, nextUsd),
-    borrowed_ars: Math.max(0, nextBorrowed),
+    current_cash_ars: nextCash,
+    current_account_ars: nextAccount,
+    current_usd: nextUsd,
+    borrowed_ars: nextBorrowed,
     average_usd_cost: bag.average_usd_cost ?? previousAverage,
     accumulated_profit_ars: bag.accumulated_profit_ars ?? 0,
     status: bag.status,
