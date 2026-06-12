@@ -3,19 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useAuth } from "@/components/auth/auth-provider";
 import { AppLogo } from "@/components/app-logo";
 import { navItems } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const auth = useAuth();
 
   return (
     <aside className="hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:w-72 lg:flex-col">
       <div className="flex h-full flex-col border-r border-white/8 bg-darkSurface/95 px-5 py-6 backdrop-blur">
         <AppLogo />
         <div className="mt-8 flex-1 space-y-2 overflow-y-auto pr-1">
-          {navItems.map((item) => {
+          {navItems.filter((item) => !item.roles || item.roles.includes(auth.role)).map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 

@@ -3,16 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useAuth } from "@/components/auth/auth-provider";
 import { quickNavItems } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
 export function MobileNav() {
   const pathname = usePathname();
+  const auth = useAuth();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/8 bg-darkSurface/96 px-3 py-2 backdrop-blur lg:hidden">
       <div className="flex items-center gap-2 overflow-x-auto">
-        {quickNavItems.map((item) => {
+        {quickNavItems.filter((item) => !item.roles || item.roles.includes(auth.role)).map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
