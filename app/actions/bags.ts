@@ -103,6 +103,26 @@ export async function createBagOperationAction(_prevState: ActionState, formData
     return { ok: false, message: "Elegí bolsa y tipo de operacion." };
   }
 
+  if (auth.role === "cajero") {
+    const admin = getSupabaseAdminClient();
+    if (!admin) {
+      return { ok: false, message: "Falta configurar Supabase." };
+    }
+
+    const { data: bagData, error: bagError } = await (admin.from("bags") as any)
+      .select("id,responsible_user_id")
+      .eq("id", bagId)
+      .maybeSingle();
+
+    if (bagError || !bagData) {
+      return { ok: false, message: "No se pudo encontrar la bolsa seleccionada." };
+    }
+
+    if (bagData.responsible_user_id !== auth.userId) {
+      return { ok: false, message: "Como cajero solo podes operar tu bolsa asignada." };
+    }
+  }
+
   if ((operationType === "compra_usd" || operationType === "venta_usd") && (amountUsd <= 0 || rateArs <= 0)) {
     return { ok: false, message: "USD y cotizacion deben ser mayores a 0." };
   }

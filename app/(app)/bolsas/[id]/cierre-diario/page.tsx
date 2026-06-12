@@ -1,9 +1,12 @@
+import Link from "next/link";
+
 import { NotesPanel } from "@/components/notes/notes-panel";
 import { BagCloseForm } from "@/components/bags/bag-close-form";
 import { SectionTitle } from "@/components/section-title";
 import { DataCard } from "@/components/data-card";
 import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { getBagDetail, getBagByIdOrSeed } from "@/lib/bags/bag-service";
 import { formatArs } from "@/lib/operations/seed-data";
 import { formatUsd } from "@/lib/bags/bag-calculations";
@@ -24,7 +27,14 @@ export default async function CierreDiarioPage({ params }: { params: { id: strin
       <SectionTitle
         description="Cierre diario sin reiniciar saldos. Se guarda el snapshot y la observacion."
         title={`Cierre diario - ${bag.name}`}
-        rightSlot={<Badge variant={detail ? "outline" : "neutral"}>{detail?.status_label ?? bag.status}</Badge>}
+        rightSlot={
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild variant="outline">
+              <Link href={`/bolsas/${bag.id}`}>Volver atras</Link>
+            </Button>
+            <Badge variant={detail ? "outline" : "neutral"}>{detail?.status_label ?? bag.status}</Badge>
+          </div>
+        }
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

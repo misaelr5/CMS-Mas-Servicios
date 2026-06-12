@@ -26,7 +26,14 @@ export default async function BolsaDetallePage({ params }: { params: { id: strin
       <SectionTitle
         description="Detalle operativo de la bolsa con historial, notas y cierre diario."
         title={bag.name}
-        rightSlot={<Badge variant={detail ? (detail.status_label === "ok" ? "success" : detail.status_label === "revisar" ? "warning" : "danger") : "neutral"}>{detail?.status_label ?? bag.status}</Badge>}
+        rightSlot={
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild variant="outline">
+              <Link href="/bolsas">Volver atras</Link>
+            </Button>
+            <Badge variant={detail ? (detail.status_label === "ok" ? "success" : detail.status_label === "revisar" ? "warning" : "danger") : "neutral"}>{detail?.status_label ?? bag.status}</Badge>
+          </div>
+        }
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

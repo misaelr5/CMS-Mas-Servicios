@@ -15,15 +15,20 @@ const initialState = { ok: false, message: "" };
 export function BagOperationForm({
   bags,
   defaultBagId,
+  lockedBagId,
+  lockedBagName,
   submitLabel = "Guardar operacion"
 }: {
   bags: BagOverview[];
   defaultBagId?: string;
+  lockedBagId?: string | null;
+  lockedBagName?: string | null;
   submitLabel?: string;
 }) {
   const pathname = usePathname();
   const [state, formAction, isPending] = useActionState(createBagOperationAction, initialState);
-  const [bagId, setBagId] = useState(defaultBagId ?? bags[0]?.id ?? "");
+  const isLocked = Boolean(lockedBagId);
+  const [bagId, setBagId] = useState(lockedBagId ?? defaultBagId ?? bags[0]?.id ?? "");
   const [operationType, setOperationType] = useState(bagOperationTypes[0]);
   const [amountUsd, setAmountUsd] = useState("");
   const [rateArs, setRateArs] = useState("");
@@ -84,19 +89,29 @@ export function BagOperationForm({
           <label className="text-sm font-semibold text-brandBlack" htmlFor="bag_id">
             Bolsa
           </label>
-          <select
-            className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
-            id="bag_id"
-            name="bag_id"
-            value={bagId}
-            onChange={(event) => setBagId(event.target.value)}
-          >
-            {bags.map((bag) => (
-              <option key={bag.id} value={bag.id}>
-                {bag.name}
-              </option>
-            ))}
-          </select>
+          {isLocked ? (
+            <>
+              <input name="bag_id" type="hidden" value={bagId} />
+              <div className="flex h-11 items-center rounded-md border border-border bg-lightGray/40 px-3 text-sm font-semibold text-brandBlack shadow-sm">
+                {lockedBagName ?? selectedBag?.name ?? "Bolsa asignada"}
+              </div>
+              <p className="text-xs text-mediumGray">La bolsa queda fija para tu usuario.</p>
+            </>
+          ) : (
+            <select
+              className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
+              id="bag_id"
+              name="bag_id"
+              value={bagId}
+              onChange={(event) => setBagId(event.target.value)}
+            >
+              {bags.map((bag) => (
+                <option key={bag.id} value={bag.id}>
+                  {bag.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="space-y-2">
           <label className="text-sm font-semibold text-brandBlack" htmlFor="operation_type">
