@@ -47,6 +47,37 @@ function isMissingNotesTableError(error: { message?: string } | null | undefined
   return message.includes("public.notes") && (message.includes("schema cache") || message.includes("could not find the table"));
 }
 
+function isMissingProfilesTableError(error: { message?: string } | null | undefined) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return message.includes("public.profiles") && (message.includes("schema cache") || message.includes("could not find the table"));
+}
+
+async function ensureCurrentUserProfile(admin: ReturnType<typeof getSupabaseAdminClient>, auth: { userId: string; email: string | null; fullName: string | null }) {
+  if (!admin) {
+    return { ok: false, message: "Falta configurar Supabase en el servidor." };
+  }
+
+  const { error } = await (admin.from("profiles") as any).upsert({
+    id: auth.userId,
+    full_name: auth.fullName ?? null,
+    email: auth.email ?? null,
+    status: "active"
+  });
+
+  if (error) {
+    if (isMissingProfilesTableError(error)) {
+      return {
+        ok: false,
+        message: "Falta aplicar la migracion base de perfiles en Supabase. Ejecuta supabase/schema.sql."
+      };
+    }
+
+    return { ok: false, message: `No se pudo sincronizar el perfil: ${error.message}` };
+  }
+
+  return { ok: true as const };
+}
+
 export async function createNoteAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await getServerAuthContext(cookies());
   if (!auth || !canWriteNotes(auth.role)) {
@@ -67,9 +98,11 @@ export async function createNoteAction(_prevState: ActionState, formData: FormDa
   }
 
   const admin = getSupabaseAdminClient();
-  if (!admin) {
-    return { ok: false, message: "Falta configurar Supabase en el servidor." };
+  const profileSync = await ensureCurrentUserProfile(admin, auth);
+  if (!profileSync.ok) {
+    return profileSync;
   }
+  const adminClient = admin as NonNullable<typeof admin>;
 
   const payload = {
     entity_type: entityType,
@@ -83,7 +116,7 @@ export async function createNoteAction(_prevState: ActionState, formData: FormDa
     created_by: auth.userId
   };
 
-  const { data, error } = await (admin.from("notes") as any).insert(payload).select("*").single();
+  const { data, error } = await (adminClient.from("notes") as any).insert(payload).select("*").single();
   if (error) {
     if (isMissingNotesTableError(error)) {
       return {
@@ -117,10 +150,14 @@ export async function updateNotePriorityAction(formData: FormData) {
   const admin = getSupabaseAdminClient();
   if (!admin || !isUuid(noteId)) return;
 
-  const { data: oldData } = await (admin.from("notes") as any).select("*").eq("id", noteId).maybeSingle();
+  const profileSync = await ensureCurrentUserProfile(admin, auth);
+  if (!profileSync.ok) return;
+  const adminClient = admin as NonNullable<typeof admin>;
+
+  const { data: oldData } = await (adminClient.from("notes") as any).select("*").eq("id", noteId).maybeSingle();
   if (!oldData || oldData.status !== "abierta") return;
 
-  const { data: newData, error } = await (admin.from("notes") as any)
+  const { data: newData, error } = await (adminClient.from("notes") as any)
     .update({ priority })
     .eq("id", noteId)
     .eq("status", "abierta")
@@ -150,10 +187,14 @@ export async function resolveNoteAction(formData: FormData) {
   const admin = getSupabaseAdminClient();
   if (!admin || !isUuid(noteId)) return;
 
-  const { data: oldData } = await (admin.from("notes") as any).select("*").eq("id", noteId).maybeSingle();
+  const profileSync = await ensureCurrentUserProfile(admin, auth);
+  if (!profileSync.ok) return;
+  const adminClient = admin as NonNullable<typeof admin>;
+
+  const { data: oldData } = await (adminClient.from("notes") as any).select("*").eq("id", noteId).maybeSingle();
   if (!oldData || oldData.status !== "abierta") return;
 
-  const { data: newData, error } = await (admin.from("notes") as any)
+  const { data: newData, error } = await (adminClient.from("notes") as any)
     .update({ status: "resuelta", resolved_by: auth.userId, resolved_at: new Date().toISOString() })
     .eq("id", noteId)
     .eq("status", "abierta")
@@ -184,10 +225,14 @@ export async function annulNoteAction(formData: FormData) {
   const admin = getSupabaseAdminClient();
   if (!admin || !isUuid(noteId) || !reason) return;
 
-  const { data: oldData } = await (admin.from("notes") as any).select("*").eq("id", noteId).maybeSingle();
+  const profileSync = await ensureCurrentUserProfile(admin, auth);
+  if (!profileSync.ok) return;
+  const adminClient = admin as NonNullable<typeof admin>;
+
+  const { data: oldData } = await (adminClient.from("notes") as any).select("*").eq("id", noteId).maybeSingle();
   if (!oldData || oldData.status !== "abierta") return;
 
-  const { data: newData, error } = await (admin.from("notes") as any)
+  const { data: newData, error } = await (adminClient.from("notes") as any)
     .update({
       status: "anulada",
       annulled_by: auth.userId,
