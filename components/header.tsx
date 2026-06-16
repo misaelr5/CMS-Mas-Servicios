@@ -14,6 +14,7 @@ const titles: Record<string, string> = {
   "/reporte-diario": "Reporte diario",
   "/gastos": "Gastos",
   "/cierres": "Cierres",
+  "/exportaciones": "Exportaciones",
   "/usuarios": "Usuarios",
   "/configuracion": "Configuración"
 };
@@ -25,7 +26,7 @@ export function Header() {
   const title = activeItem ? titles[activeItem.href] : "Dashboard";
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/8 bg-darkSurface/85 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-white/8 bg-darkSurface/85 backdrop-blur print:hidden">
       <div className="flex items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brandYellow/90">Más Servicios</p>

@@ -12,7 +12,7 @@ export function MobileNav() {
   const auth = useAuth();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/8 bg-darkSurface/96 px-3 py-2 backdrop-blur lg:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/8 bg-darkSurface/96 px-3 py-2 backdrop-blur print:hidden lg:hidden">
       <div className="flex items-center gap-2 overflow-x-auto">
         {quickNavItems.filter((item) => !item.roles || item.roles.includes(auth.role)).map((item) => {
           const Icon = item.icon;

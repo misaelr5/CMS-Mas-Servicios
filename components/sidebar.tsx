@@ -13,7 +13,7 @@ export function Sidebar() {
   const auth = useAuth();
 
   return (
-    <aside className="hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:w-72 lg:flex-col">
+    <aside className="hidden print:hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:w-72 lg:flex-col">
       <div className="flex h-full flex-col border-r border-white/8 bg-darkSurface/95 px-5 py-6 backdrop-blur">
         <AppLogo href={auth.role === "cajero" ? "/bolsas" : "/dashboard"} />
         <div className="mt-8 flex-1 space-y-2 overflow-y-auto pr-1">

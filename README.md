@@ -96,6 +96,30 @@ Flujo de prueba recomendado:
 7. Abrir `/bolsas/[id]/cierre-diario` y guardar un snapshot.
 8. Exportar CSV desde el detalle de bolsa.
 
+## Exportaciones
+
+El modulo de exportaciones queda disponible en:
+
+- `/exportaciones`
+- `/exportaciones/reporte-diario`
+- `/exportaciones/cierre-semanal`
+- `/exportaciones/gastos`
+- `/exportaciones/cargas-cajas`
+- `/exportaciones/bolsas`
+
+Desde cada vista se puede:
+
+- Filtrar por fecha y otros parametros segun el tipo de reporte.
+- Ver la tabla consolidada en pantalla.
+- Descargar CSV.
+- Abrir una vista imprimible.
+
+Permisos actuales:
+
+- `admin` y `encargado`: exportan todo.
+- `viewer`: solo lectura y exportaciones visibles.
+- `cajero`: acceso limitado a `cargas-cajas`.
+
 Validaciones principales:
 
 - No vender mas USD que los disponibles.

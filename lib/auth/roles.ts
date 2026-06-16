@@ -17,6 +17,7 @@ const routePermissions: Array<{ pattern: RegExp; roles: Role[] }> = [
   { pattern: /^\/reporte-diario(?:\/.*)?$/, roles: ["admin", "encargado", "cajero", "viewer"] },
   { pattern: /^\/gastos(?:\/.*)?$/, roles: ["admin", "encargado", "cajero", "viewer"] },
   { pattern: /^\/cierres(?:\/.*)?$/, roles: ["admin", "encargado", "viewer"] },
+  { pattern: /^\/exportaciones(?:\/.*)?$/, roles: ["admin", "encargado", "cajero", "viewer"] },
   { pattern: /^\/usuarios(?:\/.*)?$/, roles: ["admin"] },
   { pattern: /^\/configuracion(?:\/.*)?$/, roles: ["admin"] }
 ];
