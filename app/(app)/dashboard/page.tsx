@@ -81,67 +81,144 @@ export default async function DashboardPage() {
         <StatCard label="Notas internas" value="Activas" helper="Base lista para seguimiento" status="ok" />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <StatCard label="Cajas cargadas" status="ok" value={`${cashData.summary.registers_loaded_today}`} />
-        <StatCard label="Cajas pendientes" status="revisar" value={`${cashData.summary.registers_pending_today}`} />
-        <StatCard label="Operado Pago Facil" status="neutral" value={formatArs(cashData.summary.total_operated_today)} />
-        <StatCard label="Ganancia Centro" status="ok" value={formatArs(cashData.summary.center_profit_today)} />
-        <StatCard label="Ganancia Terminal" status="ok" value={formatArs(cashData.summary.terminal_profit_today)} />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Gastos hoy" status="neutral" value={formatArs(expenseData.totals.amount_ars)} />
-        <StatCard label="Ganancia libre hoy" status={reportData.totals.availableProfitArs < 0 ? "error" : "ok"} value={formatArs(reportData.totals.availableProfitArs)} />
-        <StatCard label="Gastos pendientes" status="pendiente" value={formatArs(expenseData.totals.pending_amount_ars)} />
-        <StatCard label="Estado del reporte diario" status={reportData.totals.availableProfitArs < 0 ? "revisar" : "ok"} value={reportStatus} />
-      </div>
-
-      <DataCard description="Ultimas notas importantes vinculadas a reportes diarios." title="Notas del reporte">
-        {reportNotes.length === 0 ? (
-          <EmptyState description="Cuando aparezcan notas importantes del reporte diario, van a mostrarse aca." title="Sin notas de reporte" />
+      <DataCard description="Resumen operativo en formato de tabla." title="Bolsas">
+        {bags.length === 0 ? (
+          <EmptyState description="No hay bolsas cargadas." title="Sin bolsas" />
         ) : (
-          <div className="space-y-3">
-            {reportNotes.map((note) => (
-              <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4" key={note.id}>
-                <p className="font-semibold text-brandBlack">{note.title}</p>
-                <p className="mt-1 text-sm text-mediumGray">{note.body}</p>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-mediumGray">
-                  {note.entity_label ?? "Reporte diario"}
-                </p>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="min-w-[1100px] border-separate border-spacing-0 text-sm">
+              <thead className="bg-lightGray text-brandBlack">
+                <tr>
+                  <th className="sticky left-0 z-20 border-b border-lightGray bg-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Bolsa</th>
+                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Responsable</th>
+                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Base</th>
+                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Efectivo</th>
+                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Cuenta</th>
+                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">USD</th>
+                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Ganancia</th>
+                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
+                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bags.map((bag, index) => (
+                  <tr key={bag.id} className={index % 2 === 0 ? "bg-white" : "bg-lightGray/15"}>
+                    <td className="sticky left-0 z-10 border-b border-lightGray bg-inherit px-4 py-4">
+                      <div className="space-y-1">
+                        <p className="font-black text-brandBlack">{bag.name}</p>
+                        <p className="text-xs text-mediumGray">{bag.slug}</p>
+                      </div>
+                    </td>
+                    <td className="border-b border-lightGray px-4 py-4">{bag.responsible_name ?? "Sin asignar"}</td>
+                    <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(Number(bag.base_limit_ars ?? 0))}</td>
+                    <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(Number(bag.current_cash_ars ?? 0))}</td>
+                    <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(Number(bag.current_account_ars ?? 0))}</td>
+                    <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatUsd(Number(bag.current_usd ?? 0))}</td>
+                    <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(Number(bag.accumulated_profit_ars ?? 0))}</td>
+                    <td className="border-b border-lightGray px-4 py-4">
+                      <Badge variant={bag.status === "ok" ? "success" : bag.status === "revisar" ? "warning" : "danger"}>{bag.status}</Badge>
+                    </td>
+                    <td className="border-b border-lightGray px-4 py-4">
+                      <div className="flex flex-wrap gap-2">
+                        <Button asChild className="shadow-yellowGlow" size="sm">
+                          <Link href={`/bolsas/${bag.id}`}>Ver detalles</Link>
+                        </Button>
+                        <Button asChild size="sm" variant="secondary">
+                          <Link href={`/bolsas/nueva-operacion?bagId=${bag.id}`}>Nueva operacion</Link>
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </DataCard>
 
-      <div className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
-        <DataCard description="Resumen de control de divisas." title="Estado de bolsas">
-          <div className="space-y-3 text-sm text-brandBlack">
-            <p>• Bolsas con diferencia o revisión: {totals.review}</p>
-            <p>• Saldos cargados por día y por operación.</p>
-            <p>• Exportación CSV disponible por bolsa.</p>
-          </div>
+      <DataCard description="Seguimiento rapido de cajas y reporte diario." title="Cajas y reporte">
+        <div className="overflow-x-auto">
+          <table className="min-w-[920px] border-separate border-spacing-0 text-sm">
+            <thead className="bg-lightGray text-brandBlack">
+              <tr>
+                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Indicador</th>
+                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Valor</th>
+                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Detalle</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="bg-white">
+                <td className="border-b border-lightGray px-4 py-4 font-semibold">Cajas cargadas</td>
+                <td className="border-b border-lightGray px-4 py-4 font-black">{cashData.summary.registers_loaded_today}</td>
+                <td className="border-b border-lightGray px-4 py-4 text-mediumGray">Cargadas o revisadas</td>
+              </tr>
+              <tr className="bg-lightGray/15">
+                <td className="border-b border-lightGray px-4 py-4 font-semibold">Cajas pendientes</td>
+                <td className="border-b border-lightGray px-4 py-4 font-black">{cashData.summary.registers_pending_today}</td>
+                <td className="border-b border-lightGray px-4 py-4 text-mediumGray">Sin carga final</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border-b border-lightGray px-4 py-4 font-semibold">Operado Pago Facil</td>
+                <td className="border-b border-lightGray px-4 py-4 font-black">{formatArs(cashData.summary.total_operated_today)}</td>
+                <td className="border-b border-lightGray px-4 py-4 text-mediumGray">Total del dia</td>
+              </tr>
+              <tr className="bg-lightGray/15">
+                <td className="border-b border-lightGray px-4 py-4 font-semibold">Ganancia Pago Facil</td>
+                <td className="border-b border-lightGray px-4 py-4 font-black">{formatArs(cashData.summary.total_profit_today)}</td>
+                <td className="border-b border-lightGray px-4 py-4 text-mediumGray">Consolidado de cajas</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border-b border-lightGray px-4 py-4 font-semibold">Ganancia libre</td>
+                <td className="border-b border-lightGray px-4 py-4 font-black">{formatArs(reportData.totals.availableProfitArs)}</td>
+                <td className="border-b border-lightGray px-4 py-4 text-mediumGray">Reporte diario</td>
+              </tr>
+              <tr className="bg-lightGray/15">
+                <td className="px-4 py-4 font-semibold">Estado del reporte</td>
+                <td className="px-4 py-4 font-black">{reportStatus}</td>
+                <td className="px-4 py-4 text-mediumGray">Control general</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button asChild>
+            <Link href="/cajas">Ir a cajas</Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href="/reporte-diario">Ver reporte diario</Link>
+          </Button>
+        </div>
+      </DataCard>
+
+      <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+        <DataCard description="Ultimas notas importantes vinculadas a reportes diarios." title="Notas del reporte">
+          {reportNotes.length === 0 ? (
+            <EmptyState description="Cuando aparezcan notas importantes del reporte diario, van a mostrarse aqui." title="Sin notas de reporte" />
+          ) : (
+            <div className="space-y-3">
+              {reportNotes.map((note) => (
+                <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4" key={note.id}>
+                  <p className="font-semibold text-brandBlack">{note.title}</p>
+                  <p className="mt-1 text-sm text-mediumGray">{note.body}</p>
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-mediumGray">
+                    {note.entity_label ?? "Reporte diario"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </DataCard>
 
-        <EmptyState
-          actionLabel="Abrir cajas"
-          actionHref="/cajas"
-          secondaryActionLabel="Ver reporte diario"
-          secondaryActionHref="/reporte-diario"
-          description="Acá se centraliza el seguimiento diario de las cajas Pago Fácil y sus cargas por categoría."
-          title="Control de cajas listo"
-        />
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-        <ImportantNotesWidget />
-        <NotesPanel
-          description="Notas generales del sistema para seguimiento interno."
-          entityHref="/dashboard"
-          entityLabel="Dashboard"
-          entityType="general"
-          title="Notas generales"
-        />
+        <div className="space-y-4">
+          <ImportantNotesWidget />
+          <NotesPanel
+            description="Notas generales del sistema para seguimiento interno."
+            entityHref="/dashboard"
+            entityLabel="Dashboard"
+            entityType="general"
+            title="Notas generales"
+          />
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-3">
