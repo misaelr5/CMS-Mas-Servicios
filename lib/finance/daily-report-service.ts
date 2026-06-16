@@ -37,6 +37,10 @@ export type DailyReportBranchSummary = {
   manualPfAdjustmentArs: number;
   automaticCurrencyProfitArs: number;
   manualCurrencyAdjustmentArs: number;
+  currencyPurchasedUsd: number;
+  currencyPurchasedArs: number;
+  currencySoldUsd: number;
+  currencySoldArs: number;
   grossProfitArs: number;
   expensesArs: number;
   availableProfitArs: number;
@@ -75,6 +79,10 @@ function emptyBranchSummary(branch: Branch): DailyReportBranchSummary {
     manualPfAdjustmentArs: 0,
     automaticCurrencyProfitArs: 0,
     manualCurrencyAdjustmentArs: 0,
+    currencyPurchasedUsd: 0,
+    currencyPurchasedArs: 0,
+    currencySoldUsd: 0,
+    currencySoldArs: 0,
     grossProfitArs: 0,
     expensesArs: 0,
     availableProfitArs: 0,
@@ -254,6 +262,22 @@ export async function getDailyReportViewData(
 
       const automaticPfProfitArs = cashReportRows.reduce((sum, item) => sum + Number(item.total_profit_ars ?? 0), 0);
       const automaticCurrencyProfitArs = branchBagOperations.reduce((sum, item) => sum + Number(item.profit_ars ?? 0), 0);
+      const currencyPurchasedUsd = branchBagOperations.reduce((sum, item) => {
+        if (item.operation_type !== "compra_usd") return sum;
+        return sum + Number(item.amount_usd ?? 0);
+      }, 0);
+      const currencyPurchasedArs = branchBagOperations.reduce((sum, item) => {
+        if (item.operation_type !== "compra_usd") return sum;
+        return sum + Number(item.total_ars ?? 0);
+      }, 0);
+      const currencySoldUsd = branchBagOperations.reduce((sum, item) => {
+        if (item.operation_type !== "venta_usd") return sum;
+        return sum + Number(item.amount_usd ?? 0);
+      }, 0);
+      const currencySoldArs = branchBagOperations.reduce((sum, item) => {
+        if (item.operation_type !== "venta_usd") return sum;
+        return sum + Number(item.total_ars ?? 0);
+      }, 0);
       const manualPfAdjustmentArs = sumManualAdjustments(reportAdjustments, "pf");
       const manualCurrencyAdjustmentArs = sumManualAdjustments(reportAdjustments, "currency");
       const grossProfitArs =
@@ -286,6 +310,10 @@ export async function getDailyReportViewData(
         manualPfAdjustmentArs,
         automaticCurrencyProfitArs,
         manualCurrencyAdjustmentArs,
+        currencyPurchasedUsd,
+        currencyPurchasedArs,
+        currencySoldUsd,
+        currencySoldArs,
         grossProfitArs,
         expensesArs,
         availableProfitArs,
