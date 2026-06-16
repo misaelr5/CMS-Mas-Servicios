@@ -11,7 +11,11 @@ export const roleLabels: Record<Role, string> = {
 
 const routePermissions: Array<{ pattern: RegExp; roles: Role[] }> = [
   { pattern: /^\/dashboard(?:\/.*)?$/, roles: ["admin", "encargado", "viewer"] },
-  { pattern: /^\/bolsas(?:\/.*)?$/, roles: ["admin", "encargado", "cajero", "viewer"] },
+  { pattern: /^\/bolsas\/nueva-operacion$/, roles: ["admin", "encargado", "cajero"] },
+  { pattern: /^\/bolsas\/[^/]+\/vender-a-bolsa$/, roles: ["admin", "encargado", "cajero"] },
+  { pattern: /^\/bolsas\/[^/]+\/cierre-diario$/, roles: ["admin", "encargado", "cajero"] },
+  { pattern: /^\/bolsas\/[^/]+$/, roles: ["admin", "encargado", "cajero", "viewer"] },
+  { pattern: /^\/bolsas$/, roles: ["admin", "encargado", "cajero", "viewer"] },
   { pattern: /^\/cajas\/[^/]+\/cargar$/, roles: ["admin", "encargado", "cajero"] },
   { pattern: /^\/cajas(?:\/.*)?$/, roles: ["admin", "encargado", "cajero", "viewer"] },
   { pattern: /^\/reporte-diario(?:\/.*)?$/, roles: ["admin", "encargado", "cajero", "viewer"] },

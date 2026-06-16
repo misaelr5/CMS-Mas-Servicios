@@ -25,6 +25,33 @@ pnpm build
 pnpm start
 ```
 
+## Sistema
+
+MAS SERVICIOS CMS interno es una app administrativa para operar:
+
+- Bolsas de divisas.
+- Cajas Pago Facil.
+- Reporte diario.
+- Gastos.
+- Cierres diarios y semanales.
+- Notas internas.
+- Exportaciones e impresion.
+- Dashboard operativo.
+
+La base visual mantiene fondo oscuro, cards claras, acentos amarillos y una lectura mobile-first pensada para uso interno.
+
+## Modulos
+
+- `Login` con Supabase Auth y sesion de 12 horas.
+- `Dashboard` con resumen del dia, semana, bolsas, cajas, gastos, alertas y notas.
+- `Bolsas` con operaciones USD, historial y venta entre bolsas.
+- `Cajas` con carga diaria por caja y categorias Pago Facil.
+- `Reporte diario` con ajustes manuales y ganancia libre.
+- `Gastos` con filtros, totales y anulacion.
+- `Cierres` diarios y semanales.
+- `Exportaciones` con CSV y vista imprimible.
+- `Usuarios` y `Configuracion` base para administracion interna.
+
 ## Variables de entorno
 
 Crear un `.env.local` con:
@@ -41,12 +68,54 @@ Reglas:
 - `SUPABASE_SERVICE_ROLE_KEY` solo se usa en servidor y scripts.
 - No hardcodear claves en componentes cliente.
 
+## Roles
+
+- `admin`: acceso total.
+- `encargado`: acceso operativo completo.
+- `cajero`: acceso a su operatoria asignada.
+- `viewer`: solo lectura.
+
+## Flujo diario
+
+1. Entrar a `/login`.
+2. Revisar `/dashboard`.
+3. Cargar cajas en `/cajas`.
+4. Registrar operaciones de bolsas en `/bolsas`.
+5. Controlar `/reporte-diario`.
+6. Revisar `/gastos` y notas importantes.
+
+## Flujo semanal
+
+1. Revisar el estado de `/cierres`.
+2. Confirmar cajas revisadas y pendientes.
+3. Verificar la ganancia semanal Pago Facil.
+4. Exportar CSV o vista imprimible si hace falta respaldo.
+
+## Exportaciones
+
+- `/exportaciones`
+- `/exportaciones/reporte-diario`
+- `/exportaciones/cierre-semanal`
+- `/exportaciones/gastos`
+- `/exportaciones/cargas-cajas`
+- `/exportaciones/bolsas`
+
+Desde ahi se puede filtrar, exportar CSV o abrir una vista imprimible.
+
 ## Logica de sesion
 
 - Al iniciar sesion se guarda `session_started_at`.
 - La app calcula `session_expires_at` con una ventana de 12 horas.
 - Si la sesion vence, la ruta protegida redirige a `/login` con el mensaje `Tu sesion vencio. Volve a iniciar sesion.`
 - El cierre manual limpia la sesion de Supabase y la ventana local de la app.
+
+## Pendiente a futuro
+
+- Integrar calculos avanzados de cierre con mas automatizacion.
+- Refinar analiticas historicas por periodo.
+- Exportaciones PDF dedicadas.
+- Más automatizaciones sobre movimientos y auditoria avanzada.
+- Checklist manual: `docs/QA_CHECKLIST.md`.
 
 ## Migraciones y seeds
 
