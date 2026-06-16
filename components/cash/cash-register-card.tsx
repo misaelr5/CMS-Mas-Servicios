@@ -30,11 +30,11 @@ export function CashRegisterCard({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4">
+          <div className="rounded-md border border-lightGray bg-lightGray/30 p-4">
             <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Estado de hoy</p>
             <p className="mt-1 text-lg font-semibold text-brandBlack">{register.today_report ? register.today_status : "pendiente"}</p>
           </div>
-          <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4">
+          <div className="rounded-md border border-lightGray bg-lightGray/30 p-4">
             <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Responsable</p>
             <p className="mt-1 text-lg font-semibold text-brandBlack">{register.responsible_name ?? register.name}</p>
           </div>
@@ -43,11 +43,11 @@ export function CashRegisterCard({
 
       <CardContent className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4">
+          <div className="rounded-md border border-lightGray bg-lightGray/25 p-4">
             <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Operado hoy</p>
             <p className="mt-1 font-heading text-2xl font-black">{formatArs(register.today_operated_ars)}</p>
           </div>
-          <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4">
+          <div className="rounded-md border border-lightGray bg-lightGray/25 p-4">
             <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Ganancia hoy</p>
             <p className="mt-1 font-heading text-2xl font-black">{formatArs(register.today_profit_ars)}</p>
           </div>

@@ -1,5 +1,5 @@
-import { LoadingState } from "@/components/loading-state";
+import { BrandLoader } from "@/components/brand-loader";
 
 export default function Loading() {
-  return <LoadingState rows={2} />;
+  return <BrandLoader />;
 }

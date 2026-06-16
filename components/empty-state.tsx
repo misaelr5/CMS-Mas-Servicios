@@ -26,7 +26,7 @@ export function EmptyState({
   return (
     <Card className={cn("border-dashed border-lightGray/50 bg-white/96 p-6 text-brandBlack shadow-medium", className)}>
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brandYellow/18 text-brandBlack">
+        <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-brandYellow/18 text-brandBlack">
           <Inbox className="h-7 w-7" />
         </div>
         <div className="flex-1">

@@ -24,7 +24,7 @@ export async function ImportantNotesWidget() {
       ) : (
         <div className="space-y-3">
           {notes.map((note) => (
-            <article className="rounded-2xl border border-lightGray bg-lightGray/30 p-4" key={note.id}>
+            <article className="rounded-md border border-lightGray bg-lightGray/30 p-4" key={note.id}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h4 className="font-heading text-base font-bold text-brandBlack">{note.title}</h4>
                 <NoteStatusBadge priority={note.priority} status={note.status} />

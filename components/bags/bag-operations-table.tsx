@@ -90,14 +90,14 @@ export function BagOperationsTable({
   canManageInternalTransfers?: boolean;
 }) {
   if (operations.length === 0) {
-    return <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm text-mediumGray">Sin historial cargado para esta bolsa.</div>;
+    return <div className="rounded-md border border-lightGray bg-lightGray/30 p-4 text-sm text-mediumGray">Sin historial cargado para esta bolsa.</div>;
   }
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 lg:hidden">
         {operations.map((op) => (
-          <article key={op.id} className="rounded-2xl border border-lightGray bg-white p-4 text-sm text-brandBlack shadow-soft">
+          <article key={op.id} className="rounded-md border border-lightGray bg-white p-4 text-sm text-brandBlack shadow-soft">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-heading text-base font-black">{operationLabel(op)}</p>
@@ -139,7 +139,7 @@ export function BagOperationsTable({
         ))}
       </div>
 
-      <div className="hidden overflow-hidden rounded-2xl border border-lightGray lg:block">
+      <div className="hidden overflow-hidden rounded-lg border border-lightGray lg:block">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-lightGray text-left text-sm">
           <thead className="bg-lightGray/40 text-brandBlack">

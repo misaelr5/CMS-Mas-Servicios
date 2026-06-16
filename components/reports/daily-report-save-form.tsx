@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import { saveDailyReportAction } from "@/app/actions/finance";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import type { DailyReportStatus } from "@/lib/db/types";
 import { dailyReportStatusLabels, dailyReportStatusOptions } from "@/lib/finance/daily-report-calculations";
 
@@ -29,7 +30,7 @@ export function DailyReportSaveForm({
   }
 
   if (isLocked) {
-    return <p className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-semibold text-brandBlack">Este reporte diario esta cerrado. Reabrilo para modificarlo.</p>;
+    return <p className="rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-semibold text-brandBlack">Este reporte diario está cerrado. Reabrilo para modificarlo.</p>;
   }
 
   return (
@@ -37,8 +38,8 @@ export function DailyReportSaveForm({
       <input name="branch_id" type="hidden" value={branchId} />
       <input name="date" type="hidden" value={date} />
       <input name="current_path" type="hidden" value="/reporte-diario" />
-      <select
-        className="h-11 rounded-md border border-border bg-white px-3 text-sm font-semibold text-brandBlack shadow-sm"
+      <Select
+        className="w-auto"
         defaultValue={currentStatus}
         name="status"
       >
@@ -47,7 +48,7 @@ export function DailyReportSaveForm({
             {dailyReportStatusLabels[status]}
           </option>
         ))}
-      </select>
+      </Select>
       <Button className="shadow-yellowGlow" disabled={isPending} type="submit">
         {isPending ? "Guardando..." : "Guardar reporte"}
       </Button>

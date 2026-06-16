@@ -7,6 +7,7 @@ import { annulNoteAction, resolveNoteAction, updateNotePriorityAction } from "@/
 import { NoteStatusBadge } from "@/components/notes/note-status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import type { Note } from "@/lib/db/types";
 
 export function NoteCard({
@@ -22,7 +23,7 @@ export function NoteCard({
   const isOpen = note.status === "abierta";
 
   return (
-    <article className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-brandBlack">
+    <article className="rounded-md border border-lightGray bg-lightGray/30 p-4 text-brandBlack">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -52,15 +53,15 @@ export function NoteCard({
             <form action={updateNotePriorityAction} className="flex gap-2">
               <input name="note_id" type="hidden" value={note.id} />
               <input name="current_path" type="hidden" value={pathname} />
-              <select
-                className="h-9 rounded-md border border-border bg-white px-3 text-xs font-semibold text-brandBlack"
+              <Select
+                className="h-9 text-xs"
                 defaultValue={note.priority}
                 name="priority"
               >
                 <option value="normal">Normal</option>
                 <option value="importante">Importante</option>
                 <option value="urgente">Urgente</option>
-              </select>
+              </Select>
               <Button size="sm" type="submit" variant="soft">
                 Marcar
               </Button>

@@ -51,19 +51,19 @@ export function CashDailyReportForm({
         <div className="border-b border-white/10 bg-white/5 px-5 py-4">
           <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-brandYellow/90">Carga diaria</p>
           <div className="mt-3 grid gap-3 md:grid-cols-4">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="rounded-md border border-white/10 bg-white/5 p-4">
               <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/70">Fecha</p>
               <p className="mt-1 text-lg font-black text-brandWhite">{reportDate}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="rounded-md border border-white/10 bg-white/5 p-4">
               <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/70">Caja</p>
               <p className="mt-1 text-lg font-black text-brandWhite">{register.register_number ? `Caja ${register.register_number}` : register.name}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="rounded-md border border-white/10 bg-white/5 p-4">
               <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/70">Sucursal</p>
               <p className="mt-1 text-lg font-black text-brandWhite">{register.branch_name}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="rounded-md border border-white/10 bg-white/5 p-4">
               <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/70">Estado</p>
               <p className="mt-1 text-lg font-black text-brandWhite">{register.today_status}</p>
             </div>
@@ -172,7 +172,7 @@ export function CashDailyReportForm({
         <div className="rounded-3xl border border-lightGray bg-white p-4 text-brandBlack shadow-soft">
           <p className="text-[11px] uppercase tracking-[0.22em] text-mediumGray">Nota general</p>
           <textarea
-            className="mt-3 min-h-28 w-full rounded-2xl border border-lightGray bg-lightGray/30 px-4 py-3 text-sm text-brandBlack shadow-sm placeholder:text-mediumGray focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="mt-3 min-h-28 w-full rounded-md border border-lightGray bg-lightGray/30 px-4 py-3 text-sm text-brandBlack shadow-sm placeholder:text-mediumGray focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             name="general_note"
             placeholder="Observación general de la carga"
           />

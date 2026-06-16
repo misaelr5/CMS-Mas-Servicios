@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { createNoteAction } from "@/app/actions/notes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import type { NoteEntityType } from "@/lib/db/types";
 
 const initialState = {
@@ -31,7 +32,7 @@ export function NoteForm({
 
   if (!canWrite) {
     return (
-      <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm text-mediumGray">
+      <div className="rounded-md border border-lightGray bg-lightGray/30 p-4 text-sm text-mediumGray">
         Tu rol permite leer notas, pero no crear nuevas.
       </div>
     );
@@ -46,16 +47,12 @@ export function NoteForm({
       <input name="current_path" type="hidden" value={pathname} />
 
       <div className="grid gap-3 md:grid-cols-[1fr_170px]">
-        <Input name="title" placeholder="Titulo corto" required />
-        <select
-          className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          defaultValue="normal"
-          name="priority"
-        >
+        <Input name="title" placeholder="Título corto" required />
+        <Select defaultValue="normal" name="priority">
           <option value="normal">Normal</option>
           <option value="importante">Importante</option>
           <option value="urgente">Urgente</option>
-        </select>
+        </Select>
       </div>
 
       <textarea
@@ -70,7 +67,13 @@ export function NoteForm({
           {isPending ? "Guardando..." : "Crear nota"}
         </Button>
         {state.message ? (
-          <p className={state.ok ? "text-sm font-semibold text-success" : "text-sm font-semibold text-danger"}>
+          <p
+            className={
+              state.ok
+                ? "text-sm font-semibold text-success"
+                : "text-sm font-semibold text-danger"
+            }
+          >
             {state.message}
           </p>
         ) : null}

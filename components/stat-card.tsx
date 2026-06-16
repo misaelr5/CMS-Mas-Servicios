@@ -1,32 +1,82 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import type { LucideIcon } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
+
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { StatusBadge, type StatusBadgeTone } from "@/components/status-badge";
 import { cn } from "@/lib/utils";
+
+const iconBgByStatus: Record<StatusBadgeTone, string> = {
+  ok: "bg-success/12 text-success",
+  revisar: "bg-warning/12 text-warning",
+  error: "bg-danger/12 text-danger",
+  pendiente: "bg-mediumGray/12 text-mediumGray",
+  neutral: "bg-brandYellow/12 text-brandYellow"
+};
 
 export function StatCard({
   label,
   value,
   helper,
   status = "neutral",
+  icon: Icon,
+  trend,
+  trendUp,
   className
 }: {
   label: string;
   value: string;
   helper?: string;
   status?: StatusBadgeTone;
+  icon?: LucideIcon;
+  trend?: string;
+  trendUp?: boolean;
   className?: string;
 }) {
   return (
     <Card className={cn("bg-white text-brandBlack shadow-medium", className)}>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2 pt-4">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <CardDescription className="text-[11px] uppercase tracking-[0.2em] text-mediumGray">{label}</CardDescription>
-            <CardTitle className="mt-2 text-3xl font-black">{value}</CardTitle>
-          </div>
-          <StatusBadge status={status} />
+          {Icon ? (
+            <div
+              className={cn(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                iconBgByStatus[status]
+              )}
+            >
+              <Icon className="h-5 w-5" />
+            </div>
+          ) : null}
+          <StatusBadge status={status} className="ml-auto shrink-0" />
+        </div>
+        <div className="mt-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mediumGray">
+            {label}
+          </p>
+          <p className="mt-1.5 font-heading text-3xl font-black leading-none text-brandBlack">
+            {value}
+          </p>
+          {trend ? (
+            <div
+              className={cn(
+                "mt-1.5 flex items-center gap-1 text-xs font-semibold",
+                trendUp ? "text-success" : "text-danger"
+              )}
+            >
+              {trendUp ? (
+                <TrendingUp className="h-3.5 w-3.5" />
+              ) : (
+                <TrendingDown className="h-3.5 w-3.5" />
+              )}
+              <span>{trend}</span>
+            </div>
+          ) : null}
         </div>
       </CardHeader>
-      {helper ? <CardContent className="pt-0 text-sm text-mediumGray">{helper}</CardContent> : null}
+      {helper ? (
+        <CardContent className="pb-4 pt-0 text-sm text-mediumGray">
+          {helper}
+        </CardContent>
+      ) : null}
     </Card>
   );
 }

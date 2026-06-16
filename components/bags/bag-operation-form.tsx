@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { createBagOperationAction } from "@/app/actions/bags";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { FormField } from "@/components/ui/form-field";
 import type { BagOverview } from "@/lib/bags/bag-service";
 import { bagOperationTypes, formatUsd } from "@/lib/bags/bag-calculations";
 import { formatArs } from "@/lib/operations/seed-data";
@@ -85,10 +87,7 @@ export function BagOperationForm({
     <form action={formAction} className="space-y-4">
       <input name="current_path" type="hidden" value={pathname} />
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="bag_id">
-            Bolsa
-          </label>
+        <FormField label="Bolsa" htmlFor="bag_id">
           {isLocked ? (
             <>
               <input name="bag_id" type="hidden" value={bagId} />
@@ -98,8 +97,7 @@ export function BagOperationForm({
               <p className="text-xs text-mediumGray">La bolsa queda fija para tu usuario.</p>
             </>
           ) : (
-            <select
-              className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
+            <Select
               id="bag_id"
               name="bag_id"
               value={bagId}
@@ -110,15 +108,11 @@ export function BagOperationForm({
                   {bag.name}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="operation_type">
-            Tipo de operacion
-          </label>
-          <select
-            className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
+        </FormField>
+        <FormField label="Tipo de operación" htmlFor="operation_type">
+          <Select
             id="operation_type"
             name="operation_type"
             value={operationType}
@@ -129,8 +123,8 @@ export function BagOperationForm({
                 {type.replaceAll("_", " ")}
               </option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </FormField>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
@@ -149,12 +143,8 @@ export function BagOperationForm({
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="money_source">
-            Origen
-          </label>
-          <select
-            className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
+        <FormField label="Origen" htmlFor="money_source">
+          <Select
             id="money_source"
             name="money_source"
             value={moneySource}
@@ -162,14 +152,10 @@ export function BagOperationForm({
           >
             <option value="efectivo">Efectivo</option>
             <option value="cuenta">Cuenta</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="money_destination">
-            Destino
-          </label>
-          <select
-            className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
+          </Select>
+        </FormField>
+        <FormField label="Destino" htmlFor="money_destination">
+          <Select
             id="money_destination"
             name="money_destination"
             value={moneyDestination}
@@ -177,8 +163,8 @@ export function BagOperationForm({
           >
             <option value="efectivo">Efectivo</option>
             <option value="cuenta">Cuenta</option>
-          </select>
-        </div>
+          </Select>
+        </FormField>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
@@ -206,7 +192,7 @@ export function BagOperationForm({
         Confirmar como revisar
       </label>
 
-      <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm text-mediumGray">
+      <div className="rounded-md border border-lightGray bg-lightGray/30 p-4 text-sm text-mediumGray">
         <p className="font-semibold text-brandBlack">Vista previa</p>
         {selectedBag ? (
           <div className="mt-2 grid gap-2 sm:grid-cols-2">

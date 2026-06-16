@@ -1,5 +1,5 @@
-import { LoadingState } from "@/components/loading-state";
+import { BrandLoader } from "@/components/brand-loader";
 
 export default function Loading() {
-  return <LoadingState rows={1} />;
+  return <BrandLoader label="Validando sesión..." className="min-h-screen" />;
 }

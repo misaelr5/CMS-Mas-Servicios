@@ -25,11 +25,11 @@ export function BagCloseForm({ bag }: { bag: BagCloseTarget }) {
       <input name="bag_id" type="hidden" value={bag.id} />
       <input name="current_path" type="hidden" value={pathname} />
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm text-mediumGray">
+        <div className="rounded-md border border-lightGray bg-lightGray/30 p-4 text-sm text-mediumGray">
           <p className="font-semibold text-brandBlack">Efectivo</p>
           <p>{formatArs(Number(bag.current_cash_ars ?? 0))}</p>
         </div>
-        <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm text-mediumGray">
+        <div className="rounded-md border border-lightGray bg-lightGray/30 p-4 text-sm text-mediumGray">
           <p className="font-semibold text-brandBlack">Cuenta</p>
           <p>{formatArs(Number(bag.current_account_ars ?? 0))}</p>
         </div>

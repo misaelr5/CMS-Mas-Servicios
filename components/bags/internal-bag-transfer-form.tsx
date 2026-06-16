@@ -5,6 +5,8 @@ import { useActionState, useMemo, useState } from "react";
 import { createInternalBagTransferAction } from "@/app/actions/bags";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { FormField } from "@/components/ui/form-field";
 import type { InternalTransferBagOption } from "@/lib/bags/bag-service";
 import { formatUsd } from "@/lib/bags/bag-calculations";
 import { formatArs } from "@/lib/operations/seed-data";
@@ -87,7 +89,7 @@ export function InternalBagTransferForm({
       <input name="transfer_mode" type="hidden" value={transferMode} />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4">
+        <div className="rounded-md border border-lightGray bg-lightGray/30 p-4">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-mediumGray">Bolsa origen</p>
           <p className="mt-2 font-heading text-xl font-black text-brandBlack">{originBag.display_label}</p>
           <div className="mt-3 grid gap-2 text-sm text-mediumGray sm:grid-cols-3">
@@ -97,12 +99,8 @@ export function InternalBagTransferForm({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="destination_bag_id">
-            Bolsa destino
-          </label>
-          <select
-            className="flex min-h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
+        <FormField label="Bolsa destino" htmlFor="destination_bag_id" required>
+          <Select
             id="destination_bag_id"
             name="destination_bag_id"
             required
@@ -114,123 +112,108 @@ export function InternalBagTransferForm({
                 {bag.display_label} | Efectivo {formatArs(Number(bag.current_cash_ars ?? 0))} | Cuenta {formatArs(Number(bag.current_account_ars ?? 0))} | USD {formatUsd(Number(bag.current_usd ?? 0))}
               </option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </FormField>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="transfer_mode">
-            Tipo de movimiento
-          </label>
-          <select
-            className="flex min-h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
-            id="transfer_mode"
-            name="transfer_mode"
+        <FormField label="Tipo de movimiento" htmlFor="transfer_mode_select">
+          <Select
+            id="transfer_mode_select"
             value={transferMode}
             onChange={(event) => setTransferMode(event.target.value as "venta" | "compra")}
           >
             <option value="venta">Vender USD a otra bolsa</option>
             <option value="compra">Comprar USD de otra bolsa</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="amount_usd">
-            USD a mover
-          </label>
+          </Select>
+        </FormField>
+        <FormField label="USD a mover" htmlFor="amount_usd" required>
           <Input id="amount_usd" name="amount_usd" required value={amountUsd} onChange={(event) => setAmountUsd(event.target.value)} />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="internal_rate_ars">
-            Cotizacion interna
-          </label>
+        </FormField>
+        <FormField label="Cotización interna" htmlFor="internal_rate_ars" required>
           <Input id="internal_rate_ars" name="internal_rate_ars" required value={internalRateArs} onChange={(event) => setInternalRateArs(event.target.value)} />
-        </div>
+        </FormField>
       </div>
 
-      <div className="rounded-2xl border border-brandYellow/35 bg-brandYellow/15 p-4">
+      <div className="rounded-md border border-brandYellow/35 bg-brandYellow/15 p-4">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-mediumGray">Total ARS</p>
         <p className="mt-2 font-heading text-2xl font-black text-brandBlack">{formatArs(preview.totalArs)}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="destination_payment_source">
-            {transferMode === "venta" ? "La bolsa destino paga desde" : "La bolsa destino recibe en"}
-          </label>
-          <select
-            className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
+        <FormField
+          label={transferMode === "venta" ? "La bolsa destino paga desde" : "La bolsa destino recibe en"}
+          htmlFor="destination_payment_source"
+        >
+          <Select
             id="destination_payment_source"
             name="destination_payment_source"
             value={destinationPaymentSource}
             onChange={(event) => setDestinationPaymentSource(event.target.value as "efectivo" | "cuenta")}
           >
-            <option value="efectivo">efectivo</option>
-            <option value="cuenta">transferencia / cuenta</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="origin_receive_destination">
-            {transferMode === "venta" ? "La bolsa origen recibe en" : "La bolsa origen paga desde"}
-          </label>
-          <select
-            className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
+            <option value="efectivo">Efectivo</option>
+            <option value="cuenta">Transferencia / cuenta</option>
+          </Select>
+        </FormField>
+        <FormField
+          label={transferMode === "venta" ? "La bolsa origen recibe en" : "La bolsa origen paga desde"}
+          htmlFor="origin_receive_destination"
+        >
+          <Select
             id="origin_receive_destination"
             name="origin_receive_destination"
             value={originReceiveDestination}
             onChange={(event) => setOriginReceiveDestination(event.target.value as "efectivo" | "cuenta")}
           >
-            <option value="efectivo">efectivo</option>
-            <option value="cuenta">transferencia / cuenta</option>
-          </select>
-        </div>
+            <option value="efectivo">Efectivo</option>
+            <option value="cuenta">Transferencia / cuenta</option>
+          </Select>
+        </FormField>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-lightGray bg-white p-4 text-sm text-brandBlack">
+        <div className="rounded-md border border-lightGray bg-white p-4 text-sm text-brandBlack">
           <p className="font-heading text-lg font-black">Vista previa de origen</p>
           <p className="mt-1 text-mediumGray">{originBag.display_label}</p>
           <div className="mt-4 space-y-2">
-            <p>USD: {formatUsd(Number(originBag.current_usd ?? 0))} {" -> "} {formatUsd(preview.originNextUsd)}</p>
-            <p>Efectivo: {formatArs(Number(originBag.current_cash_ars ?? 0))} {" -> "} {formatArs(preview.originNextCash)}</p>
-            <p>Cuenta: {formatArs(Number(originBag.current_account_ars ?? 0))} {" -> "} {formatArs(preview.originNextAccount)}</p>
+            <p>USD: {formatUsd(Number(originBag.current_usd ?? 0))} {" → "} {formatUsd(preview.originNextUsd)}</p>
+            <p>Efectivo: {formatArs(Number(originBag.current_cash_ars ?? 0))} {" → "} {formatArs(preview.originNextCash)}</p>
+            <p>Cuenta: {formatArs(Number(originBag.current_account_ars ?? 0))} {" → "} {formatArs(preview.originNextAccount)}</p>
             <p>Ganancia reportable: {formatArs(0)}</p>
             <p>Tipo: {transferMode === "venta" ? "venta interna a otra bolsa" : "compra interna desde otra bolsa"}</p>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-lightGray bg-white p-4 text-sm text-brandBlack">
+        <div className="rounded-md border border-lightGray bg-white p-4 text-sm text-brandBlack">
           <p className="font-heading text-lg font-black">Vista previa de destino</p>
           <p className="mt-1 text-mediumGray">{destinationBag?.display_label ?? "Sin bolsa destino"}</p>
           <div className="mt-4 space-y-2">
-            <p>USD: {formatUsd(Number(destinationBag?.current_usd ?? 0))} {" -> "} {formatUsd(preview.destinationNextUsd)}</p>
-            <p>Efectivo: {formatArs(Number(destinationBag?.current_cash_ars ?? 0))} {" -> "} {formatArs(preview.destinationNextCash)}</p>
-            <p>Cuenta: {formatArs(Number(destinationBag?.current_account_ars ?? 0))} {" -> "} {formatArs(preview.destinationNextAccount)}</p>
+            <p>USD: {formatUsd(Number(destinationBag?.current_usd ?? 0))} {" → "} {formatUsd(preview.destinationNextUsd)}</p>
+            <p>Efectivo: {formatArs(Number(destinationBag?.current_cash_ars ?? 0))} {" → "} {formatArs(preview.destinationNextCash)}</p>
+            <p>Cuenta: {formatArs(Number(destinationBag?.current_account_ars ?? 0))} {" → "} {formatArs(preview.destinationNextAccount)}</p>
             <p>Costo promedio USD nuevo: {formatArs(preview.destinationAverage)}</p>
           </div>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="reason">
-            Motivo
-          </label>
+        <FormField label="Motivo" htmlFor="reason" required>
           <Input id="reason" name="reason" required />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="note">
-            Nota obligatoria
-          </label>
+        </FormField>
+        <FormField label="Nota obligatoria" htmlFor="note" required>
           <Input id="note" name="note" required />
-        </div>
+        </FormField>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <Button className="shadow-yellowGlow" disabled={isPending || destinationBags.length === 0} type="submit">
           {isPending ? "Guardando..." : transferMode === "venta" ? "Confirmar venta interna" : "Confirmar compra interna"}
         </Button>
-        {state.message ? <p className={state.ok ? "text-sm font-semibold text-success" : "text-sm font-semibold text-danger"}>{state.message}</p> : null}
+        {state.message ? (
+          <p className={state.ok ? "text-sm font-semibold text-success" : "text-sm font-semibold text-danger"}>
+            {state.message}
+          </p>
+        ) : null}
       </div>
     </form>
   );

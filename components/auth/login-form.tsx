@@ -3,7 +3,7 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2, XCircle } from "lucide-react";
 
 import { clearSessionWindow, setSessionWindow } from "@/lib/auth/session";
 import { getHomePathForRole, normalizeRole } from "@/lib/auth/roles";
@@ -11,6 +11,8 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
+import { AppLogo } from "@/components/app-logo";
 
 export function LoginForm({ notice }: { notice?: string }) {
   const router = useRouter();
@@ -44,47 +46,63 @@ export function LoginForm({ notice }: { notice?: string }) {
       }
 
       setSessionWindow(data.user.id);
-      const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id).maybeSingle();
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
       const role = normalizeRole(roleData?.role ?? data.user.user_metadata?.role);
       router.replace(getHomePathForRole(role));
       router.refresh();
     } catch (loginError) {
       clearSessionWindow();
-      setError(loginError instanceof Error ? loginError.message : "No se pudo iniciar sesión.");
+      setError(
+        loginError instanceof Error
+          ? loginError.message
+          : "No se pudo iniciar sesión."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Card className="border-brandYellow/30 bg-white/96 text-brandBlack shadow-medium">
-      <CardContent className="space-y-5 p-6">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-mediumGray">Acceso interno</p>
-          <h1 className="mt-2 font-heading text-3xl font-black">MAS SERVICIOS</h1>
-          <p className="mt-3 text-sm text-mediumGray">
-            Ingresá con tu usuario interno. La sesión queda abierta por 12 horas.
-          </p>
+    <Card className="overflow-hidden border-lightGray/20 bg-white/96 text-brandBlack shadow-medium">
+      {/* Yellow top accent bar */}
+      <div className="h-1 w-full bg-brandYellow" />
+
+      <CardContent className="space-y-5 p-7">
+        <div className="flex items-start gap-4">
+          <AppLogo />
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-mediumGray">
+              Acceso interno
+            </p>
+            <h1 className="mt-1 font-heading text-2xl font-black leading-tight text-brandBlack">
+              MAS SERVICIOS
+            </h1>
+            <p className="mt-1.5 text-sm text-mediumGray">
+              Ingresá con tu usuario. La sesión dura 12 horas.
+            </p>
+          </div>
         </div>
 
         {notice ? (
-          <div className="flex items-start gap-3 rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm text-brandBlack">
+          <div className="flex items-start gap-3 rounded-md border border-warning/30 bg-warning/8 p-3.5 text-sm text-brandBlack">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
             <p>{notice}</p>
           </div>
         ) : null}
 
         {error ? (
-          <div className="rounded-2xl border border-danger/30 bg-danger/10 p-4 text-sm text-brandBlack">
-            {error}
+          <div className="flex items-start gap-3 rounded-md border border-danger/30 bg-danger/8 p-3.5 text-sm text-brandBlack">
+            <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
+            <p>{error}</p>
           </div>
         ) : null}
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-brandBlack" htmlFor="email">
-              Email
-            </label>
+          <FormField label="Email" htmlFor="email" required>
             <Input
               id="email"
               name="email"
@@ -94,12 +112,9 @@ export function LoginForm({ notice }: { notice?: string }) {
               placeholder="correo@maservicios.com"
               required
             />
-          </div>
+          </FormField>
 
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-brandBlack" htmlFor="password">
-              Contraseña
-            </label>
+          <FormField label="Contraseña" htmlFor="password" required>
             <Input
               id="password"
               name="password"
@@ -109,10 +124,21 @@ export function LoginForm({ notice }: { notice?: string }) {
               placeholder="••••••••"
               required
             />
-          </div>
+          </FormField>
 
-          <Button className="w-full shadow-yellowGlow" disabled={loading} type="submit">
-            {loading ? "Ingresando..." : "Ingresar"}
+          <Button
+            className="w-full shadow-yellowGlow"
+            disabled={loading}
+            type="submit"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Ingresando...
+              </>
+            ) : (
+              "Ingresar"
+            )}
           </Button>
         </form>
       </CardContent>
