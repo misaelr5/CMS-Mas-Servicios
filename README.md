@@ -58,6 +58,7 @@ supabase/migrations/20260611_operational_notes.sql
 supabase/migrations/20260612_cash_pay_facil.sql
 supabase/migrations/20260613_daily_reports_expenses.sql
 supabase/migrations/20260616_daily_report_closures.sql
+supabase/migrations/20260617_weekly_cash_closures.sql
 ```
 
 Despues, con `.env.local` cargado, correr seeds idempotentes:
@@ -111,6 +112,8 @@ Validaciones principales:
 - `cash_report_categories`
 - `cash_daily_reports`
 - `cash_daily_report_lines`
+- `weekly_cash_closures`
+- `weekly_cash_closure_lines`
 - `bags`
 - `bag_assignments`
 - `audit_logs`
@@ -184,6 +187,32 @@ Validaciones:
 - Un reporte cerrado bloquea edición de ajustes, gastos y cargas de caja.
 - El cierre diario no reinicia cajas ni toca bolsas.
 
+## Cierre semanal de Pago Facil
+
+Rutas disponibles:
+
+- `/cierres`
+
+La semana operativa va de viernes a jueves. El selector de fecha toma una fecha cualquiera dentro de esa semana y consolida el rango completo.
+
+Flujo de prueba:
+
+1. Entrar a `/cierres` con rol admin o encargado.
+2. Elegir una fecha dentro de la semana a revisar.
+3. Verificar el resumen por sucursal, el detalle por caja y el ultimo cierre.
+4. Cerrar la semana con una nota opcional.
+5. Confirmar que la semana quede en estado `Cerrado` o `Revisar` segun el estado de las cargas.
+6. Volver a `/cajas/[id]/cargar` para comprobar que una semana cerrada bloquea nuevas cargas.
+7. Reabrir la semana con motivo obligatorio y nota obligatoria.
+
+Reglas principales:
+
+- Solo admin o encargado pueden cerrar o reabrir.
+- `Cerrar semana` guarda auditoria y crea nota si se escribe observacion.
+- `Reabrir semana` exige motivo y nota obligatoria.
+- Si la semana esta cerrada, no se pueden guardar nuevas cargas de caja hasta reabrirla.
+- El cierre semanal no modifica bolsas ni operaciones de USD.
+
 ## Como verificar auditoria
 
 1. Abrir las tablas de `audit_logs` en Supabase.
@@ -194,7 +223,7 @@ Validaciones:
 
 Las notas soportan:
 
-- Entidades: `bag`, `bag_operation`, `cash_register`, `cash_daily_report`, `daily_report`, `expense`, `closure`, `general`.
+- Entidades: `bag`, `bag_operation`, `cash_register`, `cash_daily_report`, `daily_report`, `weekly_cash_closure`, `expense`, `closure`, `general`.
 - Prioridad: `normal`, `importante`, `urgente`.
 - Estado: `abierta`, `resuelta`, `anulada`.
 - Sin borrado fisico: una nota se resuelve o se anula con motivo.

@@ -151,6 +151,7 @@ export type NoteEntityType =
   | "cash_register"
   | "cash_daily_report"
   | "daily_report"
+  | "weekly_cash_closure"
   | "expense"
   | "closure"
   | "general";
@@ -276,4 +277,42 @@ export type BagDailySnapshot = {
   status: "ok" | "revisar" | "diferencia" | "pendiente_cierre";
   created_by: string | null;
   created_at: string;
+};
+
+export type WeeklyCashClosureStatus = "abierto" | "cerrado" | "revisar";
+
+export type WeeklyCashClosure = {
+  id: string;
+  week_start_date: string;
+  week_end_date: string;
+  status: WeeklyCashClosureStatus;
+  total_operated_ars: number;
+  total_profit_ars: number;
+  center_profit_ars: number;
+  terminal_profit_ars: number;
+  notes: string | null;
+  closed_at: string | null;
+  closed_by: string | null;
+  reopened_at: string | null;
+  reopened_by: string | null;
+  reopen_reason: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type WeeklyCashClosureLine = {
+  id: string;
+  weekly_cash_closure_id: string;
+  cash_register_id: string;
+  branch_id: string;
+  total_operated_ars: number;
+  total_profit_ars: number;
+  loaded_days_count: number;
+  pending_days_count: number;
+  reviewed_days_count: number;
+  status: WeeklyCashClosureStatus;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 };

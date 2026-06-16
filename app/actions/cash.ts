@@ -20,6 +20,7 @@ import {
   getDailyReportRecordByBranchDate,
   isDailyReportLockedStatus
 } from "@/lib/finance/daily-report-service";
+import { getWeeklyCashClosureLockState } from "@/lib/finance/weekly-cash-closure-service";
 
 type ActionState = {
   ok: boolean;
@@ -99,6 +100,17 @@ export async function saveCashDailyReportAction(_prevState: ActionState, formDat
   const submitMode = getSubmitStatus(getString(formData, "submit_mode"));
   const generalNote = getString(formData, "general_note");
   const negativeProfitReason = getString(formData, "negative_profit_reason");
+  const weeklyClosureLock = await getWeeklyCashClosureLockState(reportDate);
+  if (weeklyClosureLock.locked) {
+    await createAuditLog({
+      actorId: auth.userId,
+      action: "weekly_cash_closure.edit_blocked",
+      entityType: "weekly_cash_closure",
+      entityId: weeklyClosureLock.closure?.id ?? null,
+      reason: "Intento editar una carga dentro de una semana cerrada"
+    });
+    return { ok: false, message: "Esta semana esta cerrada. Reabrila para modificarla." };
+  }
 
   if (!cashRegisterId) {
     return { ok: false, message: "Elegí una caja." };

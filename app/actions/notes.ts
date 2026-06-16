@@ -32,6 +32,7 @@ function getEntityType(value: string): NoteEntityType {
     "cash_register",
     "cash_daily_report",
     "daily_report",
+    "weekly_cash_closure",
     "expense",
     "closure",
     "general"

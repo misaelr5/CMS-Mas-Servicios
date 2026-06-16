@@ -16,7 +16,9 @@ import { getBagsOverview } from "@/lib/bags/bag-service";
 import { formatUsd } from "@/lib/bags/bag-calculations";
 import { getExpensePageData } from "@/lib/finance/expense-service";
 import { getDailyReportViewData } from "@/lib/finance/daily-report-service";
+import { getWeeklyCashClosureViewData } from "@/lib/finance/weekly-cash-closure-service";
 import { getBuenosAiresDateString } from "@/lib/finance/report-dates";
+import { weeklyCashClosureStatusLabels } from "@/lib/finance/weekly-cash-closure-calculations";
 import { formatArs } from "@/lib/operations/seed-data";
 import { listNotes } from "@/lib/notes/notes-service";
 
@@ -38,6 +40,7 @@ export default async function DashboardPage() {
   const cashData = await getCashModuleData();
   const reportData = await getDailyReportViewData(today, { role: auth.role, userId: auth.userId });
   const expenseData = await getExpensePageData({ date: today }, { role: auth.role, userId: auth.userId });
+  const weeklyClosureData = await getWeeklyCashClosureViewData(today, { role: auth.role, userId: auth.userId });
   const reportNotes = (await listNotes({ entityType: "daily_report", limit: 6 })).filter(
     (note) => note.priority === "importante" || note.priority === "urgente"
   );
@@ -80,6 +83,41 @@ export default async function DashboardPage() {
         <StatCard label="Total prestado" value={formatArs(totals.borrowed)} />
         <StatCard label="Notas internas" value="Activas" helper="Base lista para seguimiento" status="ok" />
       </div>
+
+      <DataCard description="Estado actual del cierre semanal de Pago Facil." title="Cierre semanal">
+        <div className="overflow-x-auto">
+          <table className="min-w-[900px] border-separate border-spacing-0 text-sm">
+            <thead className="bg-lightGray text-brandBlack">
+              <tr>
+                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Semana</th>
+                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
+                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
+                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Ganancia</th>
+                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Pendientes</th>
+                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Revisados</th>
+                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Ultimo cierre</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="bg-white">
+                <td className="border-b border-lightGray px-4 py-4 font-semibold">{weeklyClosureData.weekStartDate} a {weeklyClosureData.weekEndDate}</td>
+                <td className="border-b border-lightGray px-4 py-4">
+                  <Badge variant={weeklyClosureData.status === "cerrado" ? "success" : weeklyClosureData.status === "revisar" ? "warning" : "neutral"}>
+                    {weeklyCashClosureStatusLabels[weeklyClosureData.status]}
+                  </Badge>
+                </td>
+                <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(weeklyClosureData.totals.totalOperatedArs)}</td>
+                <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(weeklyClosureData.totals.totalProfitArs)}</td>
+                <td className="border-b border-lightGray px-4 py-4 font-semibold">{weeklyClosureData.totals.pendingDaysCount}</td>
+                <td className="border-b border-lightGray px-4 py-4 font-semibold">{weeklyClosureData.totals.reviewedDaysCount}</td>
+                <td className="border-b border-lightGray px-4 py-4 text-mediumGray">
+                  {weeklyClosureData.lastClosure ? `${weeklyClosureData.lastClosure.week_start_date} a ${weeklyClosureData.lastClosure.week_end_date}` : "Sin cierres"}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </DataCard>
 
       <DataCard description="Resumen operativo en formato de tabla." title="Bolsas">
         {bags.length === 0 ? (

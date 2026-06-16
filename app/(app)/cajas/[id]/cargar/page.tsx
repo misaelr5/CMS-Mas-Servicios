@@ -12,6 +12,7 @@ import { DataCard } from "@/components/data-card";
 import { getServerAuthContext } from "@/lib/auth/server";
 import { getCashRegisterData } from "@/lib/cash/cash-service";
 import { getDailyReportViewData, isDailyReportLockedStatus } from "@/lib/finance/daily-report-service";
+import { getWeeklyCashClosureLockState } from "@/lib/finance/weekly-cash-closure-service";
 import { getOperationalConfigData } from "@/lib/operations/operational-data";
 
 function todayIsoInBuenosAires() {
@@ -33,6 +34,7 @@ export default async function CajaCargarPage({ params }: { params: Promise<{ id:
   const todayReportData = await getDailyReportViewData(todayIsoInBuenosAires(), auth ? { role: auth.role, userId: auth.userId } : undefined);
   const branchSummary = todayReportData.branches.find((branch) => branch.branch.id === register?.branch_id);
   const isLocked = Boolean(branchSummary?.dailyReport?.status && isDailyReportLockedStatus(branchSummary.dailyReport.status));
+  const weeklyLock = await getWeeklyCashClosureLockState(todayIsoInBuenosAires());
 
   if (!register || auth?.role === "viewer" || (auth?.role === "cajero" && register.responsible_user_id !== auth.userId)) {
     return <AccessDenied />;
@@ -74,7 +76,14 @@ export default async function CajaCargarPage({ params }: { params: Promise<{ id:
         </div>
       </DataCard>
 
-      <CashDailyReportForm canReview={canReview} categories={cashData.categories} isLocked={isLocked} register={register} reportDate={todayIsoInBuenosAires()} />
+      <CashDailyReportForm
+        canReview={canReview}
+        categories={cashData.categories}
+        isLocked={isLocked}
+        register={register}
+        reportDate={todayIsoInBuenosAires()}
+        weekLocked={weeklyLock.locked}
+      />
 
       {register.today_report ? (
         <NotesPanel
