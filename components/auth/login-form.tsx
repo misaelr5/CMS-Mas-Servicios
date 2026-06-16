@@ -3,7 +3,7 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Loader2, XCircle } from "lucide-react";
+import { AlertTriangle, Loader2, LogIn, XCircle } from "lucide-react";
 
 import { clearSessionWindow, setSessionWindow } from "@/lib/auth/session";
 import { getHomePathForRole, normalizeRole } from "@/lib/auth/roles";
@@ -11,8 +11,6 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FormField } from "@/components/ui/form-field";
-import { AppLogo } from "@/components/app-logo";
 
 export function LoginForm({ notice }: { notice?: string }) {
   const router = useRouter();
@@ -57,9 +55,7 @@ export function LoginForm({ notice }: { notice?: string }) {
     } catch (loginError) {
       clearSessionWindow();
       setError(
-        loginError instanceof Error
-          ? loginError.message
-          : "No se pudo iniciar sesión."
+        loginError instanceof Error ? loginError.message : "No se pudo iniciar sesión."
       );
     } finally {
       setLoading(false);
@@ -67,42 +63,42 @@ export function LoginForm({ notice }: { notice?: string }) {
   };
 
   return (
-    <Card className="overflow-hidden border-lightGray/20 bg-white/96 text-brandBlack shadow-medium">
-      {/* Yellow top accent bar */}
-      <div className="h-1 w-full bg-brandYellow" />
+    <Card className="overflow-hidden border-white/10 bg-darkSurface/70 shadow-medium backdrop-blur-xl">
+      {/* Acento amarillo superior */}
+      <div className="h-1 w-full bg-gradient-to-r from-brandYellow/40 via-brandYellow to-brandYellow/40" />
 
-      <CardContent className="space-y-5 p-7">
-        <div className="flex items-start gap-4">
-          <AppLogo />
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-mediumGray">
-              Acceso interno
-            </p>
-            <h1 className="mt-1 font-heading text-2xl font-black leading-tight text-brandBlack">
-              MAS SERVICIOS
-            </h1>
-            <p className="mt-1.5 text-sm text-mediumGray">
-              Ingresá con tu usuario. La sesión dura 12 horas.
-            </p>
-          </div>
+      <CardContent className="space-y-6 p-7 sm:p-8">
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brandYellow/80">
+            Acceso interno
+          </p>
+          <h1 className="font-heading text-2xl font-black leading-tight text-brandWhite">
+            Ingresá a tu cuenta
+          </h1>
+          <p className="text-sm text-lightGray/65">
+            La sesión queda abierta por 12 horas.
+          </p>
         </div>
 
         {notice ? (
-          <div className="flex items-start gap-3 rounded-md border border-warning/30 bg-warning/8 p-3.5 text-sm text-brandBlack">
+          <div className="flex items-start gap-3 rounded-md border border-warning/30 bg-warning/10 p-3.5 text-sm text-lightGray">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
             <p>{notice}</p>
           </div>
         ) : null}
 
         {error ? (
-          <div className="flex items-start gap-3 rounded-md border border-danger/30 bg-danger/8 p-3.5 text-sm text-brandBlack">
+          <div className="flex items-start gap-3 rounded-md border border-danger/30 bg-danger/10 p-3.5 text-sm text-lightGray">
             <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
             <p>{error}</p>
           </div>
         ) : null}
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <FormField label="Email" htmlFor="email" required>
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-lightGray" htmlFor="email">
+              Email
+            </label>
             <Input
               id="email"
               name="email"
@@ -112,9 +108,12 @@ export function LoginForm({ notice }: { notice?: string }) {
               placeholder="correo@maservicios.com"
               required
             />
-          </FormField>
+          </div>
 
-          <FormField label="Contraseña" htmlFor="password" required>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-lightGray" htmlFor="password">
+              Contraseña
+            </label>
             <Input
               id="password"
               name="password"
@@ -124,7 +123,7 @@ export function LoginForm({ notice }: { notice?: string }) {
               placeholder="••••••••"
               required
             />
-          </FormField>
+          </div>
 
           <Button
             className="w-full shadow-yellowGlow"
@@ -137,7 +136,10 @@ export function LoginForm({ notice }: { notice?: string }) {
                 Ingresando...
               </>
             ) : (
-              "Ingresar"
+              <>
+                <LogIn className="h-4 w-4" />
+                Ingresar
+              </>
             )}
           </Button>
         </form>

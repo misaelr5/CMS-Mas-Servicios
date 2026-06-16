@@ -1,3 +1,4 @@
+import { BrandIcon } from "@/components/brand-mark";
 import { cn } from "@/lib/utils";
 
 export function BrandLoader({
@@ -21,10 +22,8 @@ export function BrandLoader({
         <div className="absolute inset-0 animate-pulse rounded-full bg-brandYellow/20 blur-2xl" />
         {/* Anillo giratorio */}
         <div className="absolute inset-0 animate-spin rounded-full border-[3px] border-brandYellow/15 border-t-brandYellow" />
-        {/* Logo MS */}
-        <div className="relative flex h-14 w-14 items-center justify-center rounded-xl bg-brandYellow font-heading text-xl font-black text-brandBlack shadow-yellowGlow">
-          MS
-        </div>
+        {/* Símbolo de marca */}
+        <BrandIcon className="relative h-12 w-12 drop-shadow-[0_4px_16px_rgba(255,212,0,0.35)]" />
       </div>
 
       <div className="flex flex-col items-center gap-3">

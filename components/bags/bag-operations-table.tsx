@@ -1,7 +1,11 @@
+import { ArrowDownLeft, ArrowUpRight, RefreshCw } from "lucide-react";
+
 import { annulInternalBagTransferFormAction } from "@/app/actions/bags";
+import { Badge } from "@/components/ui/badge";
 import type { BagOperation } from "@/lib/db/types";
 import { formatUsd } from "@/lib/bags/bag-calculations";
 import { formatArs } from "@/lib/operations/seed-data";
+import { cn } from "@/lib/utils";
 
 const operationLabels: Record<string, string> = {
   compra_usd: "Compra USD",
@@ -51,10 +55,79 @@ function moneyFlow(operation: BagOperation) {
   return "Movimiento interno";
 }
 
-function statusTone(status: BagOperation["status"]) {
-  if (status === "confirmada") return "bg-success/10 text-success";
-  if (status === "revisar") return "bg-warning/15 text-warning";
-  return "bg-danger/10 text-danger";
+type FlowDirection = "in" | "out" | "neutral";
+
+function flowDirection(text: string): FlowDirection {
+  const lower = text.toLowerCase();
+  if (lower.includes("entra") || lower.includes("ingreso") || lower.includes("recibe")) return "in";
+  if (lower.includes("sale") || lower.includes("egreso") || lower.includes("paga")) return "out";
+  return "neutral";
+}
+
+function FlowCell({ text }: { text: string }) {
+  const dir = flowDirection(text);
+  const Icon = dir === "in" ? ArrowDownLeft : dir === "out" ? ArrowUpRight : RefreshCw;
+  const tone =
+    dir === "in" ? "text-success" : dir === "out" ? "text-danger" : "text-mediumGray";
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <Icon className={cn("h-3.5 w-3.5 shrink-0", tone)} />
+      <span className="text-brandBlack">{text}</span>
+    </span>
+  );
+}
+
+const statusConfig: Record<
+  string,
+  { variant: "success" | "warning" | "danger" | "neutral"; label: string }
+> = {
+  confirmada: { variant: "success", label: "Confirmada" },
+  revisar: { variant: "warning", label: "Revisar" },
+  anulada: { variant: "danger", label: "Anulada" }
+};
+
+function StatusPill({ status }: { status: BagOperation["status"] }) {
+  const config = statusConfig[status] ?? { variant: "neutral" as const, label: status };
+  return (
+    <Badge variant={config.variant} dot className="text-[10px] uppercase tracking-[0.14em]">
+      {config.label}
+    </Badge>
+  );
+}
+
+function BalanceCell({
+  cash,
+  account,
+  usd
+}: {
+  cash: number;
+  account: number;
+  usd: number;
+}) {
+  return (
+    <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+      <span className="text-mediumGray">Efvo</span>
+      <span className="text-right font-medium tabular-nums text-brandBlack">{formatArs(cash)}</span>
+      <span className="text-mediumGray">Cta</span>
+      <span className="text-right font-medium tabular-nums text-brandBlack">{formatArs(account)}</span>
+      <span className="text-mediumGray">USD</span>
+      <span className="text-right font-medium tabular-nums text-brandBlack">{formatUsd(usd)}</span>
+    </div>
+  );
+}
+
+function GananciaValue({ value }: { value: number }) {
+  return (
+    <span
+      className={cn(
+        "font-semibold tabular-nums",
+        value > 0 ? "text-success" : value < 0 ? "text-danger" : "text-mediumGray"
+      )}
+    >
+      {formatArs(value)}
+    </span>
+  );
 }
 
 function canAnnulInternalTransfer(operation: BagOperation, canManageInternalTransfers: boolean) {
@@ -74,7 +147,7 @@ function AnnulInternalTransferForm({ operation }: { operation: BagOperation }) {
       <input name="internal_transfer_id" type="hidden" value={operation.internal_transfer_id} />
       <input className="h-9 rounded-md border border-border bg-white px-3 text-xs text-brandBlack" name="reason" placeholder="Motivo de anulacion" required />
       <input className="h-9 rounded-md border border-border bg-white px-3 text-xs text-brandBlack" name="note" placeholder="Nota obligatoria" required />
-      <button className="rounded-lg bg-danger px-3 py-2 text-xs font-bold text-white" type="submit">
+      <button className="rounded-lg bg-danger px-3 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90" type="submit">
         Anular movimiento interno
       </button>
     </form>
@@ -95,105 +168,123 @@ export function BagOperationsTable({
 
   return (
     <div className="space-y-4">
+      {/* Mobile: cards */}
       <div className="grid gap-3 lg:hidden">
-        {operations.map((op) => (
-          <article key={op.id} className="rounded-md border border-lightGray bg-white p-4 text-sm text-brandBlack shadow-soft">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-heading text-base font-black">{operationLabel(op)}</p>
-                <p className="mt-1 text-xs text-mediumGray">{new Date(op.created_at).toLocaleString("es-AR")}</p>
+        {operations.map((op) => {
+          const flow = moneyFlow(op);
+          return (
+            <article key={op.id} className="rounded-lg border border-lightGray bg-white p-4 text-sm text-brandBlack shadow-soft">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-heading text-base font-black">{operationLabel(op)}</p>
+                  <p className="mt-1 text-xs text-mediumGray">{new Date(op.created_at).toLocaleString("es-AR")}</p>
+                </div>
+                <StatusPill status={op.status} />
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] ${statusTone(op.status)}`}>
-                {op.status}
-              </span>
-            </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl bg-lightGray/35 p-3">
-                <p className="text-xs uppercase tracking-[0.16em] text-mediumGray">Movimiento</p>
-                <p className="mt-1 font-semibold">{formatArs(Number(op.total_ars ?? 0))}</p>
-                <p className="text-mediumGray">{formatUsd(Number(op.amount_usd ?? 0))} USD a {formatArs(Number(op.rate_ars ?? 0))}</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-md bg-lightGray/35 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-mediumGray">Movimiento</p>
+                  <p className="mt-1 font-semibold tabular-nums">{formatArs(Number(op.total_ars ?? 0))}</p>
+                  <p className="text-mediumGray">{formatUsd(Number(op.amount_usd ?? 0))} USD a {formatArs(Number(op.rate_ars ?? 0))}</p>
+                </div>
+                <div className="rounded-md bg-lightGray/35 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-mediumGray">Flujo</p>
+                  <p className="mt-1 font-semibold"><FlowCell text={flow} /></p>
+                  <p className="mt-1 text-mediumGray">Ganancia: <GananciaValue value={Number(op.profit_ars ?? 0)} /></p>
+                </div>
+                <div className="rounded-md bg-lightGray/35 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-mediumGray">Saldo anterior</p>
+                  <div className="mt-1">
+                    <BalanceCell
+                      cash={Number(op.previous_cash_ars ?? 0)}
+                      account={Number(op.previous_account_ars ?? 0)}
+                      usd={Number(op.previous_usd ?? 0)}
+                    />
+                  </div>
+                </div>
+                <div className="rounded-md bg-lightGray/35 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-mediumGray">Saldo nuevo</p>
+                  <div className="mt-1">
+                    <BalanceCell
+                      cash={Number(op.new_cash_ars ?? 0)}
+                      account={Number(op.new_account_ars ?? 0)}
+                      usd={Number(op.new_usd ?? 0)}
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="rounded-xl bg-lightGray/35 p-3">
-                <p className="text-xs uppercase tracking-[0.16em] text-mediumGray">Flujo</p>
-                <p className="mt-1 font-semibold">{moneyFlow(op)}</p>
-                <p className="text-mediumGray">Ganancia: {formatArs(Number(op.profit_ars ?? 0))}</p>
-              </div>
-              <div className="rounded-xl bg-lightGray/35 p-3">
-                <p className="text-xs uppercase tracking-[0.16em] text-mediumGray">Antes</p>
-                <p className="mt-1">Efectivo: {formatArs(Number(op.previous_cash_ars ?? 0))}</p>
-                <p>Cuenta: {formatArs(Number(op.previous_account_ars ?? 0))}</p>
-                <p>USD: {formatUsd(Number(op.previous_usd ?? 0))}</p>
-              </div>
-              <div className="rounded-xl bg-lightGray/35 p-3">
-                <p className="text-xs uppercase tracking-[0.16em] text-mediumGray">Despues</p>
-                <p className="mt-1">Efectivo: {formatArs(Number(op.new_cash_ars ?? 0))}</p>
-                <p>Cuenta: {formatArs(Number(op.new_account_ars ?? 0))}</p>
-                <p>USD: {formatUsd(Number(op.new_usd ?? 0))}</p>
-              </div>
-            </div>
 
-            {op.notes ? <p className="mt-3 rounded-xl bg-brandYellow/15 p-3 text-sm text-brandBlack">Nota: {op.notes}</p> : null}
-            {canAnnulInternalTransfer(op, canManageInternalTransfers) ? <AnnulInternalTransferForm operation={op} /> : null}
-          </article>
-        ))}
+              {op.notes ? <p className="mt-3 rounded-md bg-brandYellow/15 p-3 text-sm text-brandBlack">Nota: {op.notes}</p> : null}
+              {canAnnulInternalTransfer(op, canManageInternalTransfers) ? <AnnulInternalTransferForm operation={op} /> : null}
+            </article>
+          );
+        })}
       </div>
 
+      {/* Desktop: table */}
       <div className="hidden overflow-hidden rounded-lg border border-lightGray lg:block">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-lightGray text-left text-sm">
-          <thead className="bg-lightGray/40 text-brandBlack">
-            <tr>
-              <th className="px-4 py-3">Fecha</th>
-              <th className="px-4 py-3">Tipo</th>
-              <th className="px-4 py-3">Flujo</th>
-              <th className="px-4 py-3">USD</th>
-              <th className="px-4 py-3">ARS</th>
-              <th className="px-4 py-3">Saldo anterior</th>
-              <th className="px-4 py-3">Saldo nuevo</th>
-              <th className="px-4 py-3">Ganancia</th>
-              <th className="px-4 py-3">Estado</th>
-              <th className="px-4 py-3">Nota</th>
-              {canManageInternalTransfers ? <th className="px-4 py-3">Acciones</th> : null}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-lightGray bg-white text-brandBlack">
-            {operations.map((op) => (
-              <tr key={op.id}>
-                <td className="px-4 py-3">{new Date(op.created_at).toLocaleString("es-AR")}</td>
-                <td className="px-4 py-3 font-semibold">{operationLabel(op)}</td>
-                <td className="px-4 py-3">{moneyFlow(op)}</td>
-                <td className="px-4 py-3">{formatUsd(Number(op.amount_usd ?? 0))}</td>
-                <td className="px-4 py-3">{formatArs(Number(op.total_ars ?? 0))}</td>
-                <td className="px-4 py-3 text-xs text-mediumGray">
-                  <p>Efectivo: {formatArs(Number(op.previous_cash_ars ?? 0))}</p>
-                  <p>Cuenta: {formatArs(Number(op.previous_account_ars ?? 0))}</p>
-                  <p>USD: {formatUsd(Number(op.previous_usd ?? 0))}</p>
-                </td>
-                <td className="px-4 py-3 text-xs text-mediumGray">
-                  <p>Efectivo: {formatArs(Number(op.new_cash_ars ?? 0))}</p>
-                  <p>Cuenta: {formatArs(Number(op.new_account_ars ?? 0))}</p>
-                  <p>USD: {formatUsd(Number(op.new_usd ?? 0))}</p>
-                </td>
-                <td className="px-4 py-3">{formatArs(Number(op.profit_ars ?? 0))}</td>
-                <td className="px-4 py-3">
-                  <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] ${statusTone(op.status)}`}>
-                    {op.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  {op.notes ? <span>{op.notes}</span> : <span className="text-mediumGray">Sin nota</span>}
-                </td>
-                {canManageInternalTransfers ? (
-                  <td className="px-4 py-3">
-                    {canAnnulInternalTransfer(op, canManageInternalTransfers) ? <AnnulInternalTransferForm operation={op} /> : <span className="text-xs text-mediumGray">Sin acciones</span>}
-                  </td>
-                ) : null}
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-lightGray bg-lightGray/50 text-[11px] uppercase tracking-[0.12em] text-mediumGray">
+                <th className="px-4 py-3.5 font-bold">Fecha</th>
+                <th className="px-4 py-3.5 font-bold">Tipo</th>
+                <th className="px-4 py-3.5 font-bold">Flujo</th>
+                <th className="px-4 py-3.5 text-right font-bold">USD</th>
+                <th className="px-4 py-3.5 text-right font-bold">ARS</th>
+                <th className="px-4 py-3.5 font-bold">Saldo anterior</th>
+                <th className="px-4 py-3.5 font-bold">Saldo nuevo</th>
+                <th className="px-4 py-3.5 text-right font-bold">Ganancia</th>
+                <th className="px-4 py-3.5 font-bold">Estado</th>
+                <th className="px-4 py-3.5 font-bold">Nota</th>
+                {canManageInternalTransfers ? <th className="px-4 py-3.5 font-bold">Acciones</th> : null}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-lightGray bg-white text-brandBlack">
+              {operations.map((op) => {
+                const created = new Date(op.created_at);
+                const flow = moneyFlow(op);
+                return (
+                  <tr key={op.id} className="transition-colors hover:bg-brandYellow/5">
+                    <td className="whitespace-nowrap px-4 py-3.5 align-top">
+                      <p className="font-semibold text-brandBlack">{created.toLocaleDateString("es-AR")}</p>
+                      <p className="text-xs text-mediumGray">{created.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</p>
+                    </td>
+                    <td className="px-4 py-3.5 align-top font-semibold">{operationLabel(op)}</td>
+                    <td className="px-4 py-3.5 align-top"><FlowCell text={flow} /></td>
+                    <td className="px-4 py-3.5 text-right align-top tabular-nums">{formatUsd(Number(op.amount_usd ?? 0))}</td>
+                    <td className="px-4 py-3.5 text-right align-top font-semibold tabular-nums">{formatArs(Number(op.total_ars ?? 0))}</td>
+                    <td className="px-4 py-3.5 align-top">
+                      <BalanceCell
+                        cash={Number(op.previous_cash_ars ?? 0)}
+                        account={Number(op.previous_account_ars ?? 0)}
+                        usd={Number(op.previous_usd ?? 0)}
+                      />
+                    </td>
+                    <td className="px-4 py-3.5 align-top">
+                      <BalanceCell
+                        cash={Number(op.new_cash_ars ?? 0)}
+                        account={Number(op.new_account_ars ?? 0)}
+                        usd={Number(op.new_usd ?? 0)}
+                      />
+                    </td>
+                    <td className="px-4 py-3.5 text-right align-top"><GananciaValue value={Number(op.profit_ars ?? 0)} /></td>
+                    <td className="px-4 py-3.5 align-top"><StatusPill status={op.status} /></td>
+                    <td className="max-w-[200px] px-4 py-3.5 align-top">
+                      {op.notes ? <span className="text-brandBlack">{op.notes}</span> : <span className="text-mediumGray/70">Sin nota</span>}
+                    </td>
+                    {canManageInternalTransfers ? (
+                      <td className="px-4 py-3.5 align-top">
+                        {canAnnulInternalTransfer(op, canManageInternalTransfers) ? <AnnulInternalTransferForm operation={op} /> : <span className="text-xs text-mediumGray/70">Sin acciones</span>}
+                      </td>
+                    ) : null}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

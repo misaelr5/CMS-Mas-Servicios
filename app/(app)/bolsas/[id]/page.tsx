@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { Coins, DollarSign, History, TrendingUp, Wallet } from "lucide-react";
 
 import { NotesPanel } from "@/components/notes/notes-panel";
 import { BagOperationsTable } from "@/components/bags/bag-operations-table";
@@ -54,52 +55,52 @@ export default async function BolsaDetallePage({ params }: { params: Promise<{ i
       />
 
       <div className={isCashier ? "grid gap-4 md:grid-cols-2 xl:grid-cols-3" : "grid gap-4 md:grid-cols-2 xl:grid-cols-4"}>
-        <DataCard description="Capacidad base" title="Base / limite">
-          <p className="text-2xl font-black text-brandBlack">{formatArs(Number(bag.base_limit_ars ?? 0))}</p>
+        <DataCard description="Capacidad base" icon={Wallet} title="Base / limite">
+          <p className="font-heading text-2xl font-black tabular-nums text-brandBlack">{formatArs(Number(bag.base_limit_ars ?? 0))}</p>
         </DataCard>
-        <DataCard description="Pesos disponibles" title="Efectivo y cuenta">
+        <DataCard description="Pesos disponibles" icon={Coins} title="Efectivo y cuenta">
           <p className="text-sm text-mediumGray">Efectivo</p>
-          <p className="font-semibold text-brandBlack">{formatArs(Number(bag.current_cash_ars ?? 0))}</p>
+          <p className="font-semibold tabular-nums text-brandBlack">{formatArs(Number(bag.current_cash_ars ?? 0))}</p>
           <p className="mt-2 text-sm text-mediumGray">Cuenta</p>
-          <p className="font-semibold text-brandBlack">{formatArs(Number(bag.current_account_ars ?? 0))}</p>
+          <p className="font-semibold tabular-nums text-brandBlack">{formatArs(Number(bag.current_account_ars ?? 0))}</p>
         </DataCard>
-        <DataCard description="Dolares y costo" title="USD y promedio">
+        <DataCard description="Dolares y costo" icon={DollarSign} title="USD y promedio">
           <p className="text-sm text-mediumGray">USD</p>
-          <p className="font-semibold text-brandBlack">{formatUsd(Number(bag.current_usd ?? 0))}</p>
+          <p className="font-semibold tabular-nums text-brandBlack">{formatUsd(Number(bag.current_usd ?? 0))}</p>
           <p className="mt-2 text-sm text-mediumGray">Costo promedio</p>
-          <p className="font-semibold text-brandBlack">{formatArs(Number(bag.average_usd_cost ?? 0))}</p>
+          <p className="font-semibold tabular-nums text-brandBlack">{formatArs(Number(bag.average_usd_cost ?? 0))}</p>
         </DataCard>
-        {!isCashier ? <DataCard description="Utilidad y diferencia" title="Resultados">
+        {!isCashier ? <DataCard description="Utilidad y diferencia" icon={TrendingUp} title="Resultados">
           <p className="text-sm text-mediumGray">Ganancia acumulada</p>
-          <p className="font-semibold text-brandBlack">{formatArs(Number(bag.accumulated_profit_ars ?? 0))}</p>
+          <p className="font-semibold tabular-nums text-brandBlack">{formatArs(Number(bag.accumulated_profit_ars ?? 0))}</p>
           <p className="mt-2 text-sm text-mediumGray">Diferencia estimada</p>
-          <p className="font-semibold text-brandBlack">{formatArs(Number(detail?.difference_ars ?? 0))}</p>
+          <p className="font-semibold tabular-nums text-brandBlack">{formatArs(Number(detail?.difference_ars ?? 0))}</p>
           <p className="mt-2 text-xs uppercase tracking-[0.2em] text-mediumGray">Ultima actualizacion</p>
           <p className="text-sm font-semibold text-brandBlack">{latestUpdate}</p>
         </DataCard> : null}
       </div>
 
-      {!isCashier ? <DataCard description="Reparto base esperado antes de operar. Efectivo y cuenta son saldos separados." title="Configuracion inicial ideal">
+      {!isCashier ? <DataCard description="Reparto base esperado antes de operar. Efectivo y cuenta son saldos separados." icon={Wallet} title="Configuracion inicial ideal">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
+          <div className="rounded-md border border-lightGray bg-lightGray/30 p-4 text-sm">
             <p className="text-mediumGray">Base</p>
-            <p className="font-semibold text-brandBlack">{formatArs(Number(bag.base_limit_ars ?? 0))}</p>
+            <p className="font-semibold tabular-nums text-brandBlack">{formatArs(Number(bag.base_limit_ars ?? 0))}</p>
           </div>
-          <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
+          <div className="rounded-md border border-lightGray bg-lightGray/30 p-4 text-sm">
             <p className="text-mediumGray">Efectivo ideal</p>
-            <p className="font-semibold text-brandBlack">{formatArs(openingBalances.current_cash_ars)}</p>
+            <p className="font-semibold tabular-nums text-brandBlack">{formatArs(openingBalances.current_cash_ars)}</p>
           </div>
-          <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
+          <div className="rounded-md border border-lightGray bg-lightGray/30 p-4 text-sm">
             <p className="text-mediumGray">Cuenta ideal</p>
-            <p className="font-semibold text-brandBlack">{formatArs(openingBalances.current_account_ars)}</p>
+            <p className="font-semibold tabular-nums text-brandBlack">{formatArs(openingBalances.current_account_ars)}</p>
           </div>
-          <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
+          <div className="rounded-md border border-lightGray bg-lightGray/30 p-4 text-sm">
             <p className="text-mediumGray">Total inicial</p>
-            <p className="font-semibold text-brandBlack">{formatArs(openingTotal)}</p>
+            <p className="font-semibold tabular-nums text-brandBlack">{formatArs(openingTotal)}</p>
           </div>
-          <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
+          <div className="rounded-md border border-lightGray bg-lightGray/30 p-4 text-sm">
             <p className="text-mediumGray">Diferencia inicial</p>
-            <p className="font-semibold text-brandBlack">{formatArs(openingDifference)}</p>
+            <p className="font-semibold tabular-nums text-brandBlack">{formatArs(openingDifference)}</p>
           </div>
         </div>
       </DataCard> : null}
@@ -123,7 +124,7 @@ export default async function BolsaDetallePage({ params }: { params: Promise<{ i
       </div>
 
       <section id="historial" className="scroll-mt-24">
-        <DataCard description="Movimientos confirmados de esta bolsa con saldo anterior, saldo nuevo, origen, destino y notas." title="Historial de la bolsa">
+        <DataCard description="Movimientos confirmados de esta bolsa con saldo anterior, saldo nuevo, origen, destino y notas." icon={History} title="Historial de la bolsa">
           {detail ? <BagOperationsTable bagId={bag.id} canManageInternalTransfers={canManageInternalTransfers} operations={detail.operations} /> : <EmptyState description="Aun no hay movimientos registrados." title="Sin operaciones" />}
         </DataCard>
       </section>
