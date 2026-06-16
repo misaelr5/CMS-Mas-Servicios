@@ -71,23 +71,20 @@ export function CashDailyReportForm({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[980px] border-separate border-spacing-0 text-sm">
+          <table className="min-w-[820px] border-separate border-spacing-0 text-sm">
             <thead className="bg-lightGray text-brandBlack">
               <tr>
                 <th className="sticky left-0 z-20 border-b border-lightGray bg-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">
                   Categoría
                 </th>
                 <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">
-                  Monto operado
+                  Operado
                 </th>
                 <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">
-                  Ganancia / comisión
+                  Ganancia
                 </th>
                 <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">
-                  Observación
-                </th>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">
-                  Orden
+                  Nota
                 </th>
               </tr>
             </thead>
@@ -137,13 +134,8 @@ export function CashDailyReportForm({
                         defaultValue={existingLine?.notes ?? ""}
                         id={`notes_${category.id}`}
                         name={`notes_${category.id}`}
-                        placeholder="Detalle interno"
+                        placeholder="Opcional"
                       />
-                    </td>
-                    <td className="border-b border-lightGray px-4 py-4 align-top">
-                      <span className="inline-flex rounded-full border border-brandYellow/40 bg-brandYellow/20 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-brandBlack">
-                        #{category.sort_order}
-                      </span>
                     </td>
                   </tr>
                 );
@@ -160,8 +152,7 @@ export function CashDailyReportForm({
                 <td className="border-t border-lightGray px-4 py-4">
                   <p className="text-lg font-black">{formatArs(totals.profit)}</p>
                 </td>
-                <td className="border-t border-lightGray px-4 py-4 text-sm text-mediumGray">Suma automática</td>
-                <td className="border-t border-lightGray px-4 py-4 text-sm text-mediumGray">-</td>
+                <td className="border-t border-lightGray px-4 py-4 text-sm text-mediumGray">Suma automatica</td>
               </tr>
             </tfoot>
           </table>
@@ -195,12 +186,14 @@ export function CashDailyReportForm({
             </p>
           </div>
 
-          <div className="mt-4 space-y-2">
-            <label className="text-sm font-semibold text-brandBlack" htmlFor="negative_profit_reason">
-              Motivo si hay ganancia negativa
-            </label>
-            <Input id="negative_profit_reason" name="negative_profit_reason" placeholder="Obligatorio para admin/encargado si cargás negativos" />
-          </div>
+          {canReview ? (
+            <div className="mt-4 space-y-2">
+              <label className="text-sm font-semibold text-brandBlack" htmlFor="negative_profit_reason">
+                Motivo si hay ganancia negativa
+              </label>
+              <Input id="negative_profit_reason" name="negative_profit_reason" placeholder="Obligatorio para admin/encargado si cargas negativos" />
+            </div>
+          ) : null}
         </div>
       </div>
 

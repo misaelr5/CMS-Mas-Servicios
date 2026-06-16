@@ -75,7 +75,7 @@ export default async function BolsaDetallePage({ params }: { params: Promise<{ i
           <p className="font-semibold tabular-nums text-brandBlack">{formatArs(Number(bag.accumulated_profit_ars ?? 0))}</p>
           <p className="mt-2 text-sm text-mediumGray">Diferencia estimada</p>
           <p className="font-semibold tabular-nums text-brandBlack">{formatArs(Number(detail?.difference_ars ?? 0))}</p>
-          <p className="mt-2 text-xs uppercase tracking-[0.2em] text-mediumGray">Ultima actualizacion</p>
+          <p className="mt-2 text-xs uppercase tracking-[0.2em] text-mediumGray">Última actualización</p>
           <p className="text-sm font-semibold text-brandBlack">{latestUpdate}</p>
         </DataCard> : null}
       </div>
@@ -107,10 +107,10 @@ export default async function BolsaDetallePage({ params }: { params: Promise<{ i
 
       <div className="flex flex-wrap gap-3">
         <Button asChild>
-          <Link href={`/bolsas/nueva-operacion?bagId=${bag.id}`}>Nueva operacion</Link>
+          <Link href={`/bolsas/nueva-operacion?bagId=${bag.id}`}>Nueva operación</Link>
         </Button>
         {!isCashier ? <Button asChild variant="outline">
-          <Link href={`/bolsas/nueva-operacion?bagId=${bag.id}`}>Crear ajuste</Link>
+          <Link href={`/bolsas/nueva-operacion?bagId=${bag.id}&type=ajuste`}>Crear ajuste</Link>
         </Button> : null}
         <Button asChild variant="secondary">
           <Link href={`/bolsas/${bag.id}/vender-a-bolsa`}>Mover con otra bolsa</Link>

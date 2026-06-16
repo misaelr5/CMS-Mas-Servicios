@@ -28,6 +28,7 @@ type QuickAction = {
   label: string;
   description: string;
   icon: typeof ArrowRight;
+  priority?: "primary" | "secondary";
 };
 
 type DashboardAlert = {
@@ -99,29 +100,33 @@ export default async function DashboardPage() {
   const bagActions: QuickAction[] = [
     {
       href: firstBag ? `/bolsas/nueva-operacion?bagId=${firstBag.id}` : "/bolsas",
-      label: "Nueva operacion de bolsa",
-      description: "Abrir una carga o venta sobre la bolsa disponible.",
-      icon: TrendingUp
+      label: "Cargar operación",
+      description: "Compra, venta o movimiento de una bolsa.",
+      icon: TrendingUp,
+      priority: "primary"
     },
     {
       href: firstBag ? `/bolsas/${firstBag.id}/vender-a-bolsa` : "/bolsas",
-      label: "Vender a otra bolsa",
-      description: "Mover USD entre bolsas con control interno.",
-      icon: Boxes
+      label: "Mover entre bolsas",
+      description: "Operación interna entre dos bolsas.",
+      icon: Boxes,
+      priority: "secondary"
     }
   ];
 
   const operationalActions: QuickAction[] = [
-    { href: firstRegister ? `/cajas/${firstRegister.id}/cargar` : "/cajas", label: "Cargar caja", description: "Registrar la carga diaria de la caja activa.", icon: Store },
-    { href: "/cajas", label: "Ver cajas", description: "Abrir el listado de las 5 cajas Pago Facil.", icon: Landmark },
-    { href: "/reporte-diario", label: "Ver reporte diario", description: "Revisar el estado consolidado del dia.", icon: FileBarChart2 },
-    { href: "/gastos", label: "Crear gasto", description: "Cargar o revisar gastos operativos.", icon: ReceiptText },
-    { href: "/cierres", label: "Ver cierre semanal", description: "Controlar la semana operativa.", icon: CalendarRange },
-    { href: "/exportaciones", label: "Exportaciones", description: "Abrir CSV e impresion de reportes.", icon: Download },
-    { href: "/configuracion", label: "Configuracion", description: "Ver roles y datos generales.", icon: Settings2 }
+    { href: firstRegister ? `/cajas/${firstRegister.id}/cargar` : "/cajas", label: "Cargar caja", description: "Registrar la carga diaria de la caja.", icon: Store, priority: "primary" },
+    { href: "/reporte-diario", label: "Ver reporte", description: "Estado del día por sucursal.", icon: FileBarChart2, priority: "primary" },
+    { href: "/gastos", label: "Cargar gasto", description: "Registrar o revisar gastos.", icon: ReceiptText, priority: "primary" },
+    { href: "/cajas", label: "Ver cajas", description: "Listado de cajas Pago Facil.", icon: Landmark, priority: "secondary" },
+    { href: "/cierres", label: "Cierre semanal", description: "Control de semana operativa.", icon: CalendarRange, priority: "secondary" },
+    { href: "/exportaciones", label: "Exportar", description: "CSV e impresion de reportes.", icon: Download, priority: "secondary" },
+    { href: "/configuracion", label: "Ajustes", description: "Roles y datos generales.", icon: Settings2, priority: "secondary" }
   ];
 
   const quickActions = filterVisibleActions([...bagActions, ...operationalActions], auth.role);
+  const primaryQuickActions = quickActions.filter((action) => action.priority !== "secondary");
+  const secondaryQuickActions = quickActions.filter((action) => action.priority === "secondary");
 
   const alerts: DashboardAlert[] = [];
 
@@ -276,34 +281,69 @@ export default async function DashboardPage() {
         )}
       </DataCard>
 
-      <DataCard description="Atajos visibles segun permisos." title="Accesos rapidos">
+      <DataCard description="Primero aparecen las tareas normales del dia. Las herramientas menos usadas quedan abajo." title="Acciones de hoy">
         {quickActions.length === 0 ? (
-          <EmptyState description="Tu rol no tiene accesos rapidos configurados en esta vista." title="Sin accesos" />
+          <EmptyState description="Tu rol no tiene acciones configuradas en esta vista." title="Sin accesos" />
         ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {quickActions.map((action) => {
-              const Icon = action.icon;
-              return (
-                <Button
-                  asChild
-                  className="h-auto justify-start rounded-3xl border border-lightGray bg-white px-4 py-4 text-brandBlack shadow-soft hover:bg-lightGray/35"
-                  key={action.href}
-                  variant="ghost"
-                >
-                  <Link href={action.href}>
-                    <div className="flex w-full items-start gap-3 text-left">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brandYellow text-brandBlack">
-                        <Icon className="h-4 w-4" />
+          <div className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {primaryQuickActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <Button
+                    asChild
+                    className="h-auto justify-start rounded-3xl border border-brandYellow/30 bg-brandYellow px-4 py-5 text-brandBlack shadow-yellowGlow hover:bg-brandYellow/90"
+                    key={action.href}
+                    variant="ghost"
+                  >
+                    <Link href={action.href}>
+                      <div className="flex w-full items-start gap-3 text-left">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brandBlack text-brandYellow">
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-heading text-base font-black text-brandBlack">{action.label}</p>
+                          <p className="mt-1 text-xs font-semibold text-brandBlack/70">{action.description}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-brandBlack">{action.label}</p>
-                        <p className="mt-1 text-xs font-normal text-mediumGray">{action.description}</p>
-                      </div>
-                    </div>
-                  </Link>
-                </Button>
-              );
-            })}
+                    </Link>
+                  </Button>
+                );
+              })}
+            </div>
+
+            {secondaryQuickActions.length > 0 ? (
+              <details className="rounded-3xl border border-lightGray bg-lightGray/20 p-3">
+                <summary className="cursor-pointer px-2 py-1 text-sm font-black uppercase tracking-[0.18em] text-brandBlack">
+                  Mas opciones
+                </summary>
+                <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  {secondaryQuickActions.map((action) => {
+                    const Icon = action.icon;
+                    return (
+                      <Button
+                        asChild
+                        className="h-auto justify-start rounded-2xl border border-lightGray bg-white px-4 py-4 text-brandBlack shadow-soft hover:bg-lightGray/35"
+                        key={action.href}
+                        variant="ghost"
+                      >
+                        <Link href={action.href}>
+                          <div className="flex w-full items-start gap-3 text-left">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-lightGray text-brandBlack">
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-brandBlack">{action.label}</p>
+                              <p className="mt-1 text-xs font-normal text-mediumGray">{action.description}</p>
+                            </div>
+                          </div>
+                        </Link>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </details>
+            ) : null}
           </div>
         )}
       </DataCard>

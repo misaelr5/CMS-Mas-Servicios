@@ -16,11 +16,11 @@ const operationLabels: Record<string, string> = {
   egreso_pesos_efectivo: "Egreso efectivo",
   ingreso_pesos_cuenta: "Ingreso cuenta",
   egreso_pesos_cuenta: "Egreso cuenta",
-  prestamo_entregado: "Prestamo entregado",
-  prestamo_recibido: "Prestamo recibido",
-  devolucion_prestamo: "Devolucion prestamo",
+  prestamo_entregado: "Préstamo entregado",
+  prestamo_recibido: "Préstamo recibido",
+  devolucion_prestamo: "Devolución préstamo",
   ajuste_manual: "Ajuste manual",
-  anulacion_operacion: "Anulacion"
+  anulacion_operacion: "Anulación"
 };
 
 function operationLabel(operation: BagOperation) {
@@ -145,8 +145,8 @@ function AnnulInternalTransferForm({ operation }: { operation: BagOperation }) {
   return (
     <form action={annulInternalBagTransferFormAction} className="mt-3 grid gap-2 rounded-xl border border-danger/20 bg-danger/5 p-3">
       <input name="internal_transfer_id" type="hidden" value={operation.internal_transfer_id} />
-      <input className="h-9 rounded-md border border-border bg-white px-3 text-xs text-brandBlack" name="reason" placeholder="Motivo de anulacion" required />
-      <input className="h-9 rounded-md border border-border bg-white px-3 text-xs text-brandBlack" name="note" placeholder="Nota obligatoria" required />
+      <input className="h-9 rounded-md border border-border bg-white px-3 text-xs text-brandBlack focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" name="reason" placeholder="Motivo de anulación" required />
+      <input className="h-9 rounded-md border border-border bg-white px-3 text-xs text-brandBlack focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" name="note" placeholder="Nota obligatoria" required />
       <button className="rounded-lg bg-danger px-3 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90" type="submit">
         Anular movimiento interno
       </button>

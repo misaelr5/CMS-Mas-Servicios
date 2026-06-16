@@ -42,8 +42,8 @@ export default async function NuevaOperacionPage({
           title="Bolsa no asignada"
         />
       ) : (
-        <DataCard description="Formulario operativo mobile-first con vista previa del impacto." title="Carga de operacion">
-          <BagOperationForm bags={assignedBags} defaultBagId={defaultBagId} lockedBagId={lockedBag?.id} lockedBagName={lockedBag?.name} />
+        <DataCard description="Carga guiada con vista previa del impacto antes de guardar." title="Carga de operacion">
+          <BagOperationForm bags={assignedBags} defaultBagId={defaultBagId} lockedBagId={lockedBag?.id} lockedBagName={lockedBag?.name} userRole={auth?.role} />
         </DataCard>
       )}
     </div>

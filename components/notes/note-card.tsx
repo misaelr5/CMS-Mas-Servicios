@@ -94,7 +94,7 @@ export function NoteCard({
       ) : null}
 
       {note.status === "anulada" && note.annul_reason ? (
-        <p className="mt-3 text-xs font-semibold text-danger">Motivo de anulacion: {note.annul_reason}</p>
+        <p className="mt-3 text-xs font-semibold text-danger">Motivo de anulación: {note.annul_reason}</p>
       ) : null}
     </article>
   );

@@ -8,15 +8,15 @@ export const navItems: Array<{
   icon: typeof LayoutDashboard;
   roles?: Role[];
 }> = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "encargado", "viewer"] },
+  { href: "/dashboard", label: "Inicio", icon: LayoutDashboard, roles: ["admin", "encargado", "viewer"] },
   { href: "/bolsas", label: "Bolsas", icon: Banknote, roles: ["admin", "encargado", "cajero", "viewer"] },
   { href: "/cajas", label: "Cajas", icon: WalletCards, roles: ["admin", "encargado", "cajero", "viewer"] },
-  { href: "/reporte-diario", label: "Reporte diario", icon: NotebookPen, roles: ["admin", "encargado", "cajero", "viewer"] },
+  { href: "/reporte-diario", label: "Reporte", icon: NotebookPen, roles: ["admin", "encargado", "cajero", "viewer"] },
   { href: "/gastos", label: "Gastos", icon: StickyNote, roles: ["admin", "encargado", "cajero", "viewer"] },
   { href: "/cierres", label: "Cierres", icon: ShieldCheck, roles: ["admin", "encargado", "viewer"] },
-  { href: "/exportaciones", label: "Exportaciones", icon: Download, roles: ["admin", "encargado", "viewer"] },
+  { href: "/exportaciones", label: "Exportar", icon: Download, roles: ["admin", "encargado", "viewer"] },
   { href: "/usuarios", label: "Usuarios", icon: Users, roles: ["admin"] },
-  { href: "/configuracion", label: "Configuracion", icon: Settings2, roles: ["admin"] }
+  { href: "/configuracion", label: "Ajustes", icon: Settings2, roles: ["admin"] }
 ];
 
 export const quickNavItems: Array<{
