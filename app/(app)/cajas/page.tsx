@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { Building2, CheckCircle2, Clock3, DollarSign, LockKeyhole, WalletCards } from "lucide-react";
 
 import { DataCard } from "@/components/data-card";
 import { EmptyState } from "@/components/empty-state";
@@ -9,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getServerAuthContext } from "@/lib/auth/server";
 import { getCashModuleData, isCashReportLoaded } from "@/lib/cash/cash-service";
+import type { CashDailyReportStatus } from "@/lib/db/types";
 import { getDailyReportViewData, isDailyReportLockedStatus } from "@/lib/finance/daily-report-service";
 import { getBuenosAiresDateString } from "@/lib/finance/report-dates";
 import { formatArs } from "@/lib/operations/seed-data";
@@ -21,20 +23,39 @@ const statusLabels: Record<string, string> = {
   sin_carga: "Sin carga"
 };
 
-function formatStatus(raw: string): string {
-  return statusLabels[raw] ?? raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+function safeStatus(status?: string | null): CashDailyReportStatus {
+  if (status === "parcial" || status === "cargado" || status === "revisado") return status;
+  return "pendiente";
+}
+
+function formatStatus(raw?: string | null): string {
+  const status = safeStatus(raw);
+  return statusLabels[status] ?? status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function statusVariant(status?: string | null) {
+  const normalized = safeStatus(status);
+  if (isCashReportLoaded(normalized)) return "success" as const;
+  if (normalized === "parcial") return "warning" as const;
+  return "neutral" as const;
+}
+
+function branchTone(branchName?: string | null) {
+  return branchName?.toLowerCase().includes("terminal") ? "bg-brandYellow/15 text-brandYellow" : "bg-success/15 text-success";
 }
 
 export default async function CajasPage() {
   const auth = await getServerAuthContext(cookies());
+  const today = getBuenosAiresDateString();
   const cashData = await getCashModuleData(auth ? { role: auth.role, userId: auth.userId } : undefined);
-  const dailyReportData = await getDailyReportViewData(getBuenosAiresDateString(), auth ? { role: auth.role, userId: auth.userId } : undefined);
+  const dailyReportData = await getDailyReportViewData(today, auth ? { role: auth.role, userId: auth.userId } : undefined);
   const canWrite = auth?.role === "admin" || auth?.role === "encargado" || auth?.role === "cajero";
   const isCashier = auth?.role === "cajero";
 
   const visibleRegisters = cashData.registers;
   const loadedCount = cashData.summary.registers_loaded_today;
   const pendingCount = cashData.summary.registers_pending_today;
+  const progressPercent = visibleRegisters.length > 0 ? Math.round((loadedCount / visibleRegisters.length) * 100) : 0;
   const lockedBranchIds = new Set(
     dailyReportData.branches.filter((branch) => isDailyReportLockedStatus(branch.dailyReport?.status)).map((branch) => branch.branch.id)
   );
@@ -42,13 +63,14 @@ export default async function CajasPage() {
   if (isCashier) {
     const register = visibleRegisters[0] ?? null;
     const locked = register ? lockedBranchIds.has(register.branch_id) : false;
+    const loaded = register ? isCashReportLoaded(safeStatus(register.today_status)) : false;
 
     return (
       <div className="space-y-6">
         <SectionTitle
           description="Tu caja asignada para cargar el dia. Sin tablero general."
-          title="Mi caja"
-          rightSlot={<Badge variant="outline">{getBuenosAiresDateString()}</Badge>}
+          title="Mi Pago Facil"
+          rightSlot={<Badge variant="outline">{today}</Badge>}
         />
 
         {!register ? (
@@ -59,11 +81,11 @@ export default async function CajasPage() {
             title="Sin caja asignada"
           />
         ) : (
-          <DataCard description={`${register.branch_name} · ${register.responsible_name ?? register.name}`} title={register.register_number ? `Caja ${register.register_number}` : register.name}>
+          <DataCard description={`${register.branch_name} - ${register.responsible_name ?? register.name}`} title={register.register_number ? `Caja ${register.register_number}` : register.name}>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-mediumGray">Estado de hoy</p>
-                <p className="mt-1 font-heading text-xl font-black text-brandBlack">{register.today_status}</p>
+                <p className="mt-1 font-heading text-xl font-black text-brandBlack">{formatStatus(register.today_status)}</p>
               </div>
               <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-mediumGray">Operado</p>
@@ -71,9 +93,7 @@ export default async function CajasPage() {
               </div>
               <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-mediumGray">Carga</p>
-                <Badge variant={locked ? "danger" : isCashReportLoaded(register.today_status) ? "success" : "warning"}>
-                  {locked ? "Cerrada" : isCashReportLoaded(register.today_status) ? "Lista" : "Pendiente"}
-                </Badge>
+                <Badge variant={locked ? "danger" : loaded ? "success" : "warning"}>{locked ? "Cerrada" : loaded ? "Lista" : "Pendiente"}</Badge>
               </div>
             </div>
 
@@ -95,144 +115,136 @@ export default async function CajasPage() {
     );
   }
 
+  const branchGroups = Array.from(
+    visibleRegisters.reduce((groups, register) => {
+      const key = register.branch_name ?? "Sin sucursal";
+      const current = groups.get(key) ?? [];
+      current.push(register);
+      groups.set(key, current);
+      return groups;
+    }, new Map<string, typeof visibleRegisters>())
+  );
+
   return (
     <div className="space-y-6">
       <SectionTitle
-        description={
-          auth?.role === "cajero"
-            ? "Vista limitada a tu caja asignada. Sin paneo general."
-            : "Control operativo de las cajas Pago Fácil con reportes diarios y estado de carga."
-        }
-        title="Cajas"
+        description="Control diario de cargas Pago Facil por caja, responsable y sucursal."
+        title="Pago Facil"
         rightSlot={<Badge variant="outline">{visibleRegisters.length} cajas</Badge>}
       />
 
+      <div className="rounded-[28px] border border-white/10 bg-gradient-to-br from-darkSurface via-[#202016] to-brandBlack p-5 shadow-medium">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-brandYellow">Estado del dia</p>
+            <h2 className="mt-2 font-heading text-2xl font-black text-brandWhite">
+              {pendingCount > 0 ? `${pendingCount} cajas pendientes de carga` : "Todas las cajas estan listas"}
+            </h2>
+            <p className="mt-1 text-sm text-lightGray/70">
+              Avance de cargas para hoy: {loadedCount} de {visibleRegisters.length}.
+            </p>
+          </div>
+          <div className="min-w-[220px] rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="flex items-center justify-between text-sm font-semibold text-brandWhite">
+              <span>Progreso</span>
+              <span>{progressPercent}%</span>
+            </div>
+            <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/10">
+              <div className="h-full rounded-full bg-brandYellow shadow-yellowGlow" style={{ width: `${progressPercent}%` }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard helper="Cajas con reporte cargado o revisado hoy" label="Cajas cargadas" status="ok" value={`${loadedCount}`} />
-        <StatCard helper="Cajas todavía sin reporte final" label="Cajas pendientes" status="revisar" value={`${pendingCount}`} />
-        <StatCard helper="Suma total operada en Pago Fácil" label="Total operado hoy" status="neutral" value={formatArs(cashData.summary.total_operated_today)} />
-        <StatCard helper="Ganancia operativa consolidada" label="Ganancia hoy" status="ok" value={formatArs(cashData.summary.total_profit_today)} />
+        <StatCard icon={CheckCircle2} helper="Cargadas o revisadas hoy" label="Cajas listas" status="ok" value={`${loadedCount}`} />
+        <StatCard icon={Clock3} helper="Faltan terminar" label="Pendientes" status={pendingCount > 0 ? "revisar" : "ok"} value={`${pendingCount}`} />
+        <StatCard icon={WalletCards} helper="Volumen cargado en Pago Facil" label="Operado hoy" status="neutral" value={formatArs(cashData.summary.total_operated_today)} />
+        <StatCard icon={DollarSign} helper="Comisiones cargadas" label="Ganancia hoy" status="ok" value={formatArs(cashData.summary.total_profit_today)} />
       </div>
 
       {visibleRegisters.length === 0 ? (
         <EmptyState
           actionLabel="Volver al inicio"
           actionHref="/dashboard"
-          description="No hay cajas visibles para tu perfil. Si sos cajero, revisá que la caja esté asignada a tu usuario."
+          description="No hay cajas visibles para tu perfil. Si sos cajero, revisa que la caja este asignada a tu usuario."
           title="Sin cajas disponibles"
         />
       ) : (
-        <>
-          {/* Mobile: cards */}
-          <div className="grid gap-3 lg:hidden">
-            {visibleRegisters.map((register) => {
-              const locked = lockedBranchIds.has(register.branch_id);
-              const loaded = isCashReportLoaded(register.today_status);
-              return (
-                <article key={register.id} className="rounded-lg border border-lightGray bg-white p-4 shadow-soft">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-heading font-black text-brandBlack">
-                        {register.register_number ? `Caja ${register.register_number}` : register.name}
-                      </p>
-                      <p className="text-xs text-mediumGray">{register.branch_name} · {register.responsible_name ?? register.name}</p>
-                    </div>
-                    <Badge variant={loaded ? "success" : register.today_status === "parcial" ? "warning" : "neutral"} dot>
-                      {formatStatus(register.today_status)}
-                    </Badge>
+        <div className="space-y-5">
+          {branchGroups.map(([branchName, registers]) => (
+            <section key={branchName} className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${branchTone(branchName)}`}>
+                    <Building2 className="h-5 w-5" />
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                    <div className="rounded-md bg-lightGray/30 p-2.5">
-                      <p className="text-[10px] uppercase tracking-[0.14em] text-mediumGray">Operado</p>
-                      <p className="mt-0.5 font-semibold tabular-nums text-brandBlack">{formatArs(register.today_operated_ars)}</p>
-                    </div>
-                    <div className="rounded-md bg-lightGray/30 p-2.5">
-                      <p className="text-[10px] uppercase tracking-[0.14em] text-mediumGray">Ganancia</p>
-                      <p className="mt-0.5 font-semibold tabular-nums text-brandBlack">{formatArs(register.today_profit_ars)}</p>
-                    </div>
+                  <div>
+                    <p className="font-heading text-xl font-black text-brandWhite">{branchName}</p>
+                    <p className="text-sm text-lightGray/65">{registers.length} cajas asignadas</p>
                   </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <Badge variant={locked ? "danger" : "success"}>{locked ? "Cerrado" : "Abierto"}</Badge>
-                    <div className="flex gap-2">
-                      <Button asChild size="sm">
-                        <Link href={`/cajas/${register.id}`}>Ver caja</Link>
-                      </Button>
-                      {canWrite && !locked ? (
-                        <Button asChild size="sm" variant="secondary">
-                          <Link href={`/cajas/${register.id}/cargar`}>Cargar</Link>
-                        </Button>
-                      ) : (
-                        <Button disabled size="sm" variant="secondary">Cargar</Button>
-                      )}
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                </div>
+              </div>
 
-          {/* Desktop: table */}
-          <div className="hidden overflow-x-auto rounded-xl border border-white/10 bg-darkSurface shadow-medium lg:block">
-            <table className="min-w-[1000px] border-separate border-spacing-0 text-sm">
-              <thead className="bg-white/5 text-brandWhite">
-                <tr>
-                  <th className="sticky left-0 z-20 border-b border-white/10 bg-darkSurface/95 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Caja</th>
-                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Sucursal</th>
-                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Responsable</th>
-                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
-                  <th className="border-b border-white/10 px-4 py-3 text-right text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
-                  <th className="border-b border-white/10 px-4 py-3 text-right text-[11px] font-black uppercase tracking-[0.2em]">Ganancia</th>
-                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Bloqueo</th>
-                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleRegisters.map((register, index) => {
+              <div className="grid gap-4 xl:grid-cols-2">
+                {registers.map((register) => {
                   const locked = lockedBranchIds.has(register.branch_id);
-                  const loaded = isCashReportLoaded(register.today_status);
+                  const loaded = isCashReportLoaded(safeStatus(register.today_status));
                   return (
-                    <tr key={register.id} className={`transition-colors hover:bg-brandYellow/5 ${index % 2 === 0 ? "bg-white" : "bg-lightGray/15"}`}>
-                      <td className="sticky left-0 z-10 border-b border-lightGray bg-inherit px-4 py-4">
-                        <div className="space-y-0.5">
-                          <p className="font-black text-brandBlack">{register.register_number ? `Caja ${register.register_number}` : register.name}</p>
-                          <p className="text-xs text-mediumGray">{register.slug}</p>
+                    <article key={register.id} className="overflow-hidden rounded-[28px] border border-lightGray bg-white text-brandBlack shadow-medium">
+                      <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="default">{register.register_number ? `Caja ${register.register_number}` : register.name}</Badge>
+                            <Badge variant={statusVariant(register.today_status)} dot>
+                              {formatStatus(register.today_status)}
+                            </Badge>
+                            <Badge variant={locked ? "danger" : "success"}>{locked ? "Cerrado" : "Abierto"}</Badge>
+                          </div>
+                          <h3 className="mt-3 font-heading text-2xl font-black text-brandBlack">{register.responsible_name ?? register.name}</h3>
+                          <p className="text-sm text-mediumGray">{register.slug}</p>
                         </div>
-                      </td>
-                      <td className="border-b border-lightGray px-4 py-4 text-brandBlack">{register.branch_name}</td>
-                      <td className="border-b border-lightGray px-4 py-4 text-brandBlack">{register.responsible_name ?? register.name}</td>
-                      <td className="border-b border-lightGray px-4 py-4">
-                        <Badge variant={loaded ? "success" : register.today_status === "parcial" ? "warning" : "neutral"} dot>
-                          {formatStatus(register.today_status)}
-                        </Badge>
-                      </td>
-                      <td className="border-b border-lightGray px-4 py-4 text-right font-semibold tabular-nums text-brandBlack">{formatArs(register.today_operated_ars)}</td>
-                      <td className="border-b border-lightGray px-4 py-4 text-right font-semibold tabular-nums text-brandBlack">{formatArs(register.today_profit_ars)}</td>
-                      <td className="border-b border-lightGray px-4 py-4">
-                        <Badge variant={locked ? "danger" : "success"}>{locked ? "Cerrado" : "Abierto"}</Badge>
-                      </td>
-                      <td className="border-b border-lightGray px-4 py-4">
+
                         <div className="flex flex-wrap gap-2">
                           <Button asChild size="sm">
                             <Link href={`/cajas/${register.id}`}>Ver caja</Link>
                           </Button>
                           {canWrite && !locked ? (
                             <Button asChild size="sm" variant="secondary">
-                              <Link href={`/cajas/${register.id}/cargar`}>Cargar día</Link>
+                              <Link href={`/cajas/${register.id}/cargar`}>Cargar dia</Link>
                             </Button>
                           ) : (
                             <Button disabled size="sm" variant="secondary">
-                              {locked ? "Cerrado" : "Cargar día"}
+                              {locked ? "Cerrado" : "Cargar dia"}
                             </Button>
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </div>
+
+                      <div className="grid border-t border-lightGray bg-lightGray/20 sm:grid-cols-3">
+                        <div className="border-b border-lightGray p-4 sm:border-b-0 sm:border-r">
+                          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-mediumGray">Operado</p>
+                          <p className="mt-1 font-heading text-xl font-black tabular-nums">{formatArs(register.today_operated_ars)}</p>
+                        </div>
+                        <div className="border-b border-lightGray p-4 sm:border-b-0 sm:border-r">
+                          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-mediumGray">Ganancia</p>
+                          <p className="mt-1 font-heading text-xl font-black tabular-nums">{formatArs(register.today_profit_ars)}</p>
+                        </div>
+                        <div className="p-4">
+                          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-mediumGray">Accion sugerida</p>
+                          <div className="mt-1 flex items-center gap-2 font-semibold">
+                            {locked ? <LockKeyhole className="h-4 w-4 text-danger" /> : loaded ? <CheckCircle2 className="h-4 w-4 text-success" /> : <Clock3 className="h-4 w-4 text-warning" />}
+                            <span>{locked ? "Dia cerrado" : loaded ? "Carga lista" : "Cargar dia"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-        </>
+              </div>
+            </section>
+          ))}
+        </div>
       )}
 
       <div className="flex flex-wrap gap-3">

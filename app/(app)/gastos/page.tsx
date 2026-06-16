@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 
-import { annulExpenseAction } from "@/app/actions/finance";
 import { AccessDenied } from "@/components/access-denied";
 import { DataCard } from "@/components/data-card";
 import { EmptyState } from "@/components/empty-state";
@@ -22,6 +21,8 @@ import { ExpenseAnnulForm } from "@/components/expenses/expense-annul-form";
 
 type SearchParams = Promise<{
   date?: string;
+  date_from?: string;
+  date_to?: string;
   branch_id?: string;
   status?: ExpenseStatus | "all";
   category?: string;
@@ -34,6 +35,11 @@ function formatDateLabel(date: string) {
     month: "2-digit",
     year: "numeric"
   }).format(new Date(`${date}T00:00:00`));
+}
+
+function formatDateRangeLabel(dateFrom: string, dateTo: string) {
+  if (dateFrom === dateTo) return formatDateLabel(dateFrom);
+  return `${formatDateLabel(dateFrom)} a ${formatDateLabel(dateTo)}`;
 }
 
 function normalizeStatus(value?: string) {
@@ -51,7 +57,11 @@ function badgeVariantFromStatusTone(tone: "ok" | "error" | "pendiente" | "revisa
 
 export default async function GastosPage({ searchParams }: { searchParams?: SearchParams }) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
-  const selectedDate = resolvedSearchParams.date || getBuenosAiresDateString();
+  const today = getBuenosAiresDateString();
+  const selectedDateFrom = resolvedSearchParams.date_from || resolvedSearchParams.date || today;
+  const selectedDateTo = resolvedSearchParams.date_to || resolvedSearchParams.date || selectedDateFrom;
+  const normalizedDateFrom = selectedDateFrom <= selectedDateTo ? selectedDateFrom : selectedDateTo;
+  const normalizedDateTo = selectedDateFrom <= selectedDateTo ? selectedDateTo : selectedDateFrom;
   const selectedBranchId = resolvedSearchParams.branch_id || "";
   const selectedStatus = normalizeStatus(resolvedSearchParams.status);
   const selectedCategory = resolvedSearchParams.category || "";
@@ -64,7 +74,8 @@ export default async function GastosPage({ searchParams }: { searchParams?: Sear
   const canWrite = auth.role === "admin" || auth.role === "encargado";
   const expenseData = await getExpensePageData(
     {
-      date: selectedDate,
+      dateFrom: normalizedDateFrom,
+      dateTo: normalizedDateTo,
       branchId: selectedBranchId || undefined,
       status: selectedStatus,
       category: selectedCategory || undefined
@@ -77,17 +88,23 @@ export default async function GastosPage({ searchParams }: { searchParams?: Sear
   return (
     <div className="space-y-6">
       <SectionTitle
-        description="Seguimiento de gastos, imputaciones y estado operativo por fecha."
+        description="Seguimiento de gastos, imputaciones y estado operativo por rango de fechas."
         title="Gastos"
-        rightSlot={<Badge variant="outline">{formatDateLabel(selectedDate)}</Badge>}
+        rightSlot={<Badge variant="outline">{formatDateRangeLabel(normalizedDateFrom, normalizedDateTo)}</Badge>}
       />
 
       <form className="grid gap-3 rounded-3xl border border-white/10 bg-darkSurface/80 p-4 shadow-soft md:grid-cols-2 xl:grid-cols-4" method="get">
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandWhite" htmlFor="date">
-            Fecha
+          <label className="text-sm font-semibold text-brandWhite" htmlFor="date_from">
+            Desde
           </label>
-          <Input defaultValue={selectedDate} id="date" name="date" type="date" />
+          <Input defaultValue={normalizedDateFrom} id="date_from" name="date_from" type="date" />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-brandWhite" htmlFor="date_to">
+            Hasta
+          </label>
+          <Input defaultValue={normalizedDateTo} id="date_to" name="date_to" type="date" />
         </div>
         <div className="space-y-2">
           <label className="text-sm font-semibold text-brandWhite" htmlFor="branch_id">
@@ -146,10 +163,10 @@ export default async function GastosPage({ searchParams }: { searchParams?: Sear
 
       <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <DataCard description="Alta manual de gastos con validaciones básicas." title="Crear gasto">
-          <ExpenseForm branches={expenseData.branches} canWrite={canWrite} date={selectedDate} />
+          <ExpenseForm branches={expenseData.branches} canWrite={canWrite} date={normalizedDateFrom} />
         </DataCard>
 
-        <DataCard description="Resumen del corte de gastos para esta fecha." title="Resumen">
+        <DataCard description="Resumen del corte de gastos para el rango seleccionado." title="Resumen">
           <div className="space-y-3">
             <div className="flex items-center justify-between rounded-2xl border border-lightGray/80 bg-lightGray/25 px-4 py-3">
               <span className="text-sm text-mediumGray">Pendientes</span>
@@ -198,7 +215,7 @@ export default async function GastosPage({ searchParams }: { searchParams?: Sear
                   ) : null}
 
                   {canAnnul ? (
-                    <ExpenseAnnulForm branchId={expense.branch_id} currentPath="/gastos" date={selectedDate} expenseId={expense.id} />
+                    <ExpenseAnnulForm branchId={expense.branch_id} currentPath="/gastos" date={expense.date} expenseId={expense.id} />
                   ) : null}
                 </div>
               </DataCard>

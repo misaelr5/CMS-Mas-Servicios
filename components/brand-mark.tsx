@@ -4,7 +4,7 @@ const montserrat = "var(--font-montserrat), Montserrat, ui-sans-serif, sans-seri
 
 /**
  * Logo completo "MAS SERVICIOS" recreado en vectorial.
- * Si más adelante se sube el PNG oficial a /public, se puede reemplazar
+ * Si mas adelante se sube el PNG oficial a /public, se puede reemplazar
  * este componente por <Image src="/logo.png" ... />.
  */
 export function BrandMark({ className }: { className?: string }) {
@@ -13,11 +13,10 @@ export function BrandMark({ className }: { className?: string }) {
       viewBox="0 0 360 168"
       className={cn("h-auto w-auto", className)}
       role="img"
-      aria-label="Más Servicios"
+      aria-label="Mas Servicios"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Badge negro */}
       <rect
         x="4"
         y="30"
@@ -29,14 +28,12 @@ export function BrandMark({ className }: { className?: string }) {
         strokeWidth="1.5"
       />
 
-      {/* Cruz (símbolo +) */}
       <g transform="rotate(-12 78 104)">
         <rect x="50" y="76" width="56" height="56" rx="16" fill="#FFD400" />
         <rect x="72" y="88" width="12" height="32" rx="3" fill="#101010" />
         <rect x="62" y="98" width="32" height="12" rx="3" fill="#101010" />
       </g>
 
-      {/* MAS */}
       <text
         x="120"
         y="106"
@@ -48,7 +45,6 @@ export function BrandMark({ className }: { className?: string }) {
         MAS
       </text>
 
-      {/* SERVICIOS */}
       <text
         x="121"
         y="144"
@@ -63,14 +59,13 @@ export function BrandMark({ className }: { className?: string }) {
   );
 }
 
-/** Solo el símbolo de la cruz amarilla, para loaders / favicons / espacios chicos. */
 export function BrandIcon({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 72 72"
       className={cn("h-auto w-auto", className)}
       role="img"
-      aria-label="Más Servicios"
+      aria-label="Mas Servicios"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >

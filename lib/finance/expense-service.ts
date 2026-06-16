@@ -5,6 +5,8 @@ import { getBuenosAiresDateString } from "@/lib/finance/report-dates";
 
 type ExpenseFilters = {
   date?: string;
+  dateFrom?: string;
+  dateTo?: string;
   branchId?: string;
   status?: ExpenseStatus | "all";
   category?: string;
@@ -21,6 +23,8 @@ export type ExpenseListRow = Expense & {
 
 export type ExpensePageData = {
   date: string;
+  dateFrom: string;
+  dateTo: string;
   branches: Branch[];
   expenses: ExpenseListRow[];
   totals: {
@@ -39,11 +43,17 @@ function sortBranches(branches: Branch[]) {
 }
 
 export async function getExpensePageData(filters: ExpenseFilters = {}, auth?: AccessContext | null): Promise<ExpensePageData> {
-  const date = filters.date ?? getBuenosAiresDateString();
+  const today = getBuenosAiresDateString();
+  const dateFrom = filters.dateFrom ?? filters.date ?? today;
+  const dateTo = filters.dateTo ?? filters.date ?? dateFrom;
+  const normalizedDateFrom = dateFrom <= dateTo ? dateFrom : dateTo;
+  const normalizedDateTo = dateFrom <= dateTo ? dateTo : dateFrom;
   const admin = getSupabaseAdminClient();
   if (!admin) {
     return {
-      date,
+      date: normalizedDateFrom,
+      dateFrom: normalizedDateFrom,
+      dateTo: normalizedDateTo,
       branches: sortBranches(seedBranches),
       expenses: [],
       totals: {
@@ -63,13 +73,16 @@ export async function getExpensePageData(filters: ExpenseFilters = {}, auth?: Ac
     admin
       .from("expenses")
       .select("id,branch_id,date,amount_ars,category,detail,status,paid_from,created_by,created_at,annulled_at,annulled_by,annulment_reason")
-      .eq("date", date)
+      .gte("date", normalizedDateFrom)
+      .lte("date", normalizedDateTo)
       .order("created_at", { ascending: false })
   ]);
 
   if (branchesResult.error || expensesResult.error) {
     return {
-      date,
+      date: normalizedDateFrom,
+      dateFrom: normalizedDateFrom,
+      dateTo: normalizedDateTo,
       branches: sortBranches(seedBranches),
       expenses: [],
       totals: {
@@ -131,7 +144,9 @@ export async function getExpensePageData(filters: ExpenseFilters = {}, auth?: Ac
   );
 
   return {
-    date,
+    date: normalizedDateFrom,
+    dateFrom: normalizedDateFrom,
+    dateTo: normalizedDateTo,
     branches: sortBranches(branches),
     expenses: rows,
     totals,

@@ -125,8 +125,8 @@ export default async function DashboardPage() {
   ];
 
   const quickActions = filterVisibleActions([...bagActions, ...operationalActions], auth.role);
-  const primaryQuickActions = quickActions.filter((action) => action.priority !== "secondary");
-  const secondaryQuickActions = quickActions.filter((action) => action.priority === "secondary");
+  const visibleBagActions = filterVisibleActions(bagActions, auth.role);
+  const visiblePagoFacilActions = filterVisibleActions(operationalActions, auth.role);
 
   const alerts: DashboardAlert[] = [];
 
@@ -235,18 +235,41 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Estado del reporte" value={reportStatus} helper="Reporte diario de hoy" status={reportStatus === "Cerrado" ? "ok" : reportStatus === "Revisar" ? "revisar" : "pendiente"} />
-        <StatCard label="Ganancia PF hoy" value={formatArs(cashData.summary.total_profit_today)} helper="Suma de cajas cargadas" status={cashData.summary.total_profit_today >= 0 ? "ok" : "error"} />
-        <StatCard label="Ganancia divisas hoy" value={formatArs(totalCurrencyProfitToday)} helper="Ventas reales del dia" status={totalCurrencyProfitToday >= 0 ? "ok" : "error"} />
-        <StatCard label="Ganancia libre hoy" value={formatArs(reportAvailableToday)} helper="Ganancia menos gastos" status={reportAvailableToday >= 0 ? "ok" : "error"} />
-      </div>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <DataCard description="Modulo separado para divisas, saldos, diferencias y movimientos entre bolsas." title="Bolsas">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <StatCard className="shadow-none" helper="Todas las bolsas" label="Efectivo" value={formatArs(totalCash)} />
+            <StatCard className="shadow-none" helper="Todas las bolsas" label="Cuenta" value={formatArs(totalAccount)} />
+            <StatCard className="shadow-none" helper="Disponible total" label="USD" value={formatUsd(totalUsd)} />
+            <StatCard className="shadow-none" helper="Diferencia estimada" label="Diferencia" value={formatSignedArs(totalBagDifference)} status={totalBagDifference < 0 ? "error" : "ok"} />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {visibleBagActions.map((action) => (
+              <Button asChild key={action.href} variant={action.priority === "secondary" ? "outline" : "default"}>
+                <Link href={action.href}>{action.label}</Link>
+              </Button>
+            ))}
+            <Button asChild variant="secondary">
+              <Link href="/bolsas">Ver bolsas</Link>
+            </Button>
+          </div>
+        </DataCard>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Cajas cargadas" value={`${cashData.summary.registers_loaded_today}`} helper="Hoy" status={cashData.summary.registers_pending_today === 0 ? "ok" : "revisar"} />
-        <StatCard label="Cajas pendientes" value={`${cashData.summary.registers_pending_today}`} helper="Faltan cargar" status={cashData.summary.registers_pending_today > 0 ? "revisar" : "ok"} />
-        <StatCard label="Gastos hoy" value={formatArs(todayExpenses.reduce((acc, expense) => acc + Number(expense.amount_ars ?? 0), 0))} helper="No incluye anulados" status={pendingExpensesToday.length > 0 ? "revisar" : "ok"} />
-        <StatCard label="Gastos pendientes" value={formatArs(pendingExpensesToday.reduce((acc, expense) => acc + Number(expense.amount_ars ?? 0), 0))} helper="Pendientes de pago o imputacion" status={pendingExpensesToday.length > 0 ? "revisar" : "ok"} />
+        <DataCard description="Modulo separado para cajas Pago Facil, reporte diario y gastos." title="Pago Facil">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <StatCard className="shadow-none" helper="Hoy" label="Cajas cargadas" value={`${cashData.summary.registers_loaded_today}`} status={cashData.summary.registers_pending_today === 0 ? "ok" : "revisar"} />
+            <StatCard className="shadow-none" helper="Faltan cargar" label="Cajas pendientes" value={`${cashData.summary.registers_pending_today}`} status={cashData.summary.registers_pending_today > 0 ? "revisar" : "ok"} />
+            <StatCard className="shadow-none" helper="Comisiones cargadas" label="Ganancia PF" value={formatArs(cashData.summary.total_profit_today)} status={cashData.summary.total_profit_today >= 0 ? "ok" : "error"} />
+            <StatCard className="shadow-none" helper="No incluye anulados" label="Gastos hoy" value={formatArs(todayExpenses.reduce((acc, expense) => acc + Number(expense.amount_ars ?? 0), 0))} status={pendingExpensesToday.length > 0 ? "revisar" : "ok"} />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {visiblePagoFacilActions.map((action) => (
+              <Button asChild key={action.href} variant={action.priority === "secondary" ? "outline" : "default"}>
+                <Link href={action.href}>{action.label}</Link>
+              </Button>
+            ))}
+          </div>
+        </DataCard>
       </div>
 
       <DataCard description="Alertas que requieren revision operativa." title="Alertas operativas">
@@ -281,109 +304,10 @@ export default async function DashboardPage() {
         )}
       </DataCard>
 
-      <DataCard description="Primero aparecen las tareas normales del dia. Las herramientas menos usadas quedan abajo." title="Acciones de hoy">
-        {quickActions.length === 0 ? (
-          <EmptyState description="Tu rol no tiene acciones configuradas en esta vista." title="Sin accesos" />
-        ) : (
-          <div className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {primaryQuickActions.map((action) => {
-                const Icon = action.icon;
-                return (
-                  <Button
-                    asChild
-                    className="h-auto justify-start rounded-3xl border border-brandYellow/30 bg-brandYellow px-4 py-5 text-brandBlack shadow-yellowGlow hover:bg-brandYellow/90"
-                    key={action.href}
-                    variant="ghost"
-                  >
-                    <Link href={action.href}>
-                      <div className="flex w-full items-start gap-3 text-left">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brandBlack text-brandYellow">
-                          <Icon className="h-5 w-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-heading text-base font-black text-brandBlack">{action.label}</p>
-                          <p className="mt-1 text-xs font-semibold text-brandBlack/70">{action.description}</p>
-                        </div>
-                      </div>
-                    </Link>
-                  </Button>
-                );
-              })}
-            </div>
-
-            {secondaryQuickActions.length > 0 ? (
-              <details className="rounded-3xl border border-lightGray bg-lightGray/20 p-3">
-                <summary className="cursor-pointer px-2 py-1 text-sm font-black uppercase tracking-[0.18em] text-brandBlack">
-                  Mas opciones
-                </summary>
-                <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  {secondaryQuickActions.map((action) => {
-                    const Icon = action.icon;
-                    return (
-                      <Button
-                        asChild
-                        className="h-auto justify-start rounded-2xl border border-lightGray bg-white px-4 py-4 text-brandBlack shadow-soft hover:bg-lightGray/35"
-                        key={action.href}
-                        variant="ghost"
-                      >
-                        <Link href={action.href}>
-                          <div className="flex w-full items-start gap-3 text-left">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-lightGray text-brandBlack">
-                              <Icon className="h-4 w-4" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-semibold text-brandBlack">{action.label}</p>
-                              <p className="mt-1 text-xs font-normal text-mediumGray">{action.description}</p>
-                            </div>
-                          </div>
-                        </Link>
-                      </Button>
-                    );
-                  })}
-                </div>
-              </details>
-            ) : null}
-          </div>
-        )}
-      </DataCard>
-
-      <DataCard description="Estado actual del cierre semanal de Pago Facil." title="Resumen semanal">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard className="shadow-none" helper="Semana operativa viernes a jueves" label="Semana actual" value={`${weeklyClosureData.weekStartDate} / ${weeklyClosureData.weekEndDate}`} />
-          <StatCard className="shadow-none" helper="Total operado" label="Operado semanal" value={formatArs(weeklyClosureData.totals.totalOperatedArs)} />
-          <StatCard className="shadow-none" helper="Ganancia Pago Facil" label="Ganancia semanal" value={formatArs(weeklyClosureData.totals.totalProfitArs)} />
-          <StatCard className="shadow-none" helper="Estado general" label="Cierre semanal" value={weeklyClosureData.status.toUpperCase()} status={weeklyClosureData.status === "cerrado" ? "ok" : weeklyClosureData.status === "revisar" ? "revisar" : "pendiente"} />
-        </div>
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-[900px] border-separate border-spacing-0 text-sm">
-            <thead className="bg-lightGray text-brandBlack">
-              <tr>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Sucursal</th>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Cajas revisadas</th>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Cajas pendientes</th>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Ganancia</th>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {weeklyClosureData.branches.map((branch, index) => (
-                <tr className={index % 2 === 0 ? "bg-white" : "bg-lightGray/15"} key={branch.branch.id}>
-                  <td className="border-b border-lightGray px-4 py-4 font-semibold">{branch.branch.name}</td>
-                  <td className="border-b border-lightGray px-4 py-4">
-                    <Badge variant={branch.status === "cerrado" ? "success" : branch.status === "revisar" ? "warning" : "neutral"}>{branch.status}</Badge>
-                  </td>
-                  <td className="border-b border-lightGray px-4 py-4 font-semibold">{branch.reviewedDaysCount}</td>
-                  <td className="border-b border-lightGray px-4 py-4 font-semibold">{branch.pendingDaysCount}</td>
-                  <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(branch.totalProfitArs)}</td>
-                  <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(branch.totalOperatedArs)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </DataCard>
+      <div className="rounded-[28px] border border-brandYellow/20 bg-brandYellow/10 p-4">
+        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-brandYellow">Modulo Bolsas</p>
+        <h2 className="mt-1 font-heading text-2xl font-black text-brandWhite">Divisas y saldos separados</h2>
+      </div>
 
       <DataCard description="Resumen operativo de las cinco bolsas con diferencia estimada." title="Bolsas de divisas">
         <div className="grid gap-4 xl:grid-cols-2">
@@ -446,7 +370,12 @@ export default async function DashboardPage() {
         </div>
       </DataCard>
 
-      <DataCard description="Cargas y estados por caja Pago Facil." title="Cajas Pago Facil">
+      <div className="rounded-[28px] border border-success/20 bg-success/10 p-4">
+        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-success">Modulo Pago Facil</p>
+        <h2 className="mt-1 font-heading text-2xl font-black text-brandWhite">Cajas, gastos y cierre semanal</h2>
+      </div>
+
+      <DataCard description="Cargas y estados por caja Pago Facil." title="Pago Facil - cajas">
         <div className="grid gap-4 xl:grid-cols-2">
           {boxes.map((register) => (
             <div className="rounded-3xl border border-lightGray bg-white p-4 shadow-soft" key={register.id}>
@@ -490,7 +419,7 @@ export default async function DashboardPage() {
       </DataCard>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <DataCard description="Gastos de hoy y su estado de pago." title="Gastos">
+        <DataCard description="Gastos de hoy y su estado de pago." title="Pago Facil - gastos">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <StatCard className="shadow-none" helper="No se cuentan anulados" label="Gastos del dia" value={formatArs(todayExpenses.reduce((acc, expense) => acc + Number(expense.amount_ars ?? 0), 0))} />
             <StatCard className="shadow-none" helper="Aun no resueltos" label="Pendientes" value={formatArs(pendingExpensesToday.reduce((acc, expense) => acc + Number(expense.amount_ars ?? 0), 0))} />
@@ -503,6 +432,20 @@ export default async function DashboardPage() {
             </Button>
             <Button asChild variant="secondary">
               <Link href="/gastos">Ver detalle</Link>
+            </Button>
+          </div>
+        </DataCard>
+
+        <DataCard description="Estado del cierre semanal de Pago Facil." title="Pago Facil - cierre semanal">
+          <div className="grid gap-4 md:grid-cols-2">
+            <StatCard className="shadow-none" helper="Viernes a jueves" label="Semana" value={`${weeklyClosureData.weekStartDate} / ${weeklyClosureData.weekEndDate}`} />
+            <StatCard className="shadow-none" helper="Estado general" label="Cierre" value={weeklyClosureData.status.toUpperCase()} status={weeklyClosureData.status === "cerrado" ? "ok" : weeklyClosureData.status === "revisar" ? "revisar" : "pendiente"} />
+            <StatCard className="shadow-none" helper="Total operado" label="Operado" value={formatArs(weeklyClosureData.totals.totalOperatedArs)} />
+            <StatCard className="shadow-none" helper="Ganancia Pago Facil" label="Ganancia" value={formatArs(weeklyClosureData.totals.totalProfitArs)} />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Button asChild>
+              <Link href="/cierres">Ver cierre semanal</Link>
             </Button>
           </div>
         </DataCard>

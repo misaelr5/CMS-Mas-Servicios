@@ -10,7 +10,7 @@ export const navItems: Array<{
 }> = [
   { href: "/dashboard", label: "Inicio", icon: LayoutDashboard, roles: ["admin", "encargado", "viewer"] },
   { href: "/bolsas", label: "Bolsas", icon: Banknote, roles: ["admin", "encargado", "cajero", "viewer"] },
-  { href: "/cajas", label: "Cajas", icon: WalletCards, roles: ["admin", "encargado", "cajero", "viewer"] },
+  { href: "/cajas", label: "Pago Facil", icon: WalletCards, roles: ["admin", "encargado", "cajero", "viewer"] },
   { href: "/reporte-diario", label: "Reporte", icon: NotebookPen, roles: ["admin", "encargado", "cajero", "viewer"] },
   { href: "/gastos", label: "Gastos", icon: StickyNote, roles: ["admin", "encargado", "cajero", "viewer"] },
   { href: "/cierres", label: "Cierres", icon: ShieldCheck, roles: ["admin", "encargado", "viewer"] },
@@ -27,7 +27,7 @@ export const quickNavItems: Array<{
 }> = [
   { href: "/dashboard", label: "Inicio", icon: LayoutDashboard, roles: ["admin", "encargado", "viewer"] },
   { href: "/bolsas", label: "Bolsas", icon: Banknote, roles: ["admin", "encargado", "cajero", "viewer"] },
-  { href: "/cajas", label: "Cajas", icon: WalletCards, roles: ["admin", "encargado", "cajero", "viewer"] },
+  { href: "/cajas", label: "Pago Facil", icon: WalletCards, roles: ["admin", "encargado", "cajero", "viewer"] },
   { href: "/reporte-diario", label: "Reporte", icon: NotebookPen, roles: ["admin", "encargado", "cajero", "viewer"] },
   { href: "/gastos", label: "Gastos", icon: StickyNote, roles: ["admin", "encargado", "cajero", "viewer"] },
   { href: "/exportaciones", label: "Exportar", icon: Download, roles: ["admin", "encargado", "viewer"] }
