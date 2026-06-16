@@ -7,21 +7,20 @@ import { EmptyState } from "@/components/empty-state";
 import { NotesPanel } from "@/components/notes/notes-panel";
 import { SectionTitle } from "@/components/section-title";
 import { StatCard } from "@/components/stat-card";
-import { DailyReportAdjustmentAnnulForm } from "@/components/reports/daily-report-adjustment-annul-form";
-import { DailyReportAdjustmentForm } from "@/components/reports/daily-report-adjustment-form";
-import { DailyReportSaveForm } from "@/components/reports/daily-report-save-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getServerAuthContext } from "@/lib/auth/server";
-import {
-  dailyReportStatusLabels,
-  getDailyReportStatusTone
-} from "@/lib/finance/daily-report-calculations";
+import { cashReportStatusLabels, getCashReportStatusTone } from "@/lib/cash/cash-calculations";
+import { dailyReportStatusLabels, getDailyReportStatusTone } from "@/lib/finance/daily-report-calculations";
 import { getDailyReportViewData } from "@/lib/finance/daily-report-service";
 import { getBuenosAiresDateString } from "@/lib/finance/report-dates";
 import { formatArs } from "@/lib/operations/seed-data";
-import { cashReportStatusLabels, getCashReportStatusTone } from "@/lib/cash/cash-calculations";
+import { DailyReportAdjustmentAnnulForm } from "@/components/reports/daily-report-adjustment-annul-form";
+import { DailyReportAdjustmentForm } from "@/components/reports/daily-report-adjustment-form";
+import { DailyReportCloseForm } from "@/components/reports/daily-report-close-form";
+import { DailyReportReopenForm } from "@/components/reports/daily-report-reopen-form";
+import { DailyReportSaveForm } from "@/components/reports/daily-report-save-form";
 
 type SearchParams = Promise<{ date?: string }>;
 
@@ -32,6 +31,18 @@ function formatDateLabel(date: string) {
     month: "2-digit",
     year: "numeric"
   }).format(new Date(`${date}T00:00:00`));
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
 }
 
 function badgeVariantFromTone(tone: "ok" | "error" | "pendiente" | "revisar" | "neutral") {
@@ -55,7 +66,13 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
   const reportData = await getDailyReportViewData(selectedDate, { role: auth.role, userId: auth.userId });
   const selectedBranches = reportData.branches;
   const totals = reportData.totals;
-  const reportStatus = totals.availableProfitArs < 0 ? "revisar" : "abierto";
+  const overallStatus = selectedBranches.length === 0
+    ? "abierto"
+    : selectedBranches.every((branch) => branch.dailyReport?.status === "cerrado")
+      ? "cerrado"
+      : selectedBranches.some((branch) => branch.dailyReport?.status === "revisar" || branch.hasNegativeAvailable)
+        ? "revisar"
+        : "abierto";
 
   return (
     <div className="space-y-6">
@@ -65,8 +82,8 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
         rightSlot={
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{formatDateLabel(selectedDate)}</Badge>
-            <Badge variant={badgeVariantFromTone(getDailyReportStatusTone(reportStatus))}>
-              {dailyReportStatusLabels[reportStatus]}
+            <Badge variant={badgeVariantFromTone(getDailyReportStatusTone(overallStatus))}>
+              {dailyReportStatusLabels[overallStatus]}
             </Badge>
           </div>
         }
@@ -92,15 +109,54 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
         <StatCard label="Ganancia libre total" status={totals.availableProfitArs < 0 ? "error" : "ok"} value={formatArs(totals.availableProfitArs)} />
       </div>
 
-      {totals.availableProfitArs < 0 ? (
-        <DataCard
-          className="border-danger/40 bg-danger/10 text-brandBlack"
-          description="La ganancia libre quedo negativa, pero el sistema no bloquea la carga."
-          title="Advertencia"
-        >
-          <p className="text-sm font-semibold text-danger">La ganancia libre total esta por debajo de cero.</p>
-        </DataCard>
-      ) : null}
+      <DataCard description="Estado actual del dia por sucursal." title="Estado del reporte">
+        <div className="grid gap-4 md:grid-cols-2">
+          {selectedBranches.map((branch) => {
+            const branchStatus = branch.dailyReport?.status ?? (branch.hasNegativeAvailable ? "revisar" : "abierto");
+            const isLocked = branchStatus === "cerrado" || branchStatus === "revisar";
+            const hasPendingCash = branch.cashRegisters.some(
+              (register) => register.status === "pendiente" || register.status === "parcial"
+            );
+
+            return (
+              <div className="rounded-3xl border border-lightGray bg-white p-4 text-brandBlack shadow-soft" key={branch.branch.id}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">{branch.branch.name}</p>
+                    <h3 className="mt-1 font-heading text-lg font-black">Reporte diario</h3>
+                  </div>
+                  <Badge variant={badgeVariantFromTone(getDailyReportStatusTone(branchStatus))}>
+                    {dailyReportStatusLabels[branchStatus]}
+                  </Badge>
+                </div>
+
+                {isLocked ? (
+                  <div className="mt-3 rounded-2xl border border-lightGray bg-lightGray/25 p-4 text-sm">
+                    <p className="font-semibold text-brandBlack">Cerrado por: {branch.dailyReportClosedByName ?? "Sin dato"}</p>
+                    <p className="mt-1 text-mediumGray">Cierre: {formatDateTime(branch.dailyReport?.closed_at)}</p>
+                    {branch.dailyReport?.close_note ? <p className="mt-2 text-mediumGray">{branch.dailyReport.close_note}</p> : null}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-mediumGray">Abierto para edición.</p>
+                )}
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-3 text-sm">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-mediumGray">Cajas</p>
+                    <p className="mt-1 font-semibold text-brandBlack">
+                      {branch.cashRegisters.length} · {hasPendingCash ? "Con pendientes" : "Completas"}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-3 text-sm">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-mediumGray">Ganancia libre</p>
+                    <p className="mt-1 font-semibold text-brandBlack">{formatArs(branch.availableProfitArs)}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </DataCard>
 
       {selectedBranches.length === 0 ? (
         <EmptyState
@@ -111,6 +167,10 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
         <div className="space-y-4">
           {selectedBranches.map((branch) => {
             const branchStatus = branch.dailyReport?.status ?? (branch.hasNegativeAvailable ? "revisar" : "abierto");
+            const isLocked = branchStatus === "cerrado" || branchStatus === "revisar";
+            const hasPendingCash = branch.cashRegisters.some(
+              (register) => register.status === "pendiente" || register.status === "parcial"
+            );
 
             return (
               <div className="space-y-4 rounded-3xl border border-white/10 bg-darkSurface/80 p-4 shadow-soft" key={branch.branch.id}>
@@ -122,16 +182,36 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
                       {branch.cashRegisters.map((register) => `${register.register_number ?? "?"} ${register.name}`).join(" · ")}
                     </p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
+
+                  <div className="flex flex-wrap items-start gap-2">
                     <Badge variant={badgeVariantFromTone(getDailyReportStatusTone(branchStatus))}>
                       {dailyReportStatusLabels[branchStatus]}
                     </Badge>
-                    <DailyReportSaveForm
-                      branchId={branch.branch.id}
-                      canWrite={canWrite}
-                      currentStatus={branchStatus}
-                      date={selectedDate}
-                    />
+                    {!isLocked ? (
+                      <>
+                        <DailyReportSaveForm
+                          branchId={branch.branch.id}
+                          canWrite={canWrite}
+                          currentStatus={branchStatus}
+                          date={selectedDate}
+                          isLocked={isLocked}
+                        />
+                        {canWrite ? (
+                          <DailyReportCloseForm
+                            branchId={branch.branch.id}
+                            currentPath="/reporte-diario"
+                            date={selectedDate}
+                            hasPendingCash={hasPendingCash}
+                          />
+                        ) : null}
+                      </>
+                    ) : canWrite ? (
+                      <DailyReportReopenForm
+                        branchId={branch.branch.id}
+                        currentPath="/reporte-diario"
+                        date={selectedDate}
+                      />
+                    ) : null}
                   </div>
                 </div>
 
@@ -174,7 +254,13 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
                   </DataCard>
 
                   <DataCard className="bg-white text-brandBlack" description="Cargas y ajustes de la sucursal." title="Ajustes manuales">
-                    <DailyReportAdjustmentForm branches={selectedBranches.map((item) => item.branch)} canWrite={canWrite} date={selectedDate} fixedBranchId={branch.branch.id} />
+                    <DailyReportAdjustmentForm
+                      branches={selectedBranches.map((item) => item.branch)}
+                      canWrite={canWrite}
+                      date={selectedDate}
+                      fixedBranchId={branch.branch.id}
+                      isLocked={isLocked}
+                    />
 
                     <div className="mt-4 space-y-3">
                       {branch.adjustments.length === 0 ? (
@@ -191,7 +277,7 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
                               <Badge variant="neutral">Ajuste</Badge>
                             </div>
 
-                            {canWrite && !adjustment.annulled_at ? (
+                            {canWrite && !isLocked && !adjustment.annulled_at ? (
                               <DailyReportAdjustmentAnnulForm
                                 adjustmentId={adjustment.id}
                                 branchId={branch.branch.id}

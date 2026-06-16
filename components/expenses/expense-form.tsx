@@ -12,16 +12,22 @@ const initialState = { ok: false, message: "" };
 export function ExpenseForm({
   date,
   branches,
-  canWrite
+  canWrite,
+  isLocked
 }: {
   date: string;
   branches: Branch[];
   canWrite: boolean;
+  isLocked?: boolean;
 }) {
   const [state, formAction, isPending] = useActionState(createExpenseAction, initialState);
 
   if (!canWrite) {
     return <p className="text-sm text-mediumGray">Solo lectura para tu rol.</p>;
+  }
+
+  if (isLocked) {
+    return <p className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-semibold text-brandBlack">Este reporte diario esta cerrado. Reabrilo para modificarlo.</p>;
   }
 
   return (

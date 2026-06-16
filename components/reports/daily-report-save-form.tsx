@@ -13,17 +13,23 @@ export function DailyReportSaveForm({
   branchId,
   date,
   currentStatus,
-  canWrite
+  canWrite,
+  isLocked
 }: {
   branchId: string;
   date: string;
   currentStatus: DailyReportStatus;
   canWrite: boolean;
+  isLocked?: boolean;
 }) {
   const [state, formAction, isPending] = useActionState(saveDailyReportAction, initialState);
 
   if (!canWrite) {
     return <p className="text-sm text-mediumGray">Solo lectura para tu rol.</p>;
+  }
+
+  if (isLocked) {
+    return <p className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-semibold text-brandBlack">Este reporte diario esta cerrado. Reabrilo para modificarlo.</p>;
   }
 
   return (

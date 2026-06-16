@@ -57,6 +57,7 @@ supabase/schema.sql
 supabase/migrations/20260611_operational_notes.sql
 supabase/migrations/20260612_cash_pay_facil.sql
 supabase/migrations/20260613_daily_reports_expenses.sql
+supabase/migrations/20260616_daily_report_closures.sql
 ```
 
 Despues, con `.env.local` cargado, correr seeds idempotentes:
@@ -163,6 +164,31 @@ Reglas principales:
 - Los gastos se descuentan de la ganancia libre.
 - Los ajustes manuales siempre llevan motivo.
 - No se borra nada: ajustes y gastos se anulan.
+
+## Cierre diario
+
+Flujo de prueba:
+
+1. Entrar a `/reporte-diario` con rol admin o encargado.
+2. Revisar el estado de cada sucursal.
+3. Completar o dejar pendientes algunas cajas.
+4. Presionar `Cerrar día` y confirmar.
+5. Verificar si quedó `Cerrado` o `Revisar` según el estado de las cajas.
+6. Probar `Reabrir día` con motivo obligatorio.
+7. Confirmar que, cuando el día está cerrado, no se pueden guardar ajustes, gastos ni cargas de caja.
+
+Validaciones:
+
+- `Cerrar día` crea auditoría y nota si se escribe observación.
+- `Reabrir día` exige motivo y crea auditoría y nota obligatoria.
+- Un reporte cerrado bloquea edición de ajustes, gastos y cargas de caja.
+- El cierre diario no reinicia cajas ni toca bolsas.
+
+## Como verificar auditoria
+
+1. Abrir las tablas de `audit_logs` en Supabase.
+2. Buscar acciones `daily_report.closed`, `daily_report.reopened`, `expense.created`, `expense.annulled`, `daily_report_adjustment.created` y `daily_report_adjustment.annulled`.
+3. Revisar que el `entity_type` y el `reason` coincidan con la accion realizada.
 
 ## Notas internas
 

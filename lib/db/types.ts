@@ -80,6 +80,9 @@ export type DailyReport = {
   expenses_ars: number;
   available_profit_ars: number;
   status: DailyReportStatus;
+  closed_at: string | null;
+  closed_by: string | null;
+  close_note: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

@@ -9,17 +9,23 @@ import { Button } from "@/components/ui/button";
 import { CashRegisterCard } from "@/components/cash/cash-register-card";
 import { getServerAuthContext } from "@/lib/auth/server";
 import { getCashModuleData, isCashReportLoaded } from "@/lib/cash/cash-service";
+import { getDailyReportViewData, isDailyReportLockedStatus } from "@/lib/finance/daily-report-service";
+import { getBuenosAiresDateString } from "@/lib/finance/report-dates";
 import { formatArs } from "@/lib/operations/seed-data";
 
 export default async function CajasPage() {
   const auth = await getServerAuthContext(cookies());
   const cashData = await getCashModuleData(auth ? { role: auth.role, userId: auth.userId } : undefined);
+  const dailyReportData = await getDailyReportViewData(getBuenosAiresDateString(), auth ? { role: auth.role, userId: auth.userId } : undefined);
   const canWrite = auth?.role === "admin" || auth?.role === "encargado" || auth?.role === "cajero";
 
   const visibleRegisters = cashData.registers;
   const loadedCount = cashData.summary.registers_loaded_today;
   const pendingCount = cashData.summary.registers_pending_today;
   const statusReadyCount = visibleRegisters.filter((register) => isCashReportLoaded(register.today_status)).length;
+  const lockedBranchIds = new Set(
+    dailyReportData.branches.filter((branch) => isDailyReportLockedStatus(branch.dailyReport?.status)).map((branch) => branch.branch.id)
+  );
 
   return (
     <div className="space-y-6">
@@ -58,7 +64,7 @@ export default async function CajasPage() {
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
           {visibleRegisters.map((register) => (
-            <CashRegisterCard canWrite={canWrite} key={register.id} register={register} />
+            <CashRegisterCard canWrite={canWrite} isLocked={lockedBranchIds.has(register.branch_id)} key={register.id} register={register} />
           ))}
         </div>
       )}

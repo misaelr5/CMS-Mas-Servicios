@@ -9,10 +9,12 @@ import { getCashReportStatusTone, getCashRegisterDisplayLabel } from "@/lib/cash
 
 export function CashRegisterCard({
   register,
-  canWrite
+  canWrite,
+  isLocked
 }: {
   register: CashRegisterOverview;
   canWrite: boolean;
+  isLocked?: boolean;
 }) {
   const statusTone = getCashReportStatusTone(register.today_status);
 
@@ -55,13 +57,13 @@ export function CashRegisterCard({
           <Button asChild className="shadow-yellowGlow" size="sm">
             <Link href={`/cajas/${register.id}`}>Ver caja</Link>
           </Button>
-          {canWrite ? (
+          {canWrite && !isLocked ? (
             <Button asChild size="sm" variant="secondary">
               <Link href={`/cajas/${register.id}/cargar`}>Cargar día</Link>
             </Button>
           ) : (
             <Button disabled size="sm" variant="secondary">
-              Cargar día
+              {isLocked ? "Cerrado" : "Cargar día"}
             </Button>
           )}
         </div>

@@ -30,6 +30,7 @@ export type DailyReportBranchSummary = {
   branch: Branch;
   cashRegisters: DailyReportRegisterSummary[];
   dailyReport: DailyReport | null;
+  dailyReportClosedByName: string | null;
   adjustments: ReportAdjustment[];
   expenses: Expense[];
   automaticPfProfitArs: number;
@@ -67,6 +68,7 @@ function emptyBranchSummary(branch: Branch): DailyReportBranchSummary {
     branch,
     cashRegisters: [],
     dailyReport: null,
+    dailyReportClosedByName: null,
     adjustments: [],
     expenses: [],
     automaticPfProfitArs: 0,
@@ -153,7 +155,7 @@ export async function getDailyReportViewData(
         admin
           .from("daily_reports")
           .select(
-            "id,branch_id,report_date,automatic_pf_profit_ars,manual_pf_adjustment_ars,automatic_currency_profit_ars,manual_currency_adjustment_ars,gross_profit_ars,expenses_ars,available_profit_ars,status,created_by,created_at,updated_at"
+            "id,branch_id,report_date,automatic_pf_profit_ars,manual_pf_adjustment_ars,automatic_currency_profit_ars,manual_currency_adjustment_ars,gross_profit_ars,expenses_ars,available_profit_ars,status,closed_at,closed_by,close_note,created_by,created_at,updated_at"
           )
           .eq("report_date", date),
         admin
@@ -189,6 +191,26 @@ export async function getDailyReportViewData(
     const expenses = (expensesResult.data ?? []) as Expense[];
     const bags = (bagsResult.data ?? []) as MaybeRow[];
     const bagOperations = (bagOperationsResult.data ?? []) as MaybeRow[];
+
+    const profileIds = new Set<string>();
+    dailyReports.forEach((report) => {
+      if (report.created_by) profileIds.add(report.created_by);
+      if (report.closed_by) profileIds.add(report.closed_by);
+    });
+    const profilesResult = profileIds.size
+      ? await admin.from("profiles").select("id,full_name,email").in("id", Array.from(profileIds))
+      : { data: [], error: null };
+
+    if ("error" in profilesResult && profilesResult.error) {
+      throw profilesResult.error;
+    }
+
+    const profileMap = new Map<string, string>();
+    (profilesResult.data ?? []).forEach((profile: MaybeRow) => {
+      const id = typeof profile.id === "string" ? profile.id : "";
+      const name = typeof profile.full_name === "string" ? profile.full_name : typeof profile.email === "string" ? profile.email : "";
+      if (id) profileMap.set(id, name);
+    });
 
     const branchById = new Map(branches.map((branch) => [branch.id, branch] as const));
     const registerBranchMap = new Map<string, string>();
@@ -257,6 +279,7 @@ export async function getDailyReportViewData(
         branch,
         cashRegisters: cashRegisterStatuses,
         dailyReport: report,
+        dailyReportClosedByName: report?.closed_by ? profileMap.get(report.closed_by) ?? null : null,
         adjustments: reportAdjustments,
         expenses: branchExpenses,
         automaticPfProfitArs,
@@ -308,12 +331,18 @@ export async function recalculateDailyReportBranch({
   branchId,
   date,
   actorId,
-  status
+  status,
+  closedAt,
+  closedBy,
+  closeNote
 }: {
   branchId: string;
   date: string;
   actorId: string;
   status?: DailyReportStatus;
+  closedAt?: string | null;
+  closedBy?: string | null;
+  closeNote?: string | null;
 }) {
   const admin = getSupabaseAdminClient();
   if (!admin) {
@@ -337,6 +366,9 @@ export async function recalculateDailyReportBranch({
     expenses_ars: branchSummary.expensesArs,
     available_profit_ars: branchSummary.availableProfitArs,
     status: status ?? (branchSummary.hasNegativeAvailable ? "revisar" : "abierto"),
+    closed_at: closedAt ?? null,
+    closed_by: closedBy ?? null,
+    close_note: closeNote ?? null,
     updated_at: new Date().toISOString()
   };
 
@@ -363,4 +395,26 @@ export async function recalculateDailyReportBranch({
   }
 
   return { ok: true as const, action, report: data as DailyReport };
+}
+
+export async function getDailyReportRecordByBranchDate(branchId: string, date: string) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return null;
+
+  const { data, error } = await admin
+    .from("daily_reports")
+    .select(
+      "id,branch_id,report_date,automatic_pf_profit_ars,manual_pf_adjustment_ars,automatic_currency_profit_ars,manual_currency_adjustment_ars,gross_profit_ars,expenses_ars,available_profit_ars,status,closed_at,closed_by,close_note,created_by,created_at,updated_at"
+    )
+    .eq("branch_id", branchId)
+    .eq("report_date", date)
+    .maybeSingle();
+
+  if (error) return null;
+
+  return (data as DailyReport | null) ?? null;
+}
+
+export function isDailyReportLockedStatus(status: DailyReportStatus | null | undefined) {
+  return status === "cerrado" || status === "revisar";
 }

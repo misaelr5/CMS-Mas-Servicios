@@ -16,6 +16,10 @@ import {
   parseMoneyInput,
   sortCashReportCategories
 } from "@/lib/cash/cash-calculations";
+import {
+  getDailyReportRecordByBranchDate,
+  isDailyReportLockedStatus
+} from "@/lib/finance/daily-report-service";
 
 type ActionState = {
   ok: boolean;
@@ -141,6 +145,11 @@ export async function saveCashDailyReportAction(_prevState: ActionState, formDat
 
   if (auth.role === "cajero" && registerData.responsible_user_id !== auth.userId) {
     return { ok: false, message: "Como cajero solo podes cargar tu caja asignada." };
+  }
+
+  const lockedReport = await getDailyReportRecordByBranchDate(registerData.branch_id, reportDate);
+  if (lockedReport && isDailyReportLockedStatus(lockedReport.status)) {
+    return { ok: false, message: "Este reporte diario esta cerrado. Reabrilo para modificarlo." };
   }
 
   const reportRows = categories.map((category) => {

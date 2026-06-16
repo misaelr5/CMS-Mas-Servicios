@@ -18,6 +18,7 @@ import { getExpensePageData } from "@/lib/finance/expense-service";
 import { getDailyReportViewData } from "@/lib/finance/daily-report-service";
 import { getBuenosAiresDateString } from "@/lib/finance/report-dates";
 import { formatArs } from "@/lib/operations/seed-data";
+import { listNotes } from "@/lib/notes/notes-service";
 
 function resolveReportStatus(branches: Awaited<ReturnType<typeof getDailyReportViewData>>["branches"]) {
   if (branches.length === 0) return "Sin datos";
@@ -37,6 +38,9 @@ export default async function DashboardPage() {
   const cashData = await getCashModuleData();
   const reportData = await getDailyReportViewData(today, { role: auth.role, userId: auth.userId });
   const expenseData = await getExpensePageData({ date: today }, { role: auth.role, userId: auth.userId });
+  const reportNotes = (await listNotes({ entityType: "daily_report", limit: 6 })).filter(
+    (note) => note.priority === "importante" || note.priority === "urgente"
+  );
   const totals = bags.reduce(
     (acc, bag) => {
       acc.cash += Number(bag.current_cash_ars ?? 0);
@@ -91,6 +95,24 @@ export default async function DashboardPage() {
         <StatCard label="Gastos pendientes" status="pendiente" value={formatArs(expenseData.totals.pending_amount_ars)} />
         <StatCard label="Estado del reporte diario" status={reportData.totals.availableProfitArs < 0 ? "revisar" : "ok"} value={reportStatus} />
       </div>
+
+      <DataCard description="Ultimas notas importantes vinculadas a reportes diarios." title="Notas del reporte">
+        {reportNotes.length === 0 ? (
+          <EmptyState description="Cuando aparezcan notas importantes del reporte diario, van a mostrarse aca." title="Sin notas de reporte" />
+        ) : (
+          <div className="space-y-3">
+            {reportNotes.map((note) => (
+              <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4" key={note.id}>
+                <p className="font-semibold text-brandBlack">{note.title}</p>
+                <p className="mt-1 text-sm text-mediumGray">{note.body}</p>
+                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-mediumGray">
+                  {note.entity_label ?? "Reporte diario"}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </DataCard>
 
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
         <DataCard description="Resumen de control de divisas." title="Estado de bolsas">

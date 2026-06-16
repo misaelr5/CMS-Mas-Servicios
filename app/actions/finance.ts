@@ -15,6 +15,8 @@ import {
 import { getBuenosAiresDateString } from "@/lib/finance/report-dates";
 import {
   getDailyReportViewData,
+  getDailyReportRecordByBranchDate,
+  isDailyReportLockedStatus,
   recalculateDailyReportBranch
 } from "@/lib/finance/daily-report-service";
 
@@ -57,6 +59,10 @@ function isMissingDailyReportTablesError(error: { message?: string } | null | un
     message.includes("report_adjustments") ||
     message.includes("expenses")
   ) && (message.includes("schema cache") || message.includes("could not find the table"));
+}
+
+function reportLockedMessage() {
+  return "Este reporte diario esta cerrado. Reabrilo para modificarlo.";
 }
 
 async function ensureProfile(auth: NonNullable<Awaited<ReturnType<typeof getServerAuthContext>>>) {
@@ -128,6 +134,11 @@ export async function saveDailyReportAction(_prevState: ActionState, formData: F
     return { ok: false, message: "Elegí una sucursal." };
   }
 
+  const lockedReport = await getDailyReportRecordByBranchDate(branchId, date);
+  if (lockedReport && isDailyReportLockedStatus(lockedReport.status)) {
+    return { ok: false, message: reportLockedMessage() };
+  }
+
   const beforeId = await getDailyReportId(admin, branchId, date);
   const recalc = await ensureDailyReportRow({ admin, auth, branchId, date, status });
   if (!recalc.ok) {
@@ -179,6 +190,11 @@ export async function createDailyReportAdjustmentAction(_prevState: ActionState,
 
   if (!dailyReportAdjustmentTypeLabels[adjustmentType as keyof typeof dailyReportAdjustmentTypeLabels]) {
     return { ok: false, message: "Tipo de ajuste inválido." };
+  }
+
+  const lockedReport = await getDailyReportRecordByBranchDate(branchId, date);
+  if (lockedReport && isDailyReportLockedStatus(lockedReport.status)) {
+    return { ok: false, message: reportLockedMessage() };
   }
 
   const reportId = await getDailyReportId(admin, branchId, date);
@@ -250,6 +266,11 @@ export async function annulDailyReportAdjustmentAction(_prevState: ActionState, 
     return { ok: false, message: "Falta ajuste, motivo o sucursal." };
   }
 
+  const lockedReport = await getDailyReportRecordByBranchDate(branchId, date);
+  if (lockedReport && isDailyReportLockedStatus(lockedReport.status)) {
+    return { ok: false, message: reportLockedMessage() };
+  }
+
   const { data: oldData } = await (admin.from("report_adjustments") as any).select("*").eq("id", adjustmentId).maybeSingle();
   if (!oldData || oldData.annulled_at) {
     return { ok: false, message: "El ajuste no existe o ya fue anulado." };
@@ -310,6 +331,11 @@ export async function createExpenseAction(_prevState: ActionState, formData: For
 
   if (!branchId || !category || !detail || amount <= 0) {
     return { ok: false, message: "Completá sucursal, categoría, detalle y monto mayor a 0." };
+  }
+
+  const lockedReport = await getDailyReportRecordByBranchDate(branchId, date);
+  if (lockedReport && isDailyReportLockedStatus(lockedReport.status)) {
+    return { ok: false, message: reportLockedMessage() };
   }
 
   const { data, error } = await (admin.from("expenses") as any)
@@ -401,6 +427,11 @@ export async function annulExpenseAction(_prevState: ActionState, formData: Form
     return { ok: false, message: "Falta gasto, motivo o sucursal." };
   }
 
+  const lockedReport = await getDailyReportRecordByBranchDate(branchId, date);
+  if (lockedReport && isDailyReportLockedStatus(lockedReport.status)) {
+    return { ok: false, message: reportLockedMessage() };
+  }
+
   const { data: oldData } = await (admin.from("expenses") as any).select("*").eq("id", expenseId).maybeSingle();
   if (!oldData || oldData.status === "anulado") {
     return { ok: false, message: "El gasto no existe o ya fue anulado." };
@@ -439,4 +470,189 @@ export async function annulExpenseAction(_prevState: ActionState, formData: Form
   revalidatePath(currentPath);
 
   return { ok: true, message: "Gasto anulado." };
+}
+
+export async function closeDailyReportAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const auth = await getServerAuthContext(cookies());
+  if (!auth || !canWriteReports(auth.role)) {
+    return { ok: false, message: "No tenes permisos para cerrar el dia." };
+  }
+
+  const profile = await ensureProfile(auth);
+  if (!profile.ok) return profile;
+  const admin = profile.admin;
+
+  const branchId = getString(formData, "branch_id");
+  const date = getDateValue(formData);
+  const closeNote = getString(formData, "close_note");
+  const currentPath = safePath(getString(formData, "current_path"));
+
+  if (!branchId) {
+    return { ok: false, message: "Elegi una sucursal." };
+  }
+
+  const existingReport = await getDailyReportRecordByBranchDate(branchId, date);
+  if (existingReport && isDailyReportLockedStatus(existingReport.status)) {
+    return { ok: false, message: reportLockedMessage() };
+  }
+
+  const viewData = await getDailyReportViewData(date, { role: auth.role, userId: auth.userId });
+  const branchSummary = viewData.branches.find((item) => item.branch.id === branchId);
+  if (!branchSummary) {
+    return { ok: false, message: "No se encontro la sucursal para cerrar." };
+  }
+
+  const hasPendingCash = branchSummary.cashRegisters.some(
+    (register) => register.status === "pendiente" || register.status === "parcial"
+  );
+  const nextStatus = hasPendingCash ? "revisar" : "cerrado";
+
+  const result = await recalculateDailyReportBranch({
+    branchId,
+    date,
+    actorId: auth.userId,
+    status: nextStatus,
+    closedAt: new Date().toISOString(),
+    closedBy: auth.userId,
+    closeNote: closeNote || null
+  });
+
+  if (!result.ok) {
+    return { ok: false, message: result.message };
+  }
+
+  await createAuditLog({
+    actorId: auth.userId,
+    action: "daily_report.closed",
+    entityType: "daily_report",
+    entityId: result.report.id,
+    oldData: existingReport as Record<string, unknown> | null,
+    newData: result.report as Record<string, unknown>,
+    reason: closeNote || null
+  });
+
+  if (closeNote) {
+    const { data: noteData } = await (admin.from("notes") as any)
+      .insert({
+        entity_type: "daily_report",
+        entity_id: result.report.id,
+        entity_label: `${branchSummary.branch.name} · ${date}`,
+        entity_href: "/reporte-diario",
+        title: `Cierre diario ${branchSummary.branch.name}`,
+        body: closeNote,
+        priority: "normal",
+        status: "abierta",
+        created_by: auth.userId
+      })
+      .select("*")
+      .single();
+
+    if (noteData) {
+      await createAuditLog({
+        actorId: auth.userId,
+        action: "note.created",
+        entityType: "note",
+        entityId: noteData.id,
+        newData: noteData as Record<string, unknown>
+      });
+    }
+  }
+
+  revalidatePath("/reporte-diario");
+  revalidatePath("/dashboard");
+  revalidatePath(currentPath);
+
+  return {
+    ok: true,
+    message: hasPendingCash
+      ? "Hay cajas pendientes o parciales. El dia quedo marcado como revisar."
+      : "Dia cerrado."
+  };
+}
+
+export async function reopenDailyReportAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const auth = await getServerAuthContext(cookies());
+  if (!auth || !canWriteReports(auth.role)) {
+    return { ok: false, message: "No tenes permisos para reabrir el dia." };
+  }
+
+  const profile = await ensureProfile(auth);
+  if (!profile.ok) return profile;
+  const admin = profile.admin;
+
+  const branchId = getString(formData, "branch_id");
+  const date = getDateValue(formData);
+  const reopenReason = getString(formData, "reopen_reason");
+  const currentPath = safePath(getString(formData, "current_path"));
+
+  if (!branchId) {
+    return { ok: false, message: "Elegi una sucursal." };
+  }
+
+  if (!reopenReason) {
+    return { ok: false, message: "Tenes que indicar el motivo de reapertura." };
+  }
+
+  const existingReport = await getDailyReportRecordByBranchDate(branchId, date);
+  if (!existingReport || !isDailyReportLockedStatus(existingReport.status)) {
+    return { ok: false, message: "Solo podes reabrir un reporte cerrado o en revisar." };
+  }
+
+  const viewData = await getDailyReportViewData(date, { role: auth.role, userId: auth.userId });
+  const branchSummary = viewData.branches.find((item) => item.branch.id === branchId);
+
+  const result = await recalculateDailyReportBranch({
+    branchId,
+    date,
+    actorId: auth.userId,
+    status: "abierto",
+    closedAt: null,
+    closedBy: null,
+    closeNote: null
+  });
+
+  if (!result.ok) {
+    return { ok: false, message: result.message };
+  }
+
+  await createAuditLog({
+    actorId: auth.userId,
+    action: "daily_report.reopened",
+    entityType: "daily_report",
+    entityId: result.report.id,
+    oldData: existingReport as Record<string, unknown>,
+    newData: result.report as Record<string, unknown>,
+    reason: reopenReason
+  });
+
+  const { data: noteData } = await (admin.from("notes") as any)
+    .insert({
+      entity_type: "daily_report",
+      entity_id: result.report.id,
+      entity_label: `${branchSummary?.branch.name ?? branchId} · ${date}`,
+      entity_href: "/reporte-diario",
+      title: "Reapertura de reporte diario",
+      body: reopenReason,
+      priority: "normal",
+      status: "abierta",
+      created_by: auth.userId
+    })
+    .select("*")
+    .single();
+
+  if (noteData) {
+    await createAuditLog({
+      actorId: auth.userId,
+      action: "note.created",
+      entityType: "note",
+      entityId: noteData.id,
+      newData: noteData as Record<string, unknown>
+    });
+  }
+
+  revalidatePath("/reporte-diario");
+  revalidatePath("/dashboard");
+  revalidatePath(currentPath);
+
+  return { ok: true, message: "Dia reabierto." };
 }

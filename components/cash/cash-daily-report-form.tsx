@@ -18,12 +18,14 @@ export function CashDailyReportForm({
   register,
   categories,
   reportDate,
-  canReview
+  canReview,
+  isLocked
 }: {
   register: CashRegisterOverview;
   categories: CashReportCategory[];
   reportDate: string;
   canReview: boolean;
+  isLocked?: boolean;
 }) {
   const [state, formAction, isPending] = useActionState(saveCashDailyReportAction, initialState);
 
@@ -35,6 +37,14 @@ export function CashDailyReportForm({
     },
     { operated: 0, profit: 0 }
   ) ?? { operated: 0, profit: 0 };
+
+  if (isLocked) {
+    return (
+      <div className="rounded-3xl border border-warning/30 bg-warning/10 p-4 text-sm font-semibold text-brandBlack">
+        Este reporte diario esta cerrado. Reabrilo para modificarlo.
+      </div>
+    );
+  }
 
   return (
     <form action={formAction} className="space-y-5">

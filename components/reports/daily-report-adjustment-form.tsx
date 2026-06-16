@@ -14,17 +14,23 @@ export function DailyReportAdjustmentForm({
   date,
   branches,
   fixedBranchId,
-  canWrite
+  canWrite,
+  isLocked
 }: {
   date: string;
   branches: Branch[];
   fixedBranchId?: string;
   canWrite: boolean;
+  isLocked?: boolean;
 }) {
   const [state, formAction, isPending] = useActionState(createDailyReportAdjustmentAction, initialState);
 
   if (!canWrite) {
     return <p className="text-sm text-mediumGray">Solo admin o encargado pueden crear ajustes.</p>;
+  }
+
+  if (isLocked) {
+    return <p className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-semibold text-brandBlack">Este reporte diario esta cerrado. Reabrilo para modificarlo.</p>;
   }
 
   return (
