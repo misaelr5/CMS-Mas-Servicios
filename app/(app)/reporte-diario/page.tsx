@@ -63,6 +63,7 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
   }
 
   const canWrite = auth.role === "admin" || auth.role === "encargado";
+  const isCashier = auth.role === "cajero";
   const reportData = await getDailyReportViewData(selectedDate, { role: auth.role, userId: auth.userId });
   const cashData = await getCashModuleData({ role: auth.role, userId: auth.userId });
 
@@ -80,7 +81,7 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
   return (
     <div className="space-y-6">
       <SectionTitle
-        description="Reporte diario de Pago Facil, divisas, gastos y ganancia libre por sucursal."
+        description={isCashier ? "Vista operativa limitada de cargas por caja." : "Reporte diario de Pago Facil, divisas, gastos y ganancia libre por sucursal."}
         title="Reporte diario"
         rightSlot={
           <div className="flex flex-wrap items-center gap-2">
@@ -100,17 +101,21 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
           <Input defaultValue={selectedDate} id="date" name="date" type="date" />
         </div>
         <Button type="submit">Ver fecha</Button>
-        <Button asChild variant="outline">
-          <Link href="/gastos">Ir a gastos</Link>
-        </Button>
+        {!isCashier ? (
+          <Button asChild variant="outline">
+            <Link href="/gastos">Ir a gastos</Link>
+          </Button>
+        ) : null}
       </form>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Ganancia total Pago Facil" status="ok" value={formatArs(totals.automaticPfProfitArs + totals.manualPfAdjustmentArs)} />
-        <StatCard label="Ganancia total divisas" status="ok" value={formatArs(totals.automaticCurrencyProfitArs + totals.manualCurrencyAdjustmentArs)} />
-        <StatCard label="Gastos totales" status="neutral" value={formatArs(totals.expensesArs)} />
-        <StatCard label="Ganancia libre total" status={totals.availableProfitArs < 0 ? "error" : "ok"} value={formatArs(totals.availableProfitArs)} />
-      </div>
+      {!isCashier ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <StatCard label="Ganancia total Pago Facil" status="ok" value={formatArs(totals.automaticPfProfitArs + totals.manualPfAdjustmentArs)} />
+          <StatCard label="Ganancia total divisas" status="ok" value={formatArs(totals.automaticCurrencyProfitArs + totals.manualCurrencyAdjustmentArs)} />
+          <StatCard label="Gastos totales" status="neutral" value={formatArs(totals.expensesArs)} />
+          <StatCard label="Ganancia libre total" status={totals.availableProfitArs < 0 ? "error" : "ok"} value={formatArs(totals.availableProfitArs)} />
+        </div>
+      ) : null}
 
       {selectedBranches.length === 0 ? (
         <EmptyState description="Tu rol no tiene sucursal visible para este reporte o todavia no se cargaron datos." title="Sin sucursales visibles" />
@@ -173,28 +178,30 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
                   </div>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-lightGray">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-brandYellow/85">PF automatica</p>
-                    <p className="mt-2 text-2xl font-black text-brandWhite">{formatArs(branch.automaticPfProfitArs)}</p>
+                {!isCashier ? (
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-lightGray">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-brandYellow/85">PF automatica</p>
+                      <p className="mt-2 text-2xl font-black text-brandWhite">{formatArs(branch.automaticPfProfitArs)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-lightGray">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-brandYellow/85">PF manual</p>
+                      <p className="mt-2 text-2xl font-black text-brandWhite">{formatArs(branch.manualPfAdjustmentArs)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-lightGray">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-brandYellow/85">Divisas</p>
+                      <p className="mt-2 text-2xl font-black text-brandWhite">{formatArs(branch.automaticCurrencyProfitArs)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-lightGray">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-brandYellow/85">Gastos</p>
+                      <p className="mt-2 text-2xl font-black text-brandWhite">{formatArs(branch.expensesArs)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-brandYellow/30 bg-brandYellow/15 p-4 text-sm text-brandBlack">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-mediumGray">Ganancia libre</p>
+                      <p className="mt-2 text-2xl font-black">{formatArs(branch.availableProfitArs)}</p>
+                    </div>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-lightGray">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-brandYellow/85">PF manual</p>
-                    <p className="mt-2 text-2xl font-black text-brandWhite">{formatArs(branch.manualPfAdjustmentArs)}</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-lightGray">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-brandYellow/85">Divisas</p>
-                    <p className="mt-2 text-2xl font-black text-brandWhite">{formatArs(branch.automaticCurrencyProfitArs)}</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-lightGray">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-brandYellow/85">Gastos</p>
-                    <p className="mt-2 text-2xl font-black text-brandWhite">{formatArs(branch.expensesArs)}</p>
-                  </div>
-                  <div className="rounded-2xl border border-brandYellow/30 bg-brandYellow/15 p-4 text-sm text-brandBlack">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-mediumGray">Ganancia libre</p>
-                    <p className="mt-2 text-2xl font-black">{formatArs(branch.availableProfitArs)}</p>
-                  </div>
-                </div>
+                ) : null}
 
                 <div className="overflow-x-auto rounded-3xl border border-lightGray bg-white text-brandBlack shadow-soft">
                   <table className="min-w-full border-separate border-spacing-0 text-sm">
@@ -223,7 +230,7 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
                                 {line ? (
                                   <div className="space-y-1">
                                     <p className="text-base font-bold">{formatArs(Number(line.operated_amount_ars ?? 0))}</p>
-                                    <p className="text-xs text-mediumGray">Ganancia {formatArs(Number(line.profit_amount_ars ?? 0))}</p>
+                                    {!isCashier ? <p className="text-xs text-mediumGray">Ganancia {formatArs(Number(line.profit_amount_ars ?? 0))}</p> : null}
                                   </div>
                                 ) : (
                                   <span className="text-mediumGray">-</span>
@@ -241,7 +248,7 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
                         {branchRegisters.map((register) => (
                           <td className="border-t border-lightGray px-4 py-3 text-center" key={`${register.id}-total`}>
                             <p className="text-base font-black">{formatArs(register.today_operated_ars)}</p>
-                            <p className="text-xs text-mediumGray">Ganancia {formatArs(register.today_profit_ars)}</p>
+                            {!isCashier ? <p className="text-xs text-mediumGray">Ganancia {formatArs(register.today_profit_ars)}</p> : null}
                           </td>
                         ))}
                       </tr>
@@ -249,7 +256,7 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
                   </table>
                 </div>
 
-                <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+                {!isCashier ? <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
                   <DataCard className="bg-white text-brandBlack" description="Resumen de divisas y utilidad de la sucursal." title="Resumen de la sucursal">
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-3">
@@ -326,7 +333,7 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
                       )}
                     </div>
                   </DataCard>
-                </div>
+                </div> : null}
               </section>
             );
           })}
