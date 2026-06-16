@@ -33,11 +33,11 @@ function operationLabel(operation: BagOperation) {
 
 function moneyFlow(operation: BagOperation) {
   if (operation.operation_type === "venta_interna_bolsa") {
-    return operation.money_destination === "cuenta" ? "Origen recibe en cuenta" : "Origen recibe en efectivo";
+    return operation.notes?.split(".")[0] ?? (operation.money_destination === "cuenta" ? "Origen recibe en cuenta" : "Origen recibe en efectivo");
   }
 
   if (operation.operation_type === "compra_interna_bolsa") {
-    return operation.money_source === "cuenta" ? "Destino paga desde cuenta" : "Destino paga desde efectivo";
+    return operation.notes?.split(".")[0] ?? (operation.money_source === "cuenta" ? "Origen paga desde cuenta" : "Origen paga desde efectivo");
   }
 
   if (operation.operation_type === "compra_usd") {
@@ -75,7 +75,7 @@ function AnnulInternalTransferForm({ operation }: { operation: BagOperation }) {
       <input className="h-9 rounded-md border border-border bg-white px-3 text-xs text-brandBlack" name="reason" placeholder="Motivo de anulacion" required />
       <input className="h-9 rounded-md border border-border bg-white px-3 text-xs text-brandBlack" name="note" placeholder="Nota obligatoria" required />
       <button className="rounded-lg bg-danger px-3 py-2 text-xs font-bold text-white" type="submit">
-        Anular venta interna
+        Anular movimiento interno
       </button>
     </form>
   );

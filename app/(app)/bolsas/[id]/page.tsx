@@ -112,7 +112,7 @@ export default async function BolsaDetallePage({ params }: { params: Promise<{ i
           <Link href={`/bolsas/nueva-operacion?bagId=${bag.id}`}>Crear ajuste</Link>
         </Button> : null}
         <Button asChild variant="secondary">
-          <Link href={`/bolsas/${bag.id}/vender-a-bolsa`}>Vender a otra bolsa</Link>
+          <Link href={`/bolsas/${bag.id}/vender-a-bolsa`}>Mover con otra bolsa</Link>
         </Button>
         {!isCashier ? <Button asChild variant="secondary">
           <Link href={`/bolsas/${bag.id}/cierre-diario`}>Cierre diario</Link>

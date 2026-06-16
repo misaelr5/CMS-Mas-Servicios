@@ -273,6 +273,7 @@ export type InternalBagTransferInput = {
   destinationBagId: string;
   amountUsd: number;
   internalRateArs: number;
+  transferMode: "venta" | "compra";
   destinationPaymentSource: "efectivo" | "cuenta";
   originReceiveDestination: "efectivo" | "cuenta";
   reason: string;
@@ -285,6 +286,7 @@ export async function createInternalBagTransfer({
   destinationBagId,
   amountUsd,
   internalRateArs,
+  transferMode,
   destinationPaymentSource,
   originReceiveDestination,
   reason,
@@ -309,6 +311,10 @@ export async function createInternalBagTransfer({
     return { ok: false, message: "Motivo y nota son obligatorios." };
   }
 
+  if (transferMode !== "venta" && transferMode !== "compra") {
+    return { ok: false, message: "Elegí si la bolsa origen vende o compra USD." };
+  }
+
   const [{ data: originData, error: originError }, { data: destinationData, error: destinationError }] = await Promise.all([
     (admin.from("bags") as any).select("*").eq("id", originBagId).maybeSingle(),
     (admin.from("bags") as any).select("*").eq("id", destinationBagId).maybeSingle()
@@ -321,45 +327,74 @@ export async function createInternalBagTransfer({
   const destination = mapBagRow(destinationData);
   const totalArs = amountUsd * internalRateArs;
 
-  if (Number(origin.current_usd ?? 0) < amountUsd) {
-    return { ok: false, message: "No hay USD suficientes en la bolsa origen." };
-  }
+  const originCashBalance = Number(origin.current_cash_ars ?? 0);
+  const originAccountBalance = Number(origin.current_account_ars ?? 0);
+  const originUsdBalance = Number(origin.current_usd ?? 0);
+  const destinationCashBalance = Number(destination.current_cash_ars ?? 0);
+  const destinationAccountBalance = Number(destination.current_account_ars ?? 0);
+  const destinationUsdBalance = Number(destination.current_usd ?? 0);
 
-  const destinationPaymentBalance = destinationPaymentSource === "efectivo" ? Number(destination.current_cash_ars ?? 0) : Number(destination.current_account_ars ?? 0);
-  if (destinationPaymentBalance < totalArs) {
-    return { ok: false, message: "La bolsa destino no tiene saldo suficiente en el origen de pago seleccionado." };
+  if (transferMode === "venta") {
+    if (originUsdBalance < amountUsd) {
+      return { ok: false, message: "No hay USD suficientes en la bolsa origen." };
+    }
+
+    const destinationPaymentBalance = destinationPaymentSource === "efectivo" ? destinationCashBalance : destinationAccountBalance;
+    if (destinationPaymentBalance < totalArs) {
+      return { ok: false, message: "La bolsa destino no tiene saldo suficiente en el origen de pago seleccionado." };
+    }
+  } else {
+    if (destinationUsdBalance < amountUsd) {
+      return { ok: false, message: "No hay USD suficientes en la bolsa destino para completar la compra." };
+    }
+
+    const originPaymentBalance = originReceiveDestination === "efectivo" ? originCashBalance : originAccountBalance;
+    if (originPaymentBalance < totalArs) {
+      return { ok: false, message: "La bolsa origen no tiene saldo suficiente en el origen de pago seleccionado." };
+    }
   }
 
   const originPrevious = {
-    cash: Number(origin.current_cash_ars ?? 0),
-    account: Number(origin.current_account_ars ?? 0),
-    usd: Number(origin.current_usd ?? 0),
+    cash: originCashBalance,
+    account: originAccountBalance,
+    usd: originUsdBalance,
     borrowed: Number(origin.borrowed_ars ?? 0),
     average: Number(origin.average_usd_cost ?? 0)
   };
   const destinationPrevious = {
-    cash: Number(destination.current_cash_ars ?? 0),
-    account: Number(destination.current_account_ars ?? 0),
-    usd: Number(destination.current_usd ?? 0),
+    cash: destinationCashBalance,
+    account: destinationAccountBalance,
+    usd: destinationUsdBalance,
     borrowed: Number(destination.borrowed_ars ?? 0),
     average: Number(destination.average_usd_cost ?? 0)
   };
 
-  const originNext = {
-    cash: originPrevious.cash + (originReceiveDestination === "efectivo" ? totalArs : 0),
-    account: originPrevious.account + (originReceiveDestination === "cuenta" ? totalArs : 0),
-    usd: originPrevious.usd - amountUsd,
-    borrowed: originPrevious.borrowed,
-    average: originPrevious.usd - amountUsd <= 0 ? 0 : originPrevious.average
-  };
-  const destinationNextUsd = destinationPrevious.usd + amountUsd;
+  const originNextUsd = transferMode === "venta" ? originPrevious.usd - amountUsd : originPrevious.usd + amountUsd;
+  const destinationNextUsd = transferMode === "venta" ? destinationPrevious.usd + amountUsd : destinationPrevious.usd - amountUsd;
+  const originNextAverage =
+    transferMode === "compra" && originNextUsd > 0
+      ? (originPrevious.usd * originPrevious.average + amountUsd * internalRateArs) / originNextUsd
+      : transferMode === "venta" && originNextUsd <= 0
+        ? 0
+        : originPrevious.average;
   const destinationNextAverage =
-    destinationNextUsd > 0
-      ? (destinationPrevious.usd * destinationPrevious.average + amountUsd * internalRateArs) / destinationNextUsd
-      : 0;
+    transferMode === "venta"
+      ? destinationNextUsd > 0
+        ? (destinationPrevious.usd * destinationPrevious.average + amountUsd * internalRateArs) / destinationNextUsd
+        : 0
+      : destinationNextUsd > 0
+        ? destinationPrevious.average
+        : 0;
+  const originNext = {
+    cash: originPrevious.cash + (transferMode === "venta" ? (originReceiveDestination === "efectivo" ? totalArs : 0) : -(originReceiveDestination === "efectivo" ? totalArs : 0)),
+    account: originPrevious.account + (transferMode === "venta" ? (originReceiveDestination === "cuenta" ? totalArs : 0) : -(originReceiveDestination === "cuenta" ? totalArs : 0)),
+    usd: originNextUsd,
+    borrowed: originPrevious.borrowed,
+    average: originNextAverage
+  };
   const destinationNext = {
-    cash: destinationPrevious.cash - (destinationPaymentSource === "efectivo" ? totalArs : 0),
-    account: destinationPrevious.account - (destinationPaymentSource === "cuenta" ? totalArs : 0),
+    cash: destinationPrevious.cash + (transferMode === "venta" ? -(destinationPaymentSource === "efectivo" ? totalArs : 0) : (destinationPaymentSource === "efectivo" ? totalArs : 0)),
+    account: destinationPrevious.account + (transferMode === "venta" ? -(destinationPaymentSource === "cuenta" ? totalArs : 0) : (destinationPaymentSource === "cuenta" ? totalArs : 0)),
     usd: destinationNextUsd,
     borrowed: destinationPrevious.borrowed,
     average: destinationNextAverage
@@ -392,12 +427,12 @@ export async function createInternalBagTransfer({
 
   const originOperationPayload = {
     bag_id: originBagId,
-    operation_type: "venta_interna_bolsa",
+    operation_type: transferMode === "venta" ? "venta_interna_bolsa" : "compra_interna_bolsa",
     amount_usd: amountUsd,
     rate_ars: internalRateArs,
     total_ars: totalArs,
-    money_source: null,
-    money_destination: originReceiveDestination,
+    money_source: transferMode === "compra" ? originReceiveDestination : null,
+    money_destination: transferMode === "venta" ? originReceiveDestination : null,
     profit_ars: 0,
     previous_cash_ars: originPrevious.cash,
     previous_account_ars: originPrevious.account,
@@ -407,7 +442,7 @@ export async function createInternalBagTransfer({
     new_account_ars: originNext.account,
     new_usd: originNext.usd,
     new_borrowed_ars: originNext.borrowed,
-    notes: `Venta interna a ${destinationLabel}. ${note}`,
+    notes: transferMode === "venta" ? `Venta interna a ${destinationLabel}. ${note}` : `Compra interna desde ${destinationLabel}. ${note}`,
     status: "confirmada",
     created_by: actorId,
     internal_transfer_id: transferId,
@@ -416,12 +451,12 @@ export async function createInternalBagTransfer({
   };
   const destinationOperationPayload = {
     bag_id: destinationBagId,
-    operation_type: "compra_interna_bolsa",
+    operation_type: transferMode === "venta" ? "compra_interna_bolsa" : "venta_interna_bolsa",
     amount_usd: amountUsd,
     rate_ars: internalRateArs,
     total_ars: totalArs,
-    money_source: destinationPaymentSource,
-    money_destination: null,
+    money_source: transferMode === "venta" ? destinationPaymentSource : null,
+    money_destination: transferMode === "compra" ? destinationPaymentSource : null,
     profit_ars: 0,
     previous_cash_ars: destinationPrevious.cash,
     previous_account_ars: destinationPrevious.account,
@@ -431,7 +466,7 @@ export async function createInternalBagTransfer({
     new_account_ars: destinationNext.account,
     new_usd: destinationNext.usd,
     new_borrowed_ars: destinationNext.borrowed,
-    notes: `Compra interna desde ${originLabel}. ${note}`,
+    notes: transferMode === "venta" ? `Compra interna desde ${originLabel}. ${note}` : `Venta interna a ${originLabel}. ${note}`,
     status: "confirmada",
     created_by: actorId,
     internal_transfer_id: transferId,
@@ -563,7 +598,7 @@ export async function createInternalBagTransfer({
 
   return {
     ok: true,
-    message: "Venta interna guardada.",
+    message: "Movimiento interno guardado.",
     transfer: transfer as BagInternalTransfer,
     originOperation: originOperation as BagOperation,
     destinationOperation: destinationOperation as BagOperation
@@ -611,20 +646,41 @@ export async function annulInternalBagTransfer({
   const destination = mapBagRow(destinationData);
   const amountUsd = Number(transfer.amount_usd ?? 0);
   const totalArs = Number(transfer.total_ars ?? 0);
-  const originReceiveDestination = transfer.origin_receive_destination as "efectivo" | "cuenta";
-  const destinationPaymentSource = transfer.destination_payment_source as "efectivo" | "cuenta";
+  const originOperationType = originOperation.operation_type as BagOperationType;
+  const destinationOperationType = destinationOperation.operation_type as BagOperationType;
+  const originWasSale = originOperationType === "venta_interna_bolsa" && destinationOperationType === "compra_interna_bolsa";
+  const originWasPurchase = originOperationType === "compra_interna_bolsa" && destinationOperationType === "venta_interna_bolsa";
+  if (!originWasSale && !originWasPurchase) {
+    return { ok: false, message: "La transferencia interna no tiene una direccion valida para anular." };
+  }
+
+  const originMoneyLocation = (originWasSale ? originOperation.money_destination : originOperation.money_source) as "efectivo" | "cuenta" | null;
+  const destinationMoneyLocation = (originWasSale ? destinationOperation.money_source : destinationOperation.money_destination) as "efectivo" | "cuenta" | null;
+  if ((originMoneyLocation !== "efectivo" && originMoneyLocation !== "cuenta") || (destinationMoneyLocation !== "efectivo" && destinationMoneyLocation !== "cuenta")) {
+    return { ok: false, message: "No se pudieron identificar los saldos afectados por la transferencia." };
+  }
 
   const originCurrentCash = Number(origin.current_cash_ars ?? 0);
   const originCurrentAccount = Number(origin.current_account_ars ?? 0);
+  const originCurrentUsd = Number(origin.current_usd ?? 0);
   const destinationCurrentUsd = Number(destination.current_usd ?? 0);
-  const originReceiveBalance = originReceiveDestination === "efectivo" ? originCurrentCash : originCurrentAccount;
+  const originSelectedBalance = originMoneyLocation === "efectivo" ? originCurrentCash : originCurrentAccount;
+  const destinationSelectedBalance = destinationMoneyLocation === "efectivo" ? Number(destination.current_cash_ars ?? 0) : Number(destination.current_account_ars ?? 0);
 
-  if (originReceiveBalance < totalArs) {
+  if (originWasSale && originSelectedBalance < totalArs) {
     return { ok: false, message: "La bolsa origen no tiene saldo suficiente para compensar la anulacion." };
   }
 
-  if (destinationCurrentUsd < amountUsd) {
+  if (originWasSale && destinationCurrentUsd < amountUsd) {
     return { ok: false, message: "La bolsa destino no tiene USD suficientes para compensar la anulacion." };
+  }
+
+  if (originWasPurchase && originCurrentUsd < amountUsd) {
+    return { ok: false, message: "La bolsa origen no tiene USD suficientes para compensar la anulacion." };
+  }
+
+  if (originWasPurchase && destinationSelectedBalance < totalArs) {
+    return { ok: false, message: "La bolsa destino no tiene saldo suficiente para compensar la anulacion." };
   }
 
   const originPrevious = {
@@ -642,26 +698,22 @@ export async function annulInternalBagTransfer({
     average: Number(destination.average_usd_cost ?? 0)
   };
 
-  const restoredOriginUsd = originPrevious.usd + amountUsd;
-  const returnedUsdRate = Number(originOperation.previous_usd ?? 0) > 0
-    ? Number(originData.average_usd_cost ?? origin.average_usd_cost ?? 0)
-    : Number(transfer.internal_rate_ars ?? 0);
-  const originNextAverage = restoredOriginUsd > 0
-    ? (originPrevious.usd * originPrevious.average + amountUsd * returnedUsdRate) / restoredOriginUsd
-    : 0;
-  const destinationNextUsd = destinationPrevious.usd - amountUsd;
-  const destinationNextAverage = destinationNextUsd > 0 ? destinationPrevious.average : 0;
+  const returnedUsdRate = Number(originOperation.previous_usd ?? 0) > 0 ? Number(originData.average_usd_cost ?? origin.average_usd_cost ?? 0) : Number(transfer.internal_rate_ars ?? 0);
+  const originNextUsd = originWasSale ? originPrevious.usd + amountUsd : originPrevious.usd - amountUsd;
+  const destinationNextUsd = originWasSale ? destinationPrevious.usd - amountUsd : destinationPrevious.usd + amountUsd;
+  const originNextAverage = originNextUsd > 0 ? (originWasSale ? (originPrevious.usd * originPrevious.average + amountUsd * returnedUsdRate) / originNextUsd : originPrevious.average) : 0;
+  const destinationNextAverage = destinationNextUsd > 0 ? (originWasPurchase ? destinationPrevious.average : (destinationPrevious.usd * destinationPrevious.average + amountUsd * returnedUsdRate) / destinationNextUsd) : 0;
 
   const originNext = {
-    cash: originPrevious.cash - (originReceiveDestination === "efectivo" ? totalArs : 0),
-    account: originPrevious.account - (originReceiveDestination === "cuenta" ? totalArs : 0),
-    usd: restoredOriginUsd,
+    cash: originPrevious.cash + (originMoneyLocation === "efectivo" ? (originWasSale ? -totalArs : totalArs) : 0),
+    account: originPrevious.account + (originMoneyLocation === "cuenta" ? (originWasSale ? -totalArs : totalArs) : 0),
+    usd: originNextUsd,
     borrowed: originPrevious.borrowed,
     average: originNextAverage
   };
   const destinationNext = {
-    cash: destinationPrevious.cash + (destinationPaymentSource === "efectivo" ? totalArs : 0),
-    account: destinationPrevious.account + (destinationPaymentSource === "cuenta" ? totalArs : 0),
+    cash: destinationPrevious.cash + (destinationMoneyLocation === "efectivo" ? (originWasSale ? totalArs : -totalArs) : 0),
+    account: destinationPrevious.account + (destinationMoneyLocation === "cuenta" ? (originWasSale ? totalArs : -totalArs) : 0),
     usd: destinationNextUsd,
     borrowed: destinationPrevious.borrowed,
     average: destinationNextAverage
@@ -669,6 +721,10 @@ export async function annulInternalBagTransfer({
 
   const originLabel = getBagDisplayLabel({ ...origin, responsible_name: null });
   const destinationLabel = getBagDisplayLabel({ ...destination, responsible_name: null });
+  const originCompensationTitle = originWasSale ? "Venta interna anulada" : "Compra interna anulada";
+  const destinationCompensationTitle = originWasSale ? "Compra interna anulada" : "Venta interna anulada";
+  const originCompensationBody = originWasSale ? `Compensacion por anulacion de venta interna a ${destinationLabel}. ${note}` : `Compensacion por anulacion de compra interna desde ${destinationLabel}. ${note}`;
+  const destinationCompensationBody = originWasSale ? `Compensacion por anulacion de compra interna desde ${originLabel}. ${note}` : `Compensacion por anulacion de venta interna a ${originLabel}. ${note}`;
 
   const [{ data: originCompensation, error: originCompensationError }, { data: destinationCompensation, error: destinationCompensationError }] = await Promise.all([
     (admin.from("bag_operations") as any).insert({
@@ -677,8 +733,8 @@ export async function annulInternalBagTransfer({
       amount_usd: amountUsd,
       rate_ars: Number(transfer.internal_rate_ars ?? 0),
       total_ars: totalArs,
-      money_source: originReceiveDestination,
-      money_destination: null,
+      money_source: originWasSale ? originMoneyLocation : null,
+      money_destination: originWasSale ? null : originMoneyLocation,
       profit_ars: 0,
       previous_cash_ars: originPrevious.cash,
       previous_account_ars: originPrevious.account,
@@ -688,7 +744,7 @@ export async function annulInternalBagTransfer({
       new_account_ars: originNext.account,
       new_usd: originNext.usd,
       new_borrowed_ars: originNext.borrowed,
-      notes: `Compensacion por anulacion de venta interna a ${destinationLabel}. ${note}`,
+      notes: originCompensationBody,
       status: "confirmada",
       created_by: actorId,
       internal_transfer_id: transferId,
@@ -702,8 +758,8 @@ export async function annulInternalBagTransfer({
       amount_usd: amountUsd,
       rate_ars: Number(transfer.internal_rate_ars ?? 0),
       total_ars: totalArs,
-      money_source: null,
-      money_destination: destinationPaymentSource,
+      money_source: originWasSale ? null : destinationMoneyLocation,
+      money_destination: originWasSale ? destinationMoneyLocation : null,
       profit_ars: 0,
       previous_cash_ars: destinationPrevious.cash,
       previous_account_ars: destinationPrevious.account,
@@ -713,7 +769,7 @@ export async function annulInternalBagTransfer({
       new_account_ars: destinationNext.account,
       new_usd: destinationNext.usd,
       new_borrowed_ars: destinationNext.borrowed,
-      notes: `Compensacion por anulacion de compra interna desde ${originLabel}. ${note}`,
+      notes: destinationCompensationBody,
       status: "confirmada",
       created_by: actorId,
       internal_transfer_id: transferId,
@@ -766,9 +822,9 @@ export async function annulInternalBagTransfer({
     (admin.from("notes") as any).insert({
       entity_type: "bag_internal_transfer",
       entity_id: transferId,
-      entity_label: `Anulacion venta interna: ${originLabel} a ${destinationLabel}`,
+      entity_label: `Anulacion transferencia interna: ${originLabel} a ${destinationLabel}`,
       entity_href: `/bolsas/${transfer.origin_bag_id}`,
-      title: "Venta interna anulada",
+      title: originCompensationTitle,
       body: note,
       priority: "importante",
       status: "abierta",
@@ -779,7 +835,7 @@ export async function annulInternalBagTransfer({
       entity_id: transfer.origin_bag_id,
       entity_label: originLabel,
       entity_href: `/bolsas/${transfer.origin_bag_id}`,
-      title: "Venta interna anulada",
+      title: originCompensationTitle,
       body: `${destinationLabel}. ${note}`,
       priority: "importante",
       status: "abierta",
@@ -790,7 +846,7 @@ export async function annulInternalBagTransfer({
       entity_id: transfer.destination_bag_id,
       entity_label: destinationLabel,
       entity_href: `/bolsas/${transfer.destination_bag_id}`,
-      title: "Compra interna anulada",
+      title: destinationCompensationTitle,
       body: `${originLabel}. ${note}`,
       priority: "importante",
       status: "abierta",

@@ -212,13 +212,14 @@ export async function createBagSnapshotAction(_prevState: ActionState, formData:
 export async function createInternalBagTransferAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await getServerAuthContext(cookies());
   if (!auth || !canOperate(auth.role)) {
-    return { ok: false, message: "No tenes permiso para vender a otra bolsa." };
+    return { ok: false, message: "No tenes permiso para operar con otra bolsa." };
   }
 
   const originBagId = getString(formData, "origin_bag_id");
   const destinationBagId = getString(formData, "destination_bag_id");
   const amountUsd = getNumber(formData, "amount_usd");
   const internalRateArs = getNumber(formData, "internal_rate_ars");
+  const transferMode = getString(formData, "transfer_mode") as "venta" | "compra" | "";
   const destinationPaymentSource = getString(formData, "destination_payment_source") as "efectivo" | "cuenta" | "";
   const originReceiveDestination = getString(formData, "origin_receive_destination") as "efectivo" | "cuenta" | "";
   const reason = getString(formData, "reason");
@@ -228,10 +229,14 @@ export async function createInternalBagTransferAction(_prevState: ActionState, f
     return { ok: false, message: "Elegí bolsa origen y bolsa destino." };
   }
 
+  if (transferMode !== "venta" && transferMode !== "compra") {
+    return { ok: false, message: "Elegí si la bolsa origen vende o compra USD." };
+  }
+
   if (auth.role === "cajero") {
     const assignedBagIds = await getAssignedBagIdsForUser(auth.userId);
     if (!assignedBagIds.includes(originBagId)) {
-      return { ok: false, message: "Como cajero solo podes vender desde tu bolsa asignada." };
+      return { ok: false, message: "Como cajero solo podes operar tu bolsa asignada." };
     }
   }
 
@@ -249,6 +254,7 @@ export async function createInternalBagTransferAction(_prevState: ActionState, f
     destinationBagId,
     amountUsd,
     internalRateArs,
+    transferMode,
     destinationPaymentSource,
     originReceiveDestination,
     reason,
@@ -256,7 +262,7 @@ export async function createInternalBagTransferAction(_prevState: ActionState, f
   });
 
   if (!result.ok) {
-    return { ok: false, message: result.message ?? "No se pudo guardar la venta interna." };
+    return { ok: false, message: result.message ?? "No se pudo guardar la operacion interna." };
   }
 
   revalidatePath("/bolsas");
@@ -306,7 +312,7 @@ export async function annulBagOperationAction(_prevState: ActionState, formData:
 export async function annulInternalBagTransferAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await getServerAuthContext(cookies());
   if (!auth || !canManage(auth.role)) {
-    return { ok: false, message: "No tenes permiso para anular ventas internas." };
+    return { ok: false, message: "No tenes permiso para anular movimientos internos." };
   }
 
   const transferId = getString(formData, "internal_transfer_id");
@@ -325,7 +331,7 @@ export async function annulInternalBagTransferAction(_prevState: ActionState, fo
   });
 
   if (!result.ok) {
-    return { ok: false, message: result.message ?? "No se pudo anular la venta interna." };
+    return { ok: false, message: result.message ?? "No se pudo anular el movimiento interno." };
   }
 
   revalidatePath("/bolsas");
@@ -339,7 +345,7 @@ export async function annulInternalBagTransferAction(_prevState: ActionState, fo
 export async function annulInternalBagTransferFormAction(formData: FormData) {
   const auth = await getServerAuthContext(cookies());
   if (!auth || !canManage(auth.role)) {
-    throw new Error("No tenes permiso para anular ventas internas.");
+    throw new Error("No tenes permiso para anular movimientos internos.");
   }
 
   const transferId = getString(formData, "internal_transfer_id");
@@ -358,7 +364,7 @@ export async function annulInternalBagTransferFormAction(formData: FormData) {
   });
 
   if (!result.ok) {
-    throw new Error(result.message ?? "No se pudo anular la venta interna.");
+    throw new Error(result.message ?? "No se pudo anular el movimiento interno.");
   }
 
   revalidatePath("/bolsas");

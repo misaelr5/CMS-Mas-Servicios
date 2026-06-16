@@ -20,6 +20,7 @@ export function InternalBagTransferForm({
 }) {
   const [state, formAction, isPending] = useActionState(createInternalBagTransferAction, initialState);
   const [destinationBagId, setDestinationBagId] = useState(destinationBags[0]?.id ?? "");
+  const [transferMode, setTransferMode] = useState<"venta" | "compra">("venta");
   const [amountUsd, setAmountUsd] = useState("");
   const [internalRateArs, setInternalRateArs] = useState("");
   const [destinationPaymentSource, setDestinationPaymentSource] = useState<"efectivo" | "cuenta">("efectivo");
@@ -31,18 +32,42 @@ export function InternalBagTransferForm({
 
   const preview = useMemo(() => {
     const totalArs = parsedUsd > 0 && parsedRate > 0 ? parsedUsd * parsedRate : 0;
-    const originNextUsd = Number(originBag.current_usd ?? 0) - parsedUsd;
-    const originNextCash = Number(originBag.current_cash_ars ?? 0) + (originReceiveDestination === "efectivo" ? totalArs : 0);
-    const originNextAccount = Number(originBag.current_account_ars ?? 0) + (originReceiveDestination === "cuenta" ? totalArs : 0);
+    const originCash = Number(originBag.current_cash_ars ?? 0);
+    const originAccount = Number(originBag.current_account_ars ?? 0);
+    const originUsd = Number(originBag.current_usd ?? 0);
+    const destinationCash = Number(destinationBag?.current_cash_ars ?? 0);
+    const destinationAccount = Number(destinationBag?.current_account_ars ?? 0);
+    const destinationUsd = Number(destinationBag?.current_usd ?? 0);
+    const destinationAverage = Number(destinationBag?.average_usd_cost ?? 0);
 
-    const destinationPreviousUsd = Number(destinationBag?.current_usd ?? 0);
-    const destinationNextUsd = destinationPreviousUsd + parsedUsd;
-    const destinationNextCash = Number(destinationBag?.current_cash_ars ?? 0) - (destinationPaymentSource === "efectivo" ? totalArs : 0);
-    const destinationNextAccount = Number(destinationBag?.current_account_ars ?? 0) - (destinationPaymentSource === "cuenta" ? totalArs : 0);
-    const destinationAverage =
-      destinationNextUsd > 0
-        ? (destinationPreviousUsd * Number(destinationBag?.average_usd_cost ?? 0) + parsedUsd * parsedRate) / destinationNextUsd
-        : 0;
+    const originNextUsd = transferMode === "venta" ? originUsd - parsedUsd : originUsd + parsedUsd;
+    const originNextCash =
+      transferMode === "venta"
+        ? originCash + (originReceiveDestination === "efectivo" ? totalArs : 0)
+        : originCash - (originReceiveDestination === "efectivo" ? totalArs : 0);
+    const originNextAccount =
+      transferMode === "venta"
+        ? originAccount + (originReceiveDestination === "cuenta" ? totalArs : 0)
+        : originAccount - (originReceiveDestination === "cuenta" ? totalArs : 0);
+
+    const destinationNextUsd = transferMode === "venta" ? destinationUsd + parsedUsd : destinationUsd - parsedUsd;
+    const destinationNextCash =
+      transferMode === "venta"
+        ? destinationCash - (destinationPaymentSource === "efectivo" ? totalArs : 0)
+        : destinationCash + (destinationPaymentSource === "efectivo" ? totalArs : 0);
+    const destinationNextAccount =
+      transferMode === "venta"
+        ? destinationAccount - (destinationPaymentSource === "cuenta" ? totalArs : 0)
+        : destinationAccount + (destinationPaymentSource === "cuenta" ? totalArs : 0);
+
+    const destinationNextAverage =
+      transferMode === "venta"
+        ? destinationNextUsd > 0
+          ? (destinationUsd * destinationAverage + parsedUsd * parsedRate) / destinationNextUsd
+          : 0
+        : destinationNextUsd > 0
+          ? destinationAverage
+          : 0;
 
     return {
       totalArs,
@@ -52,13 +77,14 @@ export function InternalBagTransferForm({
       destinationNextUsd,
       destinationNextCash,
       destinationNextAccount,
-      destinationAverage
+      destinationAverage: destinationNextAverage
     };
-  }, [destinationBag, destinationPaymentSource, originBag, originReceiveDestination, parsedRate, parsedUsd]);
+  }, [destinationBag, destinationPaymentSource, originBag, originReceiveDestination, parsedRate, parsedUsd, transferMode]);
 
   return (
     <form action={formAction} className="space-y-5">
       <input name="origin_bag_id" type="hidden" value={originBag.id} />
+      <input name="transfer_mode" type="hidden" value={transferMode} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4">
@@ -94,8 +120,23 @@ export function InternalBagTransferForm({
 
       <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-2">
+          <label className="text-sm font-semibold text-brandBlack" htmlFor="transfer_mode">
+            Tipo de movimiento
+          </label>
+          <select
+            className="flex min-h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
+            id="transfer_mode"
+            name="transfer_mode"
+            value={transferMode}
+            onChange={(event) => setTransferMode(event.target.value as "venta" | "compra")}
+          >
+            <option value="venta">Vender USD a otra bolsa</option>
+            <option value="compra">Comprar USD de otra bolsa</option>
+          </select>
+        </div>
+        <div className="space-y-2">
           <label className="text-sm font-semibold text-brandBlack" htmlFor="amount_usd">
-            USD a vender
+            USD a mover
           </label>
           <Input id="amount_usd" name="amount_usd" required value={amountUsd} onChange={(event) => setAmountUsd(event.target.value)} />
         </div>
@@ -105,16 +146,17 @@ export function InternalBagTransferForm({
           </label>
           <Input id="internal_rate_ars" name="internal_rate_ars" required value={internalRateArs} onChange={(event) => setInternalRateArs(event.target.value)} />
         </div>
-        <div className="rounded-2xl border border-brandYellow/35 bg-brandYellow/15 p-4">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-mediumGray">Total a pagar</p>
-          <p className="mt-2 font-heading text-2xl font-black text-brandBlack">{formatArs(preview.totalArs)}</p>
-        </div>
+      </div>
+
+      <div className="rounded-2xl border border-brandYellow/35 bg-brandYellow/15 p-4">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-mediumGray">Total ARS</p>
+        <p className="mt-2 font-heading text-2xl font-black text-brandBlack">{formatArs(preview.totalArs)}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-semibold text-brandBlack" htmlFor="destination_payment_source">
-            La bolsa destino paga desde
+            {transferMode === "venta" ? "La bolsa destino paga desde" : "La bolsa destino recibe en"}
           </label>
           <select
             className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
@@ -129,7 +171,7 @@ export function InternalBagTransferForm({
         </div>
         <div className="space-y-2">
           <label className="text-sm font-semibold text-brandBlack" htmlFor="origin_receive_destination">
-            La bolsa origen recibe en
+            {transferMode === "venta" ? "La bolsa origen recibe en" : "La bolsa origen paga desde"}
           </label>
           <select
             className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
@@ -149,11 +191,11 @@ export function InternalBagTransferForm({
           <p className="font-heading text-lg font-black">Vista previa de origen</p>
           <p className="mt-1 text-mediumGray">{originBag.display_label}</p>
           <div className="mt-4 space-y-2">
-            <p>USD: {formatUsd(Number(originBag.current_usd ?? 0))} → {formatUsd(preview.originNextUsd)}</p>
-            <p>Efectivo: {formatArs(Number(originBag.current_cash_ars ?? 0))} → {formatArs(preview.originNextCash)}</p>
-            <p>Cuenta: {formatArs(Number(originBag.current_account_ars ?? 0))} → {formatArs(preview.originNextAccount)}</p>
+            <p>USD: {formatUsd(Number(originBag.current_usd ?? 0))} {" -> "} {formatUsd(preview.originNextUsd)}</p>
+            <p>Efectivo: {formatArs(Number(originBag.current_cash_ars ?? 0))} {" -> "} {formatArs(preview.originNextCash)}</p>
+            <p>Cuenta: {formatArs(Number(originBag.current_account_ars ?? 0))} {" -> "} {formatArs(preview.originNextAccount)}</p>
             <p>Ganancia reportable: {formatArs(0)}</p>
-            <p>Tipo: venta interna a otra bolsa</p>
+            <p>Tipo: {transferMode === "venta" ? "venta interna a otra bolsa" : "compra interna desde otra bolsa"}</p>
           </div>
         </div>
 
@@ -161,9 +203,9 @@ export function InternalBagTransferForm({
           <p className="font-heading text-lg font-black">Vista previa de destino</p>
           <p className="mt-1 text-mediumGray">{destinationBag?.display_label ?? "Sin bolsa destino"}</p>
           <div className="mt-4 space-y-2">
-            <p>USD: {formatUsd(Number(destinationBag?.current_usd ?? 0))} → {formatUsd(preview.destinationNextUsd)}</p>
-            <p>Efectivo: {formatArs(Number(destinationBag?.current_cash_ars ?? 0))} → {formatArs(preview.destinationNextCash)}</p>
-            <p>Cuenta: {formatArs(Number(destinationBag?.current_account_ars ?? 0))} → {formatArs(preview.destinationNextAccount)}</p>
+            <p>USD: {formatUsd(Number(destinationBag?.current_usd ?? 0))} {" -> "} {formatUsd(preview.destinationNextUsd)}</p>
+            <p>Efectivo: {formatArs(Number(destinationBag?.current_cash_ars ?? 0))} {" -> "} {formatArs(preview.destinationNextCash)}</p>
+            <p>Cuenta: {formatArs(Number(destinationBag?.current_account_ars ?? 0))} {" -> "} {formatArs(preview.destinationNextAccount)}</p>
             <p>Costo promedio USD nuevo: {formatArs(preview.destinationAverage)}</p>
           </div>
         </div>
@@ -186,7 +228,7 @@ export function InternalBagTransferForm({
 
       <div className="flex flex-wrap items-center gap-3">
         <Button className="shadow-yellowGlow" disabled={isPending || destinationBags.length === 0} type="submit">
-          {isPending ? "Guardando..." : "Confirmar venta interna"}
+          {isPending ? "Guardando..." : transferMode === "venta" ? "Confirmar venta interna" : "Confirmar compra interna"}
         </Button>
         {state.message ? <p className={state.ok ? "text-sm font-semibold text-success" : "text-sm font-semibold text-danger"}>{state.message}</p> : null}
       </div>

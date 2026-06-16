@@ -31,8 +31,8 @@ export default async function VenderABolsaPage({ params }: { params: Promise<{ i
   return (
     <div className="space-y-6">
       <SectionTitle
-        description="Venta interna de USD desde la bolsa actual hacia otra bolsa. No afecta ganancia reportable."
-        title="Vender a otra bolsa"
+        description="Movimiento interno entre bolsas. Permite vender o comprar USD y definir si los pesos van por efectivo o cuenta."
+        title="Intercambiar con otra bolsa"
         rightSlot={
           <Button asChild variant="outline">
             <Link href={`/bolsas/${id}`}>Volver atras</Link>
@@ -43,7 +43,7 @@ export default async function VenderABolsaPage({ params }: { params: Promise<{ i
       {destinationBags.length === 0 ? (
         <EmptyState description="No hay otra bolsa disponible como destino." title="Sin bolsa destino" />
       ) : (
-        <DataCard description="La bolsa origen entrega USD y la bolsa destino entrega pesos." title="Confirmar venta interna">
+        <DataCard description="Elegí la direccion del movimiento y el origen de los pesos para cada lado." title="Confirmar movimiento interno">
           <InternalBagTransferForm destinationBags={destinationBags} originBag={originBag} />
         </DataCard>
       )}
