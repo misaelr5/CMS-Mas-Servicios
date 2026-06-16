@@ -1,4 +1,12 @@
 import type { Bag, BagOperationType } from "@/lib/db/types";
+import {
+  calculateAverageUsdCost,
+  calculateBagOperationImpact,
+  calculateInternalBagTransferImpact,
+  calculateUsdSaleProfit,
+  validateBagOperation,
+  validateSellToAnotherBag
+} from "@/src/modules/bags/domain/bag-rules";
 
 export const bagOperationTypes: BagOperationType[] = [
   "compra_usd",
@@ -28,9 +36,7 @@ export function formatUsd(amount: number) {
 }
 
 export function computeAverageUsdCost(currentAverage: number, currentUsd: number, acquiredUsd: number, rate: number) {
-  const totalUsd = currentUsd + acquiredUsd;
-  if (totalUsd <= 0) return 0;
-  return ((currentAverage * currentUsd) + (rate * acquiredUsd)) / totalUsd;
+  return calculateAverageUsdCost(currentAverage, currentUsd, acquiredUsd, rate);
 }
 
 export function estimateTotal(bag: Pick<Bag, "current_cash_ars" | "current_account_ars" | "current_usd" | "borrowed_ars">, referenceRate?: number | null) {
@@ -50,3 +56,12 @@ export function moneyLocationLabel(location: "efectivo" | "cuenta" | null) {
   if (location === "cuenta") return "Cuenta";
   return "N/A";
 }
+
+export {
+  calculateAverageUsdCost,
+  calculateBagOperationImpact,
+  calculateInternalBagTransferImpact,
+  calculateUsdSaleProfit,
+  validateBagOperation,
+  validateSellToAnotherBag
+};

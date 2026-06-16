@@ -5,7 +5,7 @@ import type { Bag, BagDailySnapshot, BagInternalTransfer, BagOperation, BagOpera
 import { getOperationalConfigData } from "@/lib/operations/operational-data";
 import { getDefaultBagOpeningBalances, seedBags } from "@/lib/operations/seed-data";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
-import { bagStatusFromDifference, estimateTotal } from "@/lib/bags/bag-calculations";
+import { bagStatusFromDifference, calculateAverageUsdCost, calculateUsdSaleProfit, estimateTotal } from "@/lib/bags/bag-calculations";
 
 export type BagOverview = Bag & {
   branch_name?: string | null;
@@ -949,12 +949,8 @@ export async function processBagOperation({
       totalArs = amountUsd * rateArs;
       if (moneySource === "efectivo") nextCash -= totalArs;
       if (moneySource === "cuenta") nextAccount -= totalArs;
-      const totalBefore = previousUsd * previousAverage;
-      const totalAfter = totalBefore + totalArs;
       nextUsd += amountUsd;
-      const totalUsd = nextUsd;
-      const newAverage = totalUsd > 0 ? totalAfter / totalUsd : 0;
-      bag.average_usd_cost = newAverage;
+      bag.average_usd_cost = calculateAverageUsdCost(previousAverage, previousUsd, amountUsd, rateArs);
       break;
     }
     case "venta_usd": {
@@ -965,7 +961,7 @@ export async function processBagOperation({
       if (moneyDestination === "efectivo") nextCash += totalArs;
       if (moneyDestination === "cuenta") nextAccount += totalArs;
       nextUsd -= amountUsd;
-      profitArs = (rateArs - previousAverage) * amountUsd;
+      profitArs = calculateUsdSaleProfit(amountUsd, rateArs, previousAverage);
       bag.accumulated_profit_ars = (bag.accumulated_profit_ars ?? 0) + profitArs;
       if (previousAverage <= 0) {
         status = "revisar";

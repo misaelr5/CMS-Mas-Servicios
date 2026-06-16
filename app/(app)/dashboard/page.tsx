@@ -98,7 +98,7 @@ export default async function DashboardPage() {
 
   const bagActions: QuickAction[] = [
     {
-      href: firstBag ? `/bolsas/${firstBag.id}/nueva-operacion` : "/bolsas",
+      href: firstBag ? `/bolsas/nueva-operacion?bagId=${firstBag.id}` : "/bolsas",
       label: "Nueva operacion de bolsa",
       description: "Abrir una carga o venta sobre la bolsa disponible.",
       icon: TrendingUp
@@ -389,7 +389,7 @@ export default async function DashboardPage() {
                     <Link href={`/bolsas/${bag.id}`}>Ver detalles</Link>
                   </Button>
                   <Button asChild size="sm" variant="secondary">
-                    <Link href={`/bolsas/${bag.id}/nueva-operacion`}>Nueva operacion</Link>
+                    <Link href={`/bolsas/nueva-operacion?bagId=${bag.id}`}>Nueva operacion</Link>
                   </Button>
                   <Button asChild size="sm" variant="outline">
                     <Link href={`/bolsas/${bag.id}/vender-a-bolsa`}>Vender a otra bolsa</Link>

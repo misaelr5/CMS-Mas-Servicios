@@ -5,9 +5,10 @@ import { useActionState } from "react";
 import { saveCashDailyReportAction } from "@/app/actions/cash";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { CashRegisterOverview, CashReportLineWithCategory } from "@/lib/cash/cash-service";
+import type { CashRegisterOverview } from "@/lib/cash/cash-service";
 import type { CashReportCategory } from "@/lib/db/types";
 import { formatArs } from "@/lib/operations/seed-data";
+import { calculateCashDailyReportTotals } from "@/src/modules/cash-registers/domain/cash-report-rules";
 
 const initialState = {
   ok: false,
@@ -31,14 +32,7 @@ export function CashDailyReportForm({
 }) {
   const [state, formAction, isPending] = useActionState(saveCashDailyReportAction, initialState);
 
-  const totals = register.today_report?.lines.reduce(
-    (acc: { operated: number; profit: number }, line: CashReportLineWithCategory) => {
-      acc.operated += Number(line.operated_amount_ars ?? 0);
-      acc.profit += Number(line.profit_amount_ars ?? 0);
-      return acc;
-    },
-    { operated: 0, profit: 0 }
-  ) ?? { operated: 0, profit: 0 };
+  const totals = register.today_report ? calculateCashDailyReportTotals(register.today_report.lines) : { operated: 0, profit: 0 };
 
   if (isLocked || weekLocked) {
     return (

@@ -22,6 +22,7 @@ Checklist manual para validar el sistema antes de pasar a la siguiente etapa.
 - [ ] Se ven resumen del dia y de la semana.
 - [ ] Se ven alertas operativas.
 - [ ] Se ven accesos rapidos segun permisos.
+- [ ] Los links de "Nueva operacion" van a `/bolsas/nueva-operacion?bagId=...`.
 
 ## Bolsas
 
@@ -70,6 +71,13 @@ Checklist manual para validar el sistema antes de pasar a la siguiente etapa.
 - [ ] Cajero no puede crear ajustes.
 - [ ] Cajero no puede cerrar dia ni semana.
 - [ ] Viewer solo ve lectura.
+- [ ] No hay uso de `SUPABASE_SERVICE_ROLE_KEY` en componentes cliente.
+
+## Arquitectura
+
+- [ ] Los calculos nuevos se agregan en `src/modules/*/domain`.
+- [ ] Las pantallas no duplican formulas de negocio.
+- [ ] Los accesos a Supabase quedan fuera de componentes visuales.
 
 ## Auditoria
 
@@ -82,4 +90,3 @@ Checklist manual para validar el sistema antes de pasar a la siguiente etapa.
 
 - [ ] Ejecutar `pnpm build`.
 - [ ] Confirmar que termina sin errores.
-

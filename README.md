@@ -40,6 +40,22 @@ MAS SERVICIOS CMS interno es una app administrativa para operar:
 
 La base visual mantiene fondo oscuro, cards claras, acentos amarillos y una lectura mobile-first pensada para uso interno.
 
+## Arquitectura
+
+La app mantiene las rutas de Next.js en `app/` y los componentes visuales en `components/`.
+
+Se inicio una migracion progresiva a arquitectura hexagonal en `src/modules/`:
+
+- `src/modules/bags/domain`: reglas puras de operaciones de bolsas, costo promedio, venta USD y venta a otra bolsa.
+- `src/modules/cash-registers/domain`: totales y validaciones de cargas diarias.
+- `src/modules/daily-reports/domain`: totales, ajustes y cierre diario.
+- `src/modules/expenses/domain`: validaciones de gastos y anulaciones.
+- `src/modules/weekly-closures/domain`: totales y validaciones de cierre semanal.
+- `src/modules/*/application`: fachadas de casos de uso existentes.
+- `src/shared/domain`: tipos compartidos de resultado.
+
+Los archivos en `lib/` siguen funcionando como capa de compatibilidad e infraestructura actual. La regla es que la UI no debe incorporar nuevas formulas; debe consumir helpers de `src/modules/*/domain` o acciones/casos de uso.
+
 ## Modulos
 
 - `Login` con Supabase Auth y sesion de 12 horas.
