@@ -51,61 +51,125 @@ export function CashDailyReportForm({
       <input name="cash_register_id" type="hidden" value={register.id} />
       <input name="report_date" type="hidden" value={reportDate} />
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {categories.map((category) => (
-          <div key={category.id} className="rounded-3xl border border-lightGray bg-lightGray/20 p-4 shadow-soft">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.22em] text-mediumGray">Categoría</p>
-                <h3 className="mt-1 font-heading text-lg font-black text-brandBlack">{category.name}</h3>
-              </div>
-              <span className="rounded-full border border-brandYellow/40 bg-brandYellow/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-brandBlack">
-                #{category.sort_order}
-              </span>
+      <div className="overflow-hidden rounded-[28px] border border-white/10 bg-darkSurface shadow-medium">
+        <div className="border-b border-white/10 bg-white/5 px-5 py-4">
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-brandYellow/90">Carga diaria</p>
+          <div className="mt-3 grid gap-3 md:grid-cols-4">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/70">Fecha</p>
+              <p className="mt-1 text-lg font-black text-brandWhite">{reportDate}</p>
             </div>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-brandBlack" htmlFor={`operated_amount_ars_${category.id}`}>
-                  Monto operado
-                </label>
-                <Input
-                  id={`operated_amount_ars_${category.id}`}
-                  inputMode="decimal"
-                  min="0"
-                  name={`operated_amount_ars_${category.id}`}
-                  placeholder="0"
-                  type="number"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-brandBlack" htmlFor={`profit_amount_ars_${category.id}`}>
-                  Ganancia / comisión
-                </label>
-                <Input
-                  id={`profit_amount_ars_${category.id}`}
-                  inputMode="decimal"
-                  name={`profit_amount_ars_${category.id}`}
-                  placeholder="0"
-                  type="number"
-                  step="any"
-                />
-              </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/70">Caja</p>
+              <p className="mt-1 text-lg font-black text-brandWhite">{register.register_number ? `Caja ${register.register_number}` : register.name}</p>
             </div>
-
-            <div className="mt-3 space-y-2">
-              <label className="text-sm font-semibold text-brandBlack" htmlFor={`notes_${category.id}`}>
-                Observación opcional
-              </label>
-              <textarea
-                className="min-h-20 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm placeholder:text-mediumGray focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                id={`notes_${category.id}`}
-                name={`notes_${category.id}`}
-                placeholder="Detalle interno de la categoría"
-              />
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/70">Sucursal</p>
+              <p className="mt-1 text-lg font-black text-brandWhite">{register.branch_name}</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/70">Estado</p>
+              <p className="mt-1 text-lg font-black text-brandWhite">{register.today_status}</p>
             </div>
           </div>
-        ))}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-[980px] border-separate border-spacing-0 text-sm">
+            <thead className="bg-lightGray text-brandBlack">
+              <tr>
+                <th className="sticky left-0 z-20 border-b border-lightGray bg-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">
+                  Categoría
+                </th>
+                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">
+                  Monto operado
+                </th>
+                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">
+                  Ganancia / comisión
+                </th>
+                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">
+                  Observación
+                </th>
+                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">
+                  Orden
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map((category, index) => {
+                const existingLine = register.today_report?.lines.find((line) => line.category_id === category.id);
+                return (
+                  <tr key={category.id} className={index % 2 === 0 ? "bg-white" : "bg-lightGray/20"}>
+                    <th className="sticky left-0 z-10 border-b border-lightGray bg-inherit px-4 py-4 text-left align-top">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Categoría</p>
+                      <p className="mt-1 text-base font-black text-brandBlack">{category.name}</p>
+                    </th>
+                    <td className="border-b border-lightGray px-4 py-4 align-top">
+                      <label className="sr-only" htmlFor={`operated_amount_ars_${category.id}`}>
+                        Monto operado {category.name}
+                      </label>
+                      <Input
+                        defaultValue={existingLine?.operated_amount_ars ?? 0}
+                        id={`operated_amount_ars_${category.id}`}
+                        inputMode="decimal"
+                        min="0"
+                        name={`operated_amount_ars_${category.id}`}
+                        placeholder="0"
+                        type="number"
+                      />
+                    </td>
+                    <td className="border-b border-lightGray px-4 py-4 align-top">
+                      <label className="sr-only" htmlFor={`profit_amount_ars_${category.id}`}>
+                        Ganancia {category.name}
+                      </label>
+                      <Input
+                        defaultValue={existingLine?.profit_amount_ars ?? 0}
+                        id={`profit_amount_ars_${category.id}`}
+                        inputMode="decimal"
+                        name={`profit_amount_ars_${category.id}`}
+                        placeholder="0"
+                        step="any"
+                        type="number"
+                      />
+                    </td>
+                    <td className="border-b border-lightGray px-4 py-4 align-top">
+                      <label className="sr-only" htmlFor={`notes_${category.id}`}>
+                        Observación {category.name}
+                      </label>
+                      <textarea
+                        className="min-h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm placeholder:text-mediumGray focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        defaultValue={existingLine?.notes ?? ""}
+                        id={`notes_${category.id}`}
+                        name={`notes_${category.id}`}
+                        placeholder="Detalle interno"
+                      />
+                    </td>
+                    <td className="border-b border-lightGray px-4 py-4 align-top">
+                      <span className="inline-flex rounded-full border border-brandYellow/40 bg-brandYellow/20 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-brandBlack">
+                        #{category.sort_order}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot className="bg-brandYellow/15 text-brandBlack">
+              <tr>
+                <th className="sticky left-0 z-10 border-t border-lightGray bg-brandYellow/20 px-4 py-4 text-left font-black uppercase tracking-[0.2em]">
+                  TOTAL
+                </th>
+                <td className="border-t border-lightGray px-4 py-4">
+                  <p className="text-lg font-black">{formatArs(totals.operated)}</p>
+                </td>
+                <td className="border-t border-lightGray px-4 py-4">
+                  <p className="text-lg font-black">{formatArs(totals.profit)}</p>
+                </td>
+                <td className="border-t border-lightGray px-4 py-4 text-sm text-mediumGray">Suma automática</td>
+                <td className="border-t border-lightGray px-4 py-4 text-sm text-mediumGray">-</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
