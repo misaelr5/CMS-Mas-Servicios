@@ -284,10 +284,15 @@ export default async function DashboardPage() {
             {quickActions.map((action) => {
               const Icon = action.icon;
               return (
-                <Button asChild className="h-auto justify-start rounded-3xl py-4 shadow-soft" key={action.href} variant="secondary">
+                <Button
+                  asChild
+                  className="h-auto justify-start rounded-3xl border border-lightGray bg-white px-4 py-4 text-brandBlack shadow-soft hover:bg-lightGray/35"
+                  key={action.href}
+                  variant="ghost"
+                >
                   <Link href={action.href}>
                     <div className="flex w-full items-start gap-3 text-left">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brandYellow/18 text-brandBlack">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brandYellow text-brandBlack">
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="min-w-0">
