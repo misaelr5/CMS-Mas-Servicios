@@ -208,6 +208,23 @@ export async function createDailyReportAdjustmentAction(_prevState: ActionState,
     return { ok: false, message: "No se pudo resolver el reporte diario." };
   }
 
+  const recentAdjustmentCutoff = new Date(Date.now() - 10_000).toISOString();
+  const { data: duplicateAdjustment } = await (admin.from("report_adjustments") as any)
+    .select("*")
+    .eq("daily_report_id", dailyReportId)
+    .eq("adjustment_type", adjustmentType)
+    .eq("amount_ars", amount)
+    .eq("reason", reason)
+    .eq("created_by", auth.userId)
+    .gte("created_at", recentAdjustmentCutoff)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (duplicateAdjustment) {
+    return { ok: true, message: "El ajuste ya estaba registrado." };
+  }
+
   const { data, error } = await (admin.from("report_adjustments") as any)
     .insert({
       daily_report_id: dailyReportId,
@@ -336,6 +353,26 @@ export async function createExpenseAction(_prevState: ActionState, formData: For
   const lockedReport = await getDailyReportRecordByBranchDate(branchId, date);
   if (lockedReport && isDailyReportLockedStatus(lockedReport.status)) {
     return { ok: false, message: reportLockedMessage() };
+  }
+
+  const recentExpenseCutoff = new Date(Date.now() - 10_000).toISOString();
+  const { data: duplicateExpense } = await (admin.from("expenses") as any)
+    .select("*")
+    .eq("branch_id", branchId)
+    .eq("date", date)
+    .eq("amount_ars", amount)
+    .eq("category", category)
+    .eq("detail", detail)
+    .eq("status", status)
+    .eq("paid_from", paidFrom)
+    .eq("created_by", auth.userId)
+    .gte("created_at", recentExpenseCutoff)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (duplicateExpense) {
+    return { ok: true, message: "El gasto ya estaba registrado." };
   }
 
   const { data, error } = await (admin.from("expenses") as any)

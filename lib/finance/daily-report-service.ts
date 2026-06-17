@@ -413,9 +413,10 @@ export async function recalculateDailyReportBranch({
 
   const existingReport = existingReportData as DailyReport | null;
   const action = existingReport ? "updated" : "created";
-  const mutation = existingReport
-    ? await (admin.from("daily_reports") as any).update(payload).eq("id", existingReport.id).select("*").single()
-    : await (admin.from("daily_reports") as any).insert({ ...payload, created_by: actorId }).select("*").single();
+  const mutation = await (admin.from("daily_reports") as any)
+    .upsert({ ...payload, created_by: existingReport?.created_by ?? actorId }, { onConflict: "branch_id,report_date" })
+    .select("*")
+    .single();
 
   const { data, error } = mutation;
   if (error || !data) {

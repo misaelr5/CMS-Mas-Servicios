@@ -79,6 +79,19 @@ Checklist manual para validar el sistema antes de pasar a la siguiente etapa.
 - [ ] Las pantallas no duplican formulas de negocio.
 - [ ] Los accesos a Supabase quedan fuera de componentes visuales.
 
+## Integridad
+
+- [ ] Doble click en guardar operacion de bolsa no duplica registros.
+- [ ] No se puede vender mas USD de los disponibles.
+- [ ] No se puede vender USD a la misma bolsa.
+- [ ] Una venta interna no suma ganancia operativa.
+- [ ] Un gasto anulado no descuenta en los totales.
+- [ ] Un ajuste anulado no impacta en el reporte.
+- [ ] No se duplican reportes diarios por caja y fecha.
+- [ ] No se duplican reportes diarios por sucursal y fecha.
+- [ ] No se duplican cierres semanales por rango.
+- [ ] No se duplican lineas de cierre semanal por caja.
+
 ## Auditoria
 
 - [ ] Crear operacion de bolsa y revisar `audit_logs`.

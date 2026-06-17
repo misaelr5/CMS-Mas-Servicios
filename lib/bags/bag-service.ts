@@ -74,6 +74,16 @@ function mapBagRow(row: Record<string, any>): Bag {
   };
 }
 
+async function deleteRowById(admin: ReturnType<typeof getSupabaseAdminClient>, table: string, id: string) {
+  if (!admin || !id) return;
+  await (admin.from(table) as any).delete().eq("id", id);
+}
+
+async function updateRowById(admin: ReturnType<typeof getSupabaseAdminClient>, table: string, id: string, payload: Record<string, unknown>) {
+  if (!admin || !id) return;
+  await (admin.from(table) as any).update(payload).eq("id", id);
+}
+
 function looksLikeMissingTableError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error ?? "");
   return message.includes("Could not find the table") || message.includes("schema cache") || message.includes("relation");
@@ -315,6 +325,33 @@ export async function createInternalBagTransfer({
     return { ok: false, message: "Elegí si la bolsa origen vende o compra USD." };
   }
 
+  const recentTransferCutoff = new Date(Date.now() - 10_000).toISOString();
+  let duplicateTransferQuery = (admin.from("bag_internal_transfers") as any)
+    .select("*")
+    .eq("origin_bag_id", originBagId)
+    .eq("destination_bag_id", destinationBagId)
+    .eq("amount_usd", amountUsd)
+    .eq("internal_rate_ars", internalRateArs)
+    .eq("destination_payment_source", destinationPaymentSource)
+    .eq("origin_receive_destination", originReceiveDestination)
+    .eq("reason", reason)
+    .eq("created_by", actorId)
+    .eq("status", "confirmada")
+    .gte("created_at", recentTransferCutoff)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  duplicateTransferQuery = note ? duplicateTransferQuery.eq("note", note) : duplicateTransferQuery.is("note", null);
+  const { data: duplicateTransfer } = await duplicateTransferQuery.maybeSingle();
+
+  if (duplicateTransfer) {
+    return {
+      ok: true,
+      message: "El movimiento interno ya estaba registrado.",
+      transfer: duplicateTransfer as BagInternalTransfer
+    };
+  }
+
   const [{ data: originData, error: originError }, { data: destinationData, error: destinationError }] = await Promise.all([
     (admin.from("bags") as any).select("*").eq("id", originBagId).maybeSingle(),
     (admin.from("bags") as any).select("*").eq("id", destinationBagId).maybeSingle()
@@ -480,6 +517,13 @@ export async function createInternalBagTransfer({
   ]);
 
   if (originOperationError || destinationOperationError || !originOperation || !destinationOperation) {
+    await deleteRowById(admin, "bag_internal_transfers", transferId);
+    if (originOperation?.id) {
+      await deleteRowById(admin, "bag_operations", originOperation.id);
+    }
+    if (destinationOperation?.id) {
+      await deleteRowById(admin, "bag_operations", destinationOperation.id);
+    }
     return { ok: false, message: `No se pudieron crear las operaciones internas: ${originOperationError?.message ?? destinationOperationError?.message ?? "error desconocido"}` };
   }
 
@@ -531,6 +575,41 @@ export async function createInternalBagTransfer({
   ]);
 
   if (originUpdateError || destinationUpdateError) {
+    await Promise.all([
+      deleteRowById(admin, "bag_operations", originOperation.id),
+      deleteRowById(admin, "bag_operations", destinationOperation.id),
+      deleteRowById(admin, "bag_internal_transfers", transferId),
+      updateRowById(admin, "bags", originBagId, {
+        current_cash_ars: originPrevious.cash,
+        current_account_ars: originPrevious.account,
+        current_usd: originPrevious.usd,
+        borrowed_ars: originPrevious.borrowed,
+        average_usd_cost: originPrevious.average,
+        status: bagStatusFromBagState({
+          ...origin,
+          current_cash_ars: originPrevious.cash,
+          current_account_ars: originPrevious.account,
+          current_usd: originPrevious.usd,
+          borrowed_ars: originPrevious.borrowed,
+          average_usd_cost: originPrevious.average
+        })
+      }),
+      updateRowById(admin, "bags", destinationBagId, {
+        current_cash_ars: destinationPrevious.cash,
+        current_account_ars: destinationPrevious.account,
+        current_usd: destinationPrevious.usd,
+        borrowed_ars: destinationPrevious.borrowed,
+        average_usd_cost: destinationPrevious.average,
+        status: bagStatusFromBagState({
+          ...destination,
+          current_cash_ars: destinationPrevious.cash,
+          current_account_ars: destinationPrevious.account,
+          current_usd: destinationPrevious.usd,
+          borrowed_ars: destinationPrevious.borrowed,
+          average_usd_cost: destinationPrevious.average
+        })
+      })
+    ]);
     return { ok: false, message: `Se creo la transferencia pero fallo actualizar saldos: ${originUpdateError?.message ?? destinationUpdateError?.message}` };
   }
 
@@ -800,7 +879,7 @@ export async function annulInternalBagTransfer({
     status: bagStatusFromBagState({ ...destination, current_cash_ars: destinationNext.cash, current_account_ars: destinationNext.account, current_usd: destinationNext.usd, borrowed_ars: destinationNext.borrowed, average_usd_cost: destinationNext.average })
   };
 
-  await Promise.all([
+  const [{ error: originBagUpdateError }, { error: destinationBagUpdateError }, { error: transferUpdateError }, { error: operationsUpdateError }] = await Promise.all([
     (admin.from("bags") as any).update(originNextBag).eq("id", transfer.origin_bag_id),
     (admin.from("bags") as any).update(destinationNextBag).eq("id", transfer.destination_bag_id),
     (admin.from("bag_internal_transfers") as any)
@@ -818,7 +897,51 @@ export async function annulInternalBagTransfer({
         annulled_by: actorId,
         annulment_reason: reason
       })
-      .in("id", [transfer.origin_operation_id, transfer.destination_operation_id]),
+      .in("id", [transfer.origin_operation_id, transfer.destination_operation_id])
+  ]);
+
+  if (originBagUpdateError || destinationBagUpdateError || transferUpdateError || operationsUpdateError) {
+    await Promise.all([
+      updateRowById(admin, "bags", transfer.origin_bag_id, {
+        current_cash_ars: originPrevious.cash,
+        current_account_ars: originPrevious.account,
+        current_usd: originPrevious.usd,
+        borrowed_ars: originPrevious.borrowed,
+        average_usd_cost: originPrevious.average
+      }),
+      updateRowById(admin, "bags", transfer.destination_bag_id, {
+        current_cash_ars: destinationPrevious.cash,
+        current_account_ars: destinationPrevious.account,
+        current_usd: destinationPrevious.usd,
+        borrowed_ars: destinationPrevious.borrowed,
+        average_usd_cost: destinationPrevious.average
+      }),
+      updateRowById(admin, "bag_internal_transfers", transferId, {
+        status: transfer.status,
+        annulled_at: transfer.annulled_at ?? null,
+        annulled_by: transfer.annulled_by ?? null,
+        annulment_reason: transfer.annulment_reason ?? null
+      }),
+      updateRowById(admin, "bag_operations", transfer.origin_operation_id as string, {
+        status: originOperation.status,
+        annulled_at: originOperation.annulled_at ?? null,
+        annulled_by: originOperation.annulled_by ?? null,
+        annulment_reason: originOperation.annulment_reason ?? null
+      }),
+      updateRowById(admin, "bag_operations", transfer.destination_operation_id as string, {
+        status: destinationOperation.status,
+        annulled_at: destinationOperation.annulled_at ?? null,
+        annulled_by: destinationOperation.annulled_by ?? null,
+        annulment_reason: destinationOperation.annulment_reason ?? null
+      })
+    ]);
+    return {
+      ok: false,
+      message: `No se pudo anular la transferencia interna: ${originBagUpdateError?.message ?? destinationBagUpdateError?.message ?? transferUpdateError?.message ?? operationsUpdateError?.message ?? "error desconocido"}`
+    };
+  }
+
+  await Promise.all([
     (admin.from("notes") as any).insert({
       entity_type: "bag_internal_transfer",
       entity_id: transferId,
@@ -916,6 +1039,37 @@ export async function processBagOperation({
   }
 
   const bag = mapBagRow(bagData);
+  const recentOperationCutoff = new Date(Date.now() - 10_000).toISOString();
+  let duplicateOperationQuery = (admin.from("bag_operations") as any)
+    .select("*")
+    .eq("bag_id", bagId)
+    .eq("operation_type", operationType)
+    .eq("amount_usd", amountUsd)
+    .eq("rate_ars", rateArs)
+    .eq("created_by", actorId)
+    .neq("status", "anulada")
+    .gte("created_at", recentOperationCutoff)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  duplicateOperationQuery = moneySource ? duplicateOperationQuery.eq("money_source", moneySource) : duplicateOperationQuery.is("money_source", null);
+  duplicateOperationQuery = moneyDestination ? duplicateOperationQuery.eq("money_destination", moneyDestination) : duplicateOperationQuery.is("money_destination", null);
+  duplicateOperationQuery = notes ? duplicateOperationQuery.eq("notes", notes) : duplicateOperationQuery.is("notes", null);
+  const { data: duplicateOperation } = await duplicateOperationQuery.maybeSingle();
+
+  if (duplicateOperation) {
+    const referenceRate = Number(bag.average_usd_cost ?? 0) || 0;
+    const estimated = estimateTotal(bag, referenceRate);
+    return {
+      ok: true,
+      message: "La operacion ya estaba registrada.",
+      operation: duplicateOperation as BagOperation,
+      bag,
+      estimated_total_ars: estimated,
+      difference_ars: estimated - Number(bag.base_limit_ars)
+    };
+  }
+
   const { count: existingOperationsCount } = await (admin.from("bag_operations") as any)
     .select("id", { count: "exact", head: true })
     .eq("bag_id", bagId)
@@ -1046,6 +1200,11 @@ export async function processBagOperation({
   };
 
   const { data: inserted, error: insertError } = await (admin.from("bag_operations") as any).insert(operationPayload).select("*").single();
+  const rollbackOperation = async () => {
+    if (inserted?.id) {
+      await deleteRowById(admin, "bag_operations", inserted.id);
+    }
+  };
   const fallbackOperationId = randomUUID();
   if (insertError && looksLikeMissingTableError(insertError)) {
     const fallbackNotePayload = {
@@ -1088,6 +1247,7 @@ export async function processBagOperation({
     .eq("id", bagId);
 
   if (updateError) {
+    await rollbackOperation();
     return { ok: false, message: `Se guardo la operacion pero fallo la bolsa: ${updateError.message}` };
   }
 
@@ -1151,7 +1311,7 @@ export async function createDailySnapshot({ bagId, actorId, note }: { bagId: str
   const status = bagStatusFromDifference(difference, true);
 
   const { data, error } = await (admin.from("bag_daily_snapshots") as any)
-    .insert({
+    .upsert({
       bag_id: bagId,
       date: new Date().toISOString().slice(0, 10),
       cash_ars: bag.current_cash_ars ?? 0,
@@ -1165,7 +1325,7 @@ export async function createDailySnapshot({ bagId, actorId, note }: { bagId: str
       profit_day_ars: dayProfit,
       status,
       created_by: actorId
-    })
+    }, { onConflict: "bag_id,date" })
     .select("*")
     .single();
 
@@ -1220,7 +1380,17 @@ export async function annullBagOperation({ operationId, actorId, reason }: { ope
     })
     .eq("id", operationId);
 
-  if (opUpdateError) return { ok: false, message: `No se pudo anular la operacion: ${opUpdateError.message}` };
+  if (opUpdateError) {
+    await (admin.from("bags") as any)
+      .update({
+        current_cash_ars: Number(opData.previous_cash_ars ?? 0),
+        current_account_ars: Number(opData.previous_account_ars ?? 0),
+        current_usd: Number(opData.previous_usd ?? 0),
+        borrowed_ars: Number(opData.previous_borrowed_ars ?? 0)
+      })
+      .eq("id", bag.id);
+    return { ok: false, message: `No se pudo anular la operacion: ${opUpdateError.message}` };
+  }
 
   await createAuditLog({
     actorId,

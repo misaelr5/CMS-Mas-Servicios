@@ -127,18 +127,6 @@ async function syncWeeklyClosureRows({
   }
 
   const closureId = closureData.id as string;
-
-  const { error: deleteLinesError } = await admin.from("weekly_cash_closure_lines").delete().eq("weekly_cash_closure_id", closureId);
-  if (deleteLinesError) {
-    if (isMissingWeeklyClosureTablesError(deleteLinesError)) {
-      return {
-        ok: false as const,
-        message: "Falta aplicar la migracion de cierre semanal en Supabase. Ejecuta supabase/migrations/20260617_weekly_cash_closures.sql."
-      };
-    }
-    return { ok: false as const, message: `No se pudieron limpiar las lineas previas: ${deleteLinesError.message}` };
-  }
-
   const lineRows = viewData.registerSummaries.map((summary) => ({
     weekly_cash_closure_id: closureId,
     cash_register_id: summary.cashRegister.id,
@@ -154,7 +142,7 @@ async function syncWeeklyClosureRows({
 
   if (lineRows.length > 0) {
     const { error: insertLinesError } = await (admin.from("weekly_cash_closure_lines") as any)
-      .insert(lineRows)
+      .upsert(lineRows, { onConflict: "weekly_cash_closure_id,cash_register_id" })
       .select("*");
 
     if (insertLinesError) {
