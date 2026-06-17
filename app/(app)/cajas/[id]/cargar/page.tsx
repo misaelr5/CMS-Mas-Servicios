@@ -3,8 +3,6 @@ import Link from "next/link";
 
 import { AccessDenied } from "@/components/access-denied";
 import { CashDailyReportForm } from "@/components/cash/cash-daily-report-form";
-import { EmptyState } from "@/components/empty-state";
-import { NotesPanel } from "@/components/notes/notes-panel";
 import { SectionTitle } from "@/components/section-title";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -85,21 +83,6 @@ export default async function CajaCargarPage({ params }: { params: Promise<{ id:
         weekLocked={weeklyLock.locked}
       />
 
-      {register.today_report ? (
-        <NotesPanel
-          description="Notas asociadas al último reporte guardado."
-          entityHref={`/cajas/${register.id}`}
-          entityId={register.today_report.id}
-          entityLabel={`Reporte ${register.today_report.report_date}`}
-          entityType="cash_daily_report"
-          title="Notas de la carga"
-        />
-      ) : (
-        <EmptyState
-          description="Cuando guardes una carga diaria, acá vas a poder agregar y leer notas sobre ese reporte."
-          title="Notas de la carga disponibles luego del primer guardado"
-        />
-      )}
     </div>
   );
 }

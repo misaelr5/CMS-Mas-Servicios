@@ -17,10 +17,10 @@ export function SectionTitle({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between", className)}>
+    <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between animate-fade-in-up", className)}>
       <div className="flex items-start gap-3">
         {Icon ? (
-          <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brandYellow/15 border border-brandYellow/20">
+          <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brandYellow/15 border border-brandYellow/20 transition-all duration-200 hover:bg-brandYellow/22 hover:scale-105">
             <Icon className="h-4 w-4 text-brandYellow" />
           </div>
         ) : null}
@@ -29,7 +29,7 @@ export function SectionTitle({
             {title}
           </h1>
           {description ? (
-            <p className="mt-1.5 max-w-3xl text-sm text-lightGray/75">{description}</p>
+            <p className="mt-1.5 max-w-3xl text-sm text-lightGray/70">{description}</p>
           ) : null}
         </div>
       </div>

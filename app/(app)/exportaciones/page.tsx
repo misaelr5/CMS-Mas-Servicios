@@ -6,6 +6,7 @@ import { DataCard } from "@/components/data-card";
 import { SectionTitle } from "@/components/section-title";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { canExportType } from "@/lib/exportaciones/export-permissions";
 import { getServerAuthContext } from "@/lib/auth/server";
 
 const cards = [
@@ -22,6 +23,15 @@ export default async function ExportacionesPage() {
     return <AccessDenied />;
   }
 
+  const visibleCards = cards.filter((card) => {
+    const tipo = card.href.replace("/exportaciones/", "") as Parameters<typeof canExportType>[1];
+    return canExportType(auth.role, tipo);
+  });
+
+  if (visibleCards.length === 0) {
+    return <AccessDenied />;
+  }
+
   return (
     <div className="space-y-6">
       <SectionTitle
@@ -31,7 +41,7 @@ export default async function ExportacionesPage() {
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {cards.map((card) => (
+        {visibleCards.map((card) => (
           <DataCard description={card.description} key={card.href} title={card.title}>
             <div className="flex flex-wrap gap-3">
               <Button asChild className="shadow-yellowGlow">

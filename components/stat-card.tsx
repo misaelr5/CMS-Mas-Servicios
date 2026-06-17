@@ -33,13 +33,13 @@ export function StatCard({
   className?: string;
 }) {
   return (
-    <Card className={cn("bg-white text-brandBlack shadow-medium", className)}>
+    <Card className={cn("group bg-white text-brandBlack shadow-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift", className)}>
       <CardHeader className="pb-2 pt-4">
         <div className="flex items-start justify-between gap-3">
           {Icon ? (
             <div
               className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200 group-hover:scale-110",
                 iconBgByStatus[status]
               )}
             >
@@ -52,7 +52,7 @@ export function StatCard({
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mediumGray">
             {label}
           </p>
-          <p className="mt-1.5 font-heading text-3xl font-black leading-none text-brandBlack">
+          <p className="mt-1.5 font-heading text-3xl font-black leading-none tabular-nums text-brandBlack transition-colors duration-200">
             {value}
           </p>
           {trend ? (

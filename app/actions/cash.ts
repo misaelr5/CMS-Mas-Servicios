@@ -21,6 +21,7 @@ import {
   isDailyReportLockedStatus
 } from "@/lib/finance/daily-report-service";
 import { getWeeklyCashClosureLockState } from "@/lib/finance/weekly-cash-closure-service";
+import { getFriendlySupabaseErrorMessage } from "@/lib/errors/user-facing";
 
 type ActionState = {
   ok: boolean;
@@ -258,7 +259,7 @@ export async function saveCashDailyReportAction(_prevState: ActionState, formDat
         message: "Falta aplicar la migracion de cajas. Ejecuta supabase/migrations/20260612_cash_pay_facil.sql."
       };
     }
-    return { ok: false, message: `No se pudo guardar el reporte: ${error?.message ?? "error desconocido"}` };
+    return { ok: false, message: getFriendlySupabaseErrorMessage(error, "No se pudo guardar el reporte.") };
   }
 
   savedReport = data as typeof existingReport;

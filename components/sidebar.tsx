@@ -77,20 +77,26 @@ export function Sidebar() {
                       <Link
                         key={item.href}
                         className={cn(
-                          "flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all duration-150",
+                          "group/nav relative flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all duration-200",
                           active
-                            ? "border-brandYellow/40 bg-brandYellow text-brandBlack shadow-yellowGlow"
-                            : "border-transparent bg-transparent text-lightGray/70 hover:border-white/8 hover:bg-white/5 hover:text-white"
+                            ? "border-brandYellow/35 bg-brandYellow text-brandBlack shadow-yellowGlow animate-pulse-glow"
+                            : "border-transparent bg-transparent text-lightGray/65 hover:border-white/10 hover:bg-white/6 hover:text-white"
                         )}
                         href={item.href}
                       >
+                        {!active && (
+                          <span className="absolute left-0 top-1/2 h-0 w-0.5 -translate-y-1/2 rounded-r-full bg-brandYellow/50 transition-all duration-200 group-hover/nav:h-4" />
+                        )}
                         <Icon
                           className={cn(
-                            "h-[17px] w-[17px] shrink-0",
-                            active ? "text-brandBlack" : "text-lightGray/60"
+                            "h-[17px] w-[17px] shrink-0 transition-transform duration-200",
+                            active ? "text-brandBlack" : "text-lightGray/55 group-hover/nav:text-brandYellow group-hover/nav:scale-110"
                           )}
                         />
-                        <span>{item.label}</span>
+                        <span className="transition-colors duration-150">{item.label}</span>
+                        {active && (
+                          <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brandBlack/25" />
+                        )}
                       </Link>
                     );
                   })}
@@ -102,9 +108,9 @@ export function Sidebar() {
 
         {/* User card */}
         {auth.status === "authenticated" ? (
-          <div className="mt-4 rounded-xl border border-white/8 bg-white/4 p-3">
+          <div className="mt-4 rounded-xl border border-white/8 bg-white/4 p-3 transition-all duration-200 hover:border-white/14 hover:bg-white/6">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brandYellow text-xs font-black text-brandBlack shadow-yellowGlow">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brandYellow text-xs font-black text-brandBlack shadow-yellowGlow transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,212,0,0.45)]">
                 {initials}
               </div>
               <div className="min-w-0 flex-1">
@@ -118,7 +124,7 @@ export function Sidebar() {
               <button
                 onClick={() => void auth.logout()}
                 title="Cerrar sesión"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-lightGray/50 transition-colors hover:bg-white/8 hover:text-white"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-lightGray/50 transition-all duration-150 hover:bg-danger/15 hover:text-danger active:scale-95"
               >
                 <LogOut className="h-4 w-4" />
               </button>

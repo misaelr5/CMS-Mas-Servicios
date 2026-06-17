@@ -26,13 +26,13 @@ export function MobileNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex min-w-[68px] flex-1 flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-xs font-semibold transition-all duration-150",
+                  "flex min-w-[68px] flex-1 flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-xs font-semibold transition-all duration-200 active:scale-95",
                   active
-                    ? "bg-brandYellow text-brandBlack shadow-yellowGlow"
+                    ? "bg-brandYellow text-brandBlack shadow-yellowGlow scale-[1.02]"
                     : "bg-white/4 text-lightGray/65 hover:bg-white/8 hover:text-white"
                 )}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className={cn("h-5 w-5 transition-transform duration-200", active && "scale-110")} />
                 <span className="leading-none">{item.label}</span>
               </Link>
             );

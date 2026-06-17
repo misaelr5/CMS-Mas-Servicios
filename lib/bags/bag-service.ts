@@ -6,6 +6,7 @@ import { getOperationalConfigData } from "@/lib/operations/operational-data";
 import { getDefaultBagOpeningBalances, seedBags } from "@/lib/operations/seed-data";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { bagStatusFromDifference, calculateAverageUsdCost, calculateUsdSaleProfit, estimateTotal } from "@/lib/bags/bag-calculations";
+import { getFriendlySupabaseErrorMessage } from "@/lib/errors/user-facing";
 
 export type BagOverview = Bag & {
   branch_name?: string | null;
@@ -1329,7 +1330,7 @@ export async function createDailySnapshot({ bagId, actorId, note }: { bagId: str
     .select("*")
     .single();
 
-  if (error) return { ok: false, message: `No se pudo guardar el cierre: ${error.message}` };
+  if (error) return { ok: false, message: getFriendlySupabaseErrorMessage(error, "No se pudo guardar el cierre diario.") };
 
   await createAuditLog({
     actorId,
@@ -1369,7 +1370,7 @@ export async function annullBagOperation({ operationId, actorId, reason }: { ope
     })
     .eq("id", bag.id);
 
-  if (updateError) return { ok: false, message: `No se pudo revertir la bolsa: ${updateError.message}` };
+  if (updateError) return { ok: false, message: getFriendlySupabaseErrorMessage(updateError, "No se pudo revertir la bolsa.") };
 
   const { error: opUpdateError } = await (admin.from("bag_operations") as any)
     .update({
@@ -1389,7 +1390,7 @@ export async function annullBagOperation({ operationId, actorId, reason }: { ope
         borrowed_ars: Number(opData.previous_borrowed_ars ?? 0)
       })
       .eq("id", bag.id);
-    return { ok: false, message: `No se pudo anular la operacion: ${opUpdateError.message}` };
+    return { ok: false, message: getFriendlySupabaseErrorMessage(opUpdateError, "No se pudo anular la operacion.") };
   }
 
   await createAuditLog({

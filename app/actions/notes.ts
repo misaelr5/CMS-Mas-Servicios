@@ -9,6 +9,7 @@ import { ensureCurrentUserProfile } from "@/lib/auth/profile";
 import { type Role } from "@/lib/auth/roles";
 import type { NoteEntityType, NotePriority } from "@/lib/db/types";
 import { isUuid, normalizePriority } from "@/lib/notes/notes-service";
+import { getFriendlySupabaseErrorMessage } from "@/lib/errors/user-facing";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
 type ActionState = {
@@ -95,7 +96,7 @@ export async function createNoteAction(_prevState: ActionState, formData: FormDa
         message: "Falta aplicar la migracion de notas en Supabase. Ejecuta supabase/migrations/20260611_operational_notes.sql."
       };
     }
-    return { ok: false, message: `No se pudo crear la nota: ${error.message}` };
+    return { ok: false, message: getFriendlySupabaseErrorMessage(error, "No se pudo crear la nota.") };
   }
 
   await createAuditLog({

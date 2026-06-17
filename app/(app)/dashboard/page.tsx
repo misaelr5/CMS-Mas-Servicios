@@ -85,7 +85,7 @@ export default async function DashboardPage() {
     listImportantNotes(8)
   ]);
 
-  const visibleNotes = notes.filter((note) => note.status === "abierta");
+  const visibleNotes = notes;
   const reportStatus = resolveReportStatus(reportData.branches);
   const reportAvailableToday = reportData.totals.availableProfitArs;
   const totalCurrencyProfitToday = reportData.totals.automaticCurrencyProfitArs + reportData.totals.manualCurrencyAdjustmentArs;
@@ -424,7 +424,6 @@ export default async function DashboardPage() {
             <StatCard className="shadow-none" helper="No se cuentan anulados" label="Gastos del dia" value={formatArs(todayExpenses.reduce((acc, expense) => acc + Number(expense.amount_ars ?? 0), 0))} />
             <StatCard className="shadow-none" helper="Aun no resueltos" label="Pendientes" value={formatArs(pendingExpensesToday.reduce((acc, expense) => acc + Number(expense.amount_ars ?? 0), 0))} />
             <StatCard className="shadow-none" helper="Cantidad de registros" label="Movimientos" value={`${todayExpenses.length}`} />
-            <StatCard className="shadow-none" helper="Acceso rapido" label="Modulo gastos" value="Abrir" />
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button asChild>

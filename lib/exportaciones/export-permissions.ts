@@ -4,6 +4,7 @@ export type ExportReportType = "reporte-diario" | "cierre-semanal" | "gastos" | 
 
 export function canExportType(role: Role, type: ExportReportType) {
   if (role === "admin" || role === "encargado") return true;
+  if (role === "cajero") return type === "cargas-cajas";
   if (role === "viewer") return true;
-  return type === "cargas-cajas";
+  return false;
 }

@@ -195,12 +195,30 @@ export function BagOperationForm({
             Usar solo para ajustes, prestamos, anulaciones o correcciones autorizadas.
           </p>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <Input id="cash_delta" name="cash_delta" placeholder="Ajuste efectivo" value={cashDelta} onChange={(event) => setCashDelta(event.target.value)} />
-            <Input id="account_delta" name="account_delta" placeholder="Ajuste cuenta" value={accountDelta} onChange={(event) => setAccountDelta(event.target.value)} />
-            <Input id="usd_delta" name="usd_delta" placeholder="Ajuste USD" value={usdDelta} onChange={(event) => setUsdDelta(event.target.value)} />
-            <Input id="borrowed_delta" name="borrowed_delta" placeholder="Ajuste prestado" value={borrowedDelta} onChange={(event) => setBorrowedDelta(event.target.value)} />
-            <Input id="profit_delta" name="profit_delta" placeholder="Ajuste ganancia" value={profitDelta} onChange={(event) => setProfitDelta(event.target.value)} />
-            <Input id="base_limit_adjustment" name="base_limit_adjustment" placeholder="Ajuste base / limite" />
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-brandBlack" htmlFor="cash_delta">Ajuste efectivo (ARS)</label>
+              <Input id="cash_delta" name="cash_delta" placeholder="0" value={cashDelta} onChange={(event) => setCashDelta(event.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-brandBlack" htmlFor="account_delta">Ajuste cuenta (ARS)</label>
+              <Input id="account_delta" name="account_delta" placeholder="0" value={accountDelta} onChange={(event) => setAccountDelta(event.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-brandBlack" htmlFor="usd_delta">Ajuste USD</label>
+              <Input id="usd_delta" name="usd_delta" placeholder="0" value={usdDelta} onChange={(event) => setUsdDelta(event.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-brandBlack" htmlFor="borrowed_delta">Ajuste prestado (ARS)</label>
+              <Input id="borrowed_delta" name="borrowed_delta" placeholder="0" value={borrowedDelta} onChange={(event) => setBorrowedDelta(event.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-brandBlack" htmlFor="profit_delta">Ajuste ganancia (ARS)</label>
+              <Input id="profit_delta" name="profit_delta" placeholder="0" value={profitDelta} onChange={(event) => setProfitDelta(event.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-brandBlack" htmlFor="base_limit_adjustment">Ajuste base / límite (ARS)</label>
+              <Input id="base_limit_adjustment" name="base_limit_adjustment" placeholder="0" />
+            </div>
           </div>
           <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-brandBlack">
             <input checked={confirmReview} name="confirm_review" type="checkbox" onChange={(event) => setConfirmReview(event.target.checked)} />
@@ -209,13 +227,17 @@ export function BagOperationForm({
         </details>
       ) : null}
 
-      <textarea
-        className="min-h-24 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
-        name="notes"
-        placeholder="Motivo u observacion"
-        value={notes}
-        onChange={(event) => setNotes(event.target.value)}
-      />
+      <div className="space-y-1.5">
+        <label className="text-sm font-semibold text-brandBlack" htmlFor="notes">Motivo u observación</label>
+        <textarea
+          className="min-h-24 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
+          id="notes"
+          name="notes"
+          placeholder="Motivo u observacion"
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+        />
+      </div>
 
       <div className="rounded-md border border-lightGray bg-lightGray/30 p-4 text-sm text-mediumGray">
         <p className="font-semibold text-brandBlack">Vista previa</p>

@@ -11,7 +11,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="lg:pl-72">
         <Header />
         <main className="px-4 pb-24 pt-5 sm:px-6 lg:px-8 lg:pb-10">
-          <div className="mx-auto max-w-7xl">{children}</div>
+          <div className="mx-auto max-w-7xl animate-fade-in-up">{children}</div>
         </main>
       </div>
       <MobileNav />

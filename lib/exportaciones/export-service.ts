@@ -35,9 +35,11 @@ function getString(value: unknown) {
 }
 
 export async function buildDailyReportExport(date: string, auth: AccessContext) {
-  const reportData = await getDailyReportViewData(date, auth);
-  const cashData = await getCashModuleData(auth);
-  const expenseData = await getExpensePageData({ date }, auth);
+  const [reportData, cashData, expenseData] = await Promise.all([
+    getDailyReportViewData(date, auth),
+    getCashModuleData(auth),
+    getExpensePageData({ date }, auth)
+  ]);
 
   const rows: Array<Record<string, unknown>> = [
     {
@@ -188,7 +190,7 @@ export async function buildWeeklyClosureExport(date: string, auth: AccessContext
 }
 
 export async function buildExpensesExport(filters: { from: string; to: string; branchId?: string; status?: ExpenseStatus | "all"; category?: string }, auth: AccessContext) {
-  const expenseData = await getExpensePageData({ date: filters.from, branchId: filters.branchId, status: filters.status, category: filters.category }, auth);
+  const expenseData = await getExpensePageData({ dateFrom: filters.from, dateTo: filters.to, branchId: filters.branchId, status: filters.status, category: filters.category }, auth);
   const rows: Array<Record<string, unknown>> = expenseData.expenses.map((expense) => ({
     fecha: expense.date,
     sucursal: expense.branch_name,

@@ -30,16 +30,16 @@ export function Header() {
   const Icon = activeItem?.icon;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/8 bg-darkSurface/85 backdrop-blur-xl print:hidden">
+    <header className="sticky top-0 z-30 border-b border-white/8 bg-darkSurface/90 backdrop-blur-xl print:hidden">
       <div className="flex items-center gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
         <div className="flex flex-1 items-center gap-3 min-w-0">
           {Icon ? (
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brandYellow/10 border border-brandYellow/20">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brandYellow/10 border border-brandYellow/20 transition-all duration-200 hover:bg-brandYellow/18 hover:scale-105">
               <Icon className="h-4 w-4 text-brandYellow" />
             </div>
           ) : null}
           <div className="min-w-0">
-            <h2 className="font-heading text-lg font-black leading-tight text-brandWhite truncate">
+            <h2 key={title} className="font-heading text-lg font-black leading-tight text-brandWhite truncate animate-fade-in">
               {title}
             </h2>
           </div>
@@ -51,12 +51,12 @@ export function Header() {
               <span className="text-xs font-semibold text-lightGray/90 leading-none">
                 {auth.fullName ?? auth.email ?? "Usuario interno"}
               </span>
-              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brandYellow/80 leading-none">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brandYellow leading-none">
                 {auth.role}
               </span>
             </div>
           ) : null}
-          <span className="hidden rounded-full border border-brandYellow/20 bg-brandYellow/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-brandYellow md:inline-flex">
+          <span className="hidden rounded-full border border-brandYellow/25 bg-brandYellow/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-brandYellow transition-all duration-200 hover:bg-brandYellow/18 md:inline-flex">
             Interna
           </span>
           <div className="hidden md:block">
@@ -68,7 +68,7 @@ export function Header() {
         </div>
       </div>
 
-      <div className="border-t border-white/6 px-4 pb-2.5 pt-2 text-xs text-lightGray/60 md:hidden">
+      <div className="border-t border-white/6 px-4 pb-2.5 pt-2 text-xs text-lightGray/90 md:hidden">
         {auth.status === "authenticated"
           ? `${auth.fullName ?? auth.email ?? "Usuario interno"} · ${auth.role}`
           : "Validando sesión..."}

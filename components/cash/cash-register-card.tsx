@@ -19,35 +19,40 @@ export function CashRegisterCard({
   const statusTone = getCashReportStatusTone(register.today_status);
 
   return (
-    <Card className="overflow-hidden bg-white text-brandBlack shadow-medium">
-      <CardHeader className="space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
+    <Card className="overflow-hidden border border-lightGray bg-white text-brandBlack shadow-medium">
+      <CardHeader className="space-y-4 bg-gradient-to-br from-white to-lightGray/30">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-2">
             <p className="text-[11px] uppercase tracking-[0.24em] text-mediumGray">Sucursal {register.branch_name}</p>
-            <CardTitle className="mt-2 text-2xl font-black">{getCashRegisterDisplayLabel(register)}</CardTitle>
+            <CardTitle className="text-2xl font-black leading-tight">{getCashRegisterDisplayLabel(register)}</CardTitle>
+            <p className="max-w-md text-sm text-mediumGray">Carga diaria simple, con montos operados y comisión visible en un solo golpe de vista.</p>
           </div>
           <StatusBadge status={statusTone} />
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-md border border-lightGray bg-lightGray/30 p-4">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Estado de hoy</p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-lightGray bg-white p-4 shadow-soft">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Estado</p>
             <p className="mt-1 text-lg font-semibold text-brandBlack">{register.today_report ? register.today_status : "pendiente"}</p>
           </div>
-          <div className="rounded-md border border-lightGray bg-lightGray/30 p-4">
+          <div className="rounded-2xl border border-lightGray bg-white p-4 shadow-soft">
             <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Responsable</p>
             <p className="mt-1 text-lg font-semibold text-brandBlack">{register.responsible_name ?? register.name}</p>
+          </div>
+          <div className="rounded-2xl border border-lightGray bg-white p-4 shadow-soft">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Caja</p>
+            <p className="mt-1 text-lg font-semibold text-brandBlack">{register.register_number ? `Caja ${register.register_number}` : register.name}</p>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 bg-lightGray/10">
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-md border border-lightGray bg-lightGray/25 p-4">
+          <div className="rounded-2xl border border-white bg-white p-4 shadow-soft">
             <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Operado hoy</p>
             <p className="mt-1 font-heading text-2xl font-black">{formatArs(register.today_operated_ars)}</p>
           </div>
-          <div className="rounded-md border border-lightGray bg-lightGray/25 p-4">
+          <div className="rounded-2xl border border-white bg-white p-4 shadow-soft">
             <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Ganancia hoy</p>
             <p className="mt-1 font-heading text-2xl font-black">{formatArs(register.today_profit_ars)}</p>
           </div>

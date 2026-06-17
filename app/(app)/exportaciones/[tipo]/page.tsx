@@ -8,6 +8,7 @@ import { SectionTitle } from "@/components/section-title";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ExportCsvButton } from "@/components/exportaciones/export-csv-button";
 import { PrintButton } from "@/components/exportaciones/print-button";
 import { createAuditLog } from "@/lib/audit/audit-log";
 import { getServerAuthContext } from "@/lib/auth/server";
@@ -261,7 +262,13 @@ export default async function ExportacionTipoPage({
               <label className="text-sm font-semibold text-brandWhite" htmlFor="status">
                 Estado
               </label>
-              <Input defaultValue={getParam(resolvedSearchParams, "status")} id="status" name="status" />
+              <select className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-brandBlack shadow-sm" defaultValue={getParam(resolvedSearchParams, "status")} id="status" name="status">
+                <option value="">Todos</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="parcial">Parcial</option>
+                <option value="cargado">Cargado</option>
+                <option value="revisado">Revisado</option>
+              </select>
             </div>
           ) : null}
 
@@ -270,17 +277,28 @@ export default async function ExportacionTipoPage({
               <label className="text-sm font-semibold text-brandWhite" htmlFor="operation_type">
                 Tipo de operación
               </label>
-              <Input defaultValue={getParam(resolvedSearchParams, "operation_type")} id="operation_type" name="operation_type" />
+              <select className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-brandBlack shadow-sm" defaultValue={getParam(resolvedSearchParams, "operation_type")} id="operation_type" name="operation_type">
+                <option value="">Todos</option>
+                <option value="compra_usd">Comprar USD</option>
+                <option value="venta_usd">Vender USD</option>
+                <option value="ingreso_pesos_efectivo">Ingresar efectivo</option>
+                <option value="egreso_pesos_efectivo">Retirar efectivo</option>
+                <option value="ingreso_pesos_cuenta">Ingresar transferencia</option>
+                <option value="egreso_pesos_cuenta">Retirar transferencia</option>
+                <option value="prestamo_entregado">Préstamo entregado</option>
+                <option value="prestamo_recibido">Préstamo recibido</option>
+                <option value="devolucion_prestamo">Devolución de préstamo</option>
+                <option value="ajuste_manual">Ajuste manual</option>
+                <option value="anulacion_operacion">Anular operación</option>
+              </select>
             </div>
           ) : null}
 
           <div className="flex flex-wrap gap-3 md:col-span-2 xl:col-span-4">
             <Button className="shadow-yellowGlow" type="submit">
-              Exportar / Ver
+              Ver resultado
             </Button>
-            <Button asChild variant="secondary">
-              <Link href={csvLink}>Exportar CSV</Link>
-            </Button>
+            <ExportCsvButton href={csvLink} label="Exportar CSV" />
             <Button asChild variant="outline">
               <Link href={printLink}>Vista imprimible</Link>
             </Button>
@@ -294,9 +312,7 @@ export default async function ExportacionTipoPage({
             <p className="text-sm text-mediumGray">{exportData.subtitle}</p>
           </div>
           <div className="flex flex-wrap gap-3 print:hidden">
-            <Button asChild className="shadow-yellowGlow">
-              <Link href={csvLink}>Descargar CSV</Link>
-            </Button>
+            <ExportCsvButton href={csvLink} label="Descargar CSV" />
             <Button asChild variant="secondary">
               <Link href={printLink}>Recargar impresión</Link>
             </Button>

@@ -12,6 +12,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { seedBranches, seedCashRegisters } from "@/lib/operations/seed-data";
 import { getBuenosAiresDateString, isSameBuenosAiresDate } from "@/lib/finance/report-dates";
 import { getSignedAdjustmentAmount } from "@/lib/finance/daily-report-calculations";
+import { getFriendlySupabaseErrorMessage } from "@/lib/errors/user-facing";
 
 type MaybeRow = Record<string, unknown>;
 
@@ -420,7 +421,7 @@ export async function recalculateDailyReportBranch({
 
   const { data, error } = mutation;
   if (error || !data) {
-    return { ok: false as const, message: error?.message ?? "No se pudo guardar el reporte diario." };
+    return { ok: false as const, message: getFriendlySupabaseErrorMessage(error, "No se pudo guardar el reporte diario.") };
   }
 
   return { ok: true as const, action, report: data as DailyReport };

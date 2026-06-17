@@ -26,7 +26,11 @@ export function formatDateAR(value: string | Date | null | undefined) {
 }
 
 export function csvEscape(value: unknown) {
-  const text = String(value ?? "");
+  let text = String(value ?? "");
+  // Prefix formula injection chars so spreadsheet apps don't execute them
+  if (/^[=+\-@\t\r]/.test(text)) {
+    text = "'" + text;
+  }
   if (text.includes(",") || text.includes('"') || text.includes("\n")) {
     return `"${text.replaceAll('"', '""')}"`;
   }
@@ -38,21 +42,3 @@ export function generateCSV(rows: Array<Record<string, unknown>>, headers: strin
   return [headers.join(","), ...body].join("\n");
 }
 
-export function getExportFilename(base: string, from?: string | null, to?: string | null) {
-  if (from && to) return `${base}-${from}-a-${to}.csv`;
-  if (from) return `${base}-${from}.csv`;
-  return `${base}.csv`;
-}
-
-export function downloadCSV(csv: string, filename: string) {
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.style.display = "none";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-}

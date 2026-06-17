@@ -19,6 +19,7 @@ import {
   isDailyReportLockedStatus,
   recalculateDailyReportBranch
 } from "@/lib/finance/daily-report-service";
+import { getFriendlySupabaseErrorMessage } from "@/lib/errors/user-facing";
 
 type ActionState = {
   ok: boolean;
@@ -243,7 +244,7 @@ export async function createDailyReportAdjustmentAction(_prevState: ActionState,
         message: "Falta aplicar la migracion de reporte diario. Ejecuta supabase/migrations/20260613_daily_reports_expenses.sql."
       };
     }
-    return { ok: false, message: `No se pudo crear el ajuste: ${error.message}` };
+    return { ok: false, message: getFriendlySupabaseErrorMessage(error, "No se pudo crear el ajuste.") };
   }
 
   await createAuditLog({
@@ -292,6 +293,9 @@ export async function annulDailyReportAdjustmentAction(_prevState: ActionState, 
   if (!oldData || oldData.annulled_at) {
     return { ok: false, message: "El ajuste no existe o ya fue anulado." };
   }
+  if (oldData.branch_id !== branchId) {
+    return { ok: false, message: "No podés anular ajustes de otra sucursal." };
+  }
 
   const { data, error } = await (admin.from("report_adjustments") as any)
     .update({
@@ -304,7 +308,7 @@ export async function annulDailyReportAdjustmentAction(_prevState: ActionState, 
     .single();
 
   if (error) {
-    return { ok: false, message: `No se pudo anular el ajuste: ${error.message}` };
+    return { ok: false, message: getFriendlySupabaseErrorMessage(error, "No se pudo anular el ajuste.") };
   }
 
   await createAuditLog({
@@ -396,7 +400,7 @@ export async function createExpenseAction(_prevState: ActionState, formData: For
         message: "Falta aplicar la migracion de reporte diario y gastos. Ejecuta supabase/migrations/20260613_daily_reports_expenses.sql."
       };
     }
-    return { ok: false, message: `No se pudo crear el gasto: ${error.message}` };
+    return { ok: false, message: getFriendlySupabaseErrorMessage(error, "No se pudo crear el gasto.") };
   }
 
   await createAuditLog({
@@ -473,6 +477,9 @@ export async function annulExpenseAction(_prevState: ActionState, formData: Form
   if (!oldData || oldData.status === "anulado") {
     return { ok: false, message: "El gasto no existe o ya fue anulado." };
   }
+  if (oldData.branch_id !== branchId) {
+    return { ok: false, message: "No podés anular gastos de otra sucursal." };
+  }
 
   const { data, error } = await (admin.from("expenses") as any)
     .update({
@@ -486,7 +493,7 @@ export async function annulExpenseAction(_prevState: ActionState, formData: Form
     .single();
 
   if (error) {
-    return { ok: false, message: `No se pudo anular el gasto: ${error.message}` };
+    return { ok: false, message: getFriendlySupabaseErrorMessage(error, "No se pudo anular el gasto.") };
   }
 
   await createAuditLog({

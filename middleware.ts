@@ -6,7 +6,7 @@ import { SESSION_WINDOW_COOKIE, isSessionExpired, parseSessionWindow } from "@/l
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const protectedPath = /^\/(dashboard|bolsas|cajas|reporte-diario|gastos|cierres|usuarios|configuracion)(?:\/.*)?$/;
+const protectedPath = /^\/(dashboard|bolsas|cajas|reporte-diario|gastos|cierres|exportaciones|usuarios|configuracion)(?:\/.*)?$/;
 
 function buildSupabaseClient(request: NextRequest, response: NextResponse) {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
@@ -39,7 +39,7 @@ function redirectToLogin(request: NextRequest) {
   return NextResponse.redirect(loginUrl);
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (!protectedPath.test(pathname)) {
     return NextResponse.next();

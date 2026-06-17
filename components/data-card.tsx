@@ -11,7 +11,8 @@ export function DataCard({
   icon: Icon,
   rightSlot,
   children,
-  className
+  className,
+  interactive = false
 }: {
   title: string;
   description?: string;
@@ -19,14 +20,15 @@ export function DataCard({
   rightSlot?: ReactNode;
   children: ReactNode;
   className?: string;
+  interactive?: boolean;
 }) {
   return (
-    <Card className={cn("overflow-hidden", className)}>
+    <Card className={cn("group overflow-hidden", interactive && "card-interactive cursor-pointer", className)}>
       <CardHeader className="py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             {Icon ? (
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brandYellow/10">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brandYellow/10 transition-all duration-200 group-hover:bg-brandYellow/18 group-hover:scale-110">
                 <Icon className="h-3.5 w-3.5 text-brandYellow" />
               </div>
             ) : null}
@@ -42,7 +44,7 @@ export function DataCard({
           ) : null}
         </div>
       </CardHeader>
-      <Separator />
+      <Separator className="transition-colors duration-200 group-hover:border-brandYellow/15" />
       <CardContent className="pt-4">{children}</CardContent>
     </Card>
   );

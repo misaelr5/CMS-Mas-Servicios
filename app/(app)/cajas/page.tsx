@@ -133,25 +133,26 @@ export default async function CajasPage() {
         rightSlot={<Badge variant="outline">{visibleRegisters.length} cajas</Badge>}
       />
 
-      <div className="rounded-[28px] border border-white/10 bg-gradient-to-br from-darkSurface via-[#202016] to-brandBlack p-5 shadow-medium">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
+      <div className="rounded-[28px] border border-white/10 bg-gradient-to-br from-darkSurface via-[#1d1d18] to-brandBlack p-5 shadow-medium">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
             <p className="text-[11px] font-black uppercase tracking-[0.24em] text-brandYellow">Estado del dia</p>
-            <h2 className="mt-2 font-heading text-2xl font-black text-brandWhite">
-              {pendingCount > 0 ? `${pendingCount} cajas pendientes de carga` : "Todas las cajas estan listas"}
-            </h2>
-            <p className="mt-1 text-sm text-lightGray/70">
-              Avance de cargas para hoy: {loadedCount} de {visibleRegisters.length}.
+            <h2 className="font-heading text-2xl font-black text-brandWhite">{pendingCount > 0 ? `${pendingCount} cajas pendientes` : "Todas las cajas estan listas"}</h2>
+            <p className="max-w-2xl text-sm text-lightGray/75">
+              Vista resumida de cargas Pago Facil. Cada caja entra por su tarjeta y se abre directo al detalle o a la carga del día.
             </p>
           </div>
-          <div className="min-w-[220px] rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="min-w-[240px] rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="flex items-center justify-between text-sm font-semibold text-brandWhite">
               <span>Progreso</span>
               <span>{progressPercent}%</span>
             </div>
             <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full rounded-full bg-brandYellow shadow-yellowGlow" style={{ width: `${progressPercent}%` }} />
+              <div className="h-full rounded-full bg-brandYellow shadow-yellowGlow transition-all" style={{ width: `${progressPercent}%` }} />
             </div>
+            <p className="mt-3 text-xs uppercase tracking-[0.18em] text-lightGray/60">
+              {loadedCount} cargadas · {pendingCount} pendientes
+            </p>
           </div>
         </div>
       </div>
@@ -171,12 +172,12 @@ export default async function CajasPage() {
           title="Sin cajas disponibles"
         />
       ) : (
-        <div className="space-y-5">
+        <div className="space-y-8">
           {branchGroups.map(([branchName, registers]) => (
-            <section key={branchName} className="space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            <section key={branchName} className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${branchTone(branchName)}`}>
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-2xl shadow-soft ${branchTone(branchName)}`}>
                     <Building2 className="h-5 w-5" />
                   </div>
                   <div>
@@ -191,7 +192,7 @@ export default async function CajasPage() {
                   const locked = lockedBranchIds.has(register.branch_id);
                   const loaded = isCashReportLoaded(safeStatus(register.today_status));
                   return (
-                    <article key={register.id} className="overflow-hidden rounded-[28px] border border-lightGray bg-white text-brandBlack shadow-medium">
+                    <article key={register.id} className="overflow-hidden rounded-[28px] border border-lightGray bg-gradient-to-br from-white to-lightGray/20 text-brandBlack shadow-medium">
                       <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
@@ -231,7 +232,7 @@ export default async function CajasPage() {
                           <p className="mt-1 font-heading text-xl font-black tabular-nums">{formatArs(register.today_profit_ars)}</p>
                         </div>
                         <div className="p-4">
-                          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-mediumGray">Accion sugerida</p>
+                          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-mediumGray">Siguiente paso</p>
                           <div className="mt-1 flex items-center gap-2 font-semibold">
                             {locked ? <LockKeyhole className="h-4 w-4 text-danger" /> : loaded ? <CheckCircle2 className="h-4 w-4 text-success" /> : <Clock3 className="h-4 w-4 text-warning" />}
                             <span>{locked ? "Dia cerrado" : loaded ? "Carga lista" : "Cargar dia"}</span>

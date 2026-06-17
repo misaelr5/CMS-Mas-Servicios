@@ -15,19 +15,27 @@ function getParam(url: URL, key: string, fallback = "") {
 export async function GET(request: NextRequest, { params }: { params: Promise<{ tipo: string }> }) {
   const auth = await getServerAuthContext(cookies());
   if (!auth) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "No pudimos validar tu sesión." }, { status: 401 });
   }
 
   const { tipo: rawTipo } = await params;
+  const ALLOWED_TYPES: ExportReportType[] = ["reporte-diario", "cierre-semanal", "gastos", "cargas-cajas", "bolsas"];
+  if (!ALLOWED_TYPES.includes(rawTipo as ExportReportType)) {
+    return NextResponse.json({ error: "Tipo de exportación inválido." }, { status: 400 });
+  }
   const tipo = rawTipo as ExportReportType;
   if (!canExportType(auth.role, tipo)) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    return NextResponse.json({ error: "No tenés permiso para exportar esta información." }, { status: 403 });
   }
 
   const url = new URL(request.url);
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
   const date = getParam(url, "date", getBuenosAiresDateString());
   const from = getParam(url, "from", date);
   const to = getParam(url, "to", date);
+  if (!DATE_RE.test(from) || !DATE_RE.test(to)) {
+    return NextResponse.json({ error: "Fecha inválida." }, { status: 400 });
+  }
 
   const exportData =
     tipo === "reporte-diario"
@@ -67,7 +75,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               );
 
   if (!exportData) {
-    return NextResponse.json({ error: "no-data" }, { status: 500 });
+    return NextResponse.json({ error: "No se pudieron preparar los datos para exportar." }, { status: 500 });
   }
 
   await createAuditLog({

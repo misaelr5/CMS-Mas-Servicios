@@ -70,19 +70,17 @@ Los archivos en `lib/` siguen funcionando como capa de compatibilidad e infraest
 
 ## Variables de entorno
 
-Crear un `.env.local` con:
+Definilas en `.env.local` o en Vercel:
 
-```bash
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-```
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
 
 Reglas:
 
 - `NEXT_PUBLIC_SUPABASE_*` puede usarse en navegador.
 - `SUPABASE_SERVICE_ROLE_KEY` solo se usa en servidor y scripts.
-- No hardcodear claves en componentes cliente.
+- No hardcodear claves en componentes cliente, README, logs ni screenshots.
 
 ## Roles
 
@@ -117,6 +115,10 @@ Reglas:
 - `/exportaciones/bolsas`
 
 Desde ahi se puede filtrar, exportar CSV o abrir una vista imprimible.
+Permisos actuales:
+
+- `admin` y `encargado` exportan todo.
+- `cajero` y `viewer` no tienen acceso al módulo de exportaciones.
 
 ## Logica de sesion
 
@@ -125,12 +127,54 @@ Desde ahi se puede filtrar, exportar CSV o abrir una vista imprimible.
 - Si la sesion vence, la ruta protegida redirige a `/login` con el mensaje `Tu sesion vencio. Volve a iniciar sesion.`
 - El cierre manual limpia la sesion de Supabase y la ventana local de la app.
 
+## Auditoria
+
+Las acciones criticas registran `audit_logs` con usuario, accion, entidad, ID y motivo cuando aplica.
+
+Revisar especialmente:
+
+- Operaciones de bolsa.
+- Venta a otra bolsa.
+- Anulaciones.
+- Cargas de caja.
+- Gastos.
+- Ajustes.
+- Cierre y reapertura diaria.
+- Cierre y reapertura semanal.
+- Exportaciones CSV o vista imprimible.
+- Creacion, resolucion y anulación de notas.
+
+Para verificar auditoria:
+
+1. Abrir `audit_logs` en Supabase.
+2. Filtrar por `entity_type` o `action`.
+3. Confirmar `old_data`, `new_data` y `reason` cuando existan.
+
+## Backup manual
+
+- Exportar CSV antes de un cierre si hace falta respaldo.
+- Guardar una copia de la base antes de correr nuevas migraciones.
+- Si una operacion queda inconsistente, revisar la entidad, `audit_logs` y repetir el flujo solo una vez corregido el estado.
+
+## Probar flujos criticos
+
+- `pnpm build`
+- Login por rol.
+- Operacion de bolsa.
+- Venta a otra bolsa.
+- Carga de caja.
+- Gasto.
+- Ajuste.
+- Cierre y reapertura diaria.
+- Cierre y reapertura semanal.
+- Exportacion CSV con roles permitidos.
+
 ## Pendiente a futuro
 
 - Integrar calculos avanzados de cierre con mas automatizacion.
 - Refinar analiticas historicas por periodo.
 - Exportaciones PDF dedicadas.
-- Más automatizaciones sobre movimientos y auditoria avanzada.
+- Mas automatizaciones sobre movimientos y auditoria avanzada.
 - Checklist manual: `docs/QA_CHECKLIST.md`.
 
 ## Migraciones y seeds
@@ -202,8 +246,8 @@ Desde cada vista se puede:
 Permisos actuales:
 
 - `admin` y `encargado`: exportan todo.
-- `viewer`: solo lectura y exportaciones visibles.
-- `cajero`: acceso limitado a `cargas-cajas`.
+- `viewer`: solo lectura, sin acceso a exportaciones.
+- `cajero`: sin acceso al modulo de exportaciones.
 
 Validaciones principales:
 

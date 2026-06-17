@@ -71,6 +71,8 @@ Checklist manual para validar el sistema antes de pasar a la siguiente etapa.
 - [ ] Cajero no puede crear ajustes.
 - [ ] Cajero no puede cerrar dia ni semana.
 - [ ] Viewer solo ve lectura.
+- [ ] Cajero no puede exportar datos.
+- [ ] Viewer no puede exportar datos.
 - [ ] No hay uso de `SUPABASE_SERVICE_ROLE_KEY` en componentes cliente.
 
 ## Arquitectura
@@ -98,6 +100,19 @@ Checklist manual para validar el sistema antes de pasar a la siguiente etapa.
 - [ ] Crear carga de caja y revisar `audit_logs`.
 - [ ] Crear gasto y revisar `audit_logs`.
 - [ ] Crear nota y revisar `audit_logs`.
+- [ ] Exportar CSV y revisar `audit_logs`.
+- [ ] Cerrar dia y revisar `audit_logs`.
+- [ ] Cerrar semana y revisar `audit_logs`.
+
+## Errores
+
+- [ ] Cajero intentando cerrar dia ve un mensaje claro de permisos.
+- [ ] Viewer intentando modificar ve `AccessDenied` o mensaje equivalente.
+- [ ] Intentar reabrir dia sin motivo muestra validacion clara.
+- [ ] Intentar anular gasto sin motivo muestra validacion clara.
+- [ ] Intentar editar reporte cerrado muestra mensaje de reporte cerrado.
+- [ ] Intentar editar semana cerrada muestra mensaje de semana cerrada.
+- [ ] Error de Supabase no muestra stack ni detalle tecnico crudo.
 
 ## Build
 
