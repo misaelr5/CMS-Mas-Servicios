@@ -198,12 +198,12 @@ export default async function CajasPage() {
                 </div>
               </div>
 
-              <div className="grid gap-4 xl:grid-cols-2">
+              <div className="flex flex-col gap-4">
                 {registers.map((register) => {
                   const locked = lockedBranchIds.has(register.branch_id);
                   const loaded = isCashReportLoaded(safeStatus(register.today_status));
                   return (
-                    <article key={register.id} className="overflow-hidden rounded-[28px] border border-lightGray bg-gradient-to-br from-white to-lightGray/20 text-brandBlack shadow-medium">
+                    <article key={register.id} className="overflow-hidden rounded-[28px] border border-lightGray bg-white text-brandBlack shadow-medium">
                       <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">

@@ -1,17 +1,62 @@
-# MAS SERVICIOS CMS interno
+﻿# MAS SERVICIOS CMS interno
 
-Aplicacion interna de **Mas Servicios** con branding, layout, autenticacion, roles y base operativa preparada.
+Aplicacion interna para operar MAS SERVICIOS con foco en cajas Pago Facil, bolsas de divisas, reporte diario, gastos, cierres, notas y exportaciones.
 
-## Stack
+## Modulos implementados
 
-- Next.js App Router
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- Supabase Auth
-- Supabase Postgres con RLS
+- Login con Supabase Auth y ventana de sesion de 12 horas.
+- Dashboard operativo.
+- Bolsas de divisas con operaciones, historial y venta entre bolsas.
+- Cajas Pago Facil con carga diaria por categoria.
+- Reporte diario con ajustes manuales y ganancia libre.
+- Gastos con filtros, anulacion y auditoria.
+- Cierres diarios y semanales.
+- Notas internas.
+- Exportaciones CSV y vistas imprimibles.
+- Usuarios y configuracion base.
 
-## Correr el proyecto
+## Roles
+
+- `admin`: acceso total.
+- `encargado`: acceso operativo completo.
+- `cajero`: acceso a su operatoria asignada.
+- `viewer`: solo lectura.
+
+## Flujo diario recomendado
+
+1. Iniciar sesion en `/login`.
+2. Revisar `/dashboard`.
+3. Cargar cajas en `/cajas` o `/cajas/[id]/cargar`.
+4. Registrar operaciones de bolsas en `/bolsas`.
+5. Revisar `/reporte-diario`.
+6. Cargar o revisar `/gastos`.
+7. Registrar notas internas cuando haga falta.
+8. Revisar exportaciones si se necesita respaldo.
+
+## Flujo semanal recomendado
+
+1. Revisar `/cierres`.
+2. Confirmar cajas cargadas y pendientes.
+3. Verificar el estado del cierre semanal.
+4. Reabrir solo si hay motivo valido y permiso.
+5. Exportar CSV o imprimir si hace falta respaldo operativo.
+
+## Variables de entorno
+
+Crear en `.env.local` o configurar en Vercel:
+
+- `NEXT_PUBLIC_SUPABASE_URL=`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY=`
+- `SUPABASE_SERVICE_ROLE_KEY=`
+
+Reglas:
+
+- `NEXT_PUBLIC_*` puede usarse en cliente.
+- `SUPABASE_SERVICE_ROLE_KEY` nunca debe usarse en cliente.
+- No subir `.env.local`.
+- No pegar claves en chats, README ni logs.
+
+## Correr localmente
 
 ```bash
 pnpm install
@@ -25,161 +70,18 @@ pnpm build
 pnpm start
 ```
 
-## Sistema
+## Scripts disponibles
 
-MAS SERVICIOS CMS interno es una app administrativa para operar:
+- `pnpm dev`: desarrollo local.
+- `pnpm build`: build de produccion.
+- `pnpm start`: arranque en modo produccion.
+- `pnpm lint`: lint del proyecto.
+- `pnpm seed:roman`: crea o sincroniza el usuario principal.
+- `pnpm seed:operational`: carga datos operativos iniciales.
 
-- Bolsas de divisas.
-- Cajas Pago Facil.
-- Reporte diario.
-- Gastos.
-- Cierres diarios y semanales.
-- Notas internas.
-- Exportaciones e impresion.
-- Dashboard operativo.
+## Migraciones Supabase
 
-La base visual mantiene fondo oscuro, cards claras, acentos amarillos y una lectura mobile-first pensada para uso interno.
-
-## Arquitectura
-
-La app mantiene las rutas de Next.js en `app/` y los componentes visuales en `components/`.
-
-Se inicio una migracion progresiva a arquitectura hexagonal en `src/modules/`:
-
-- `src/modules/bags/domain`: reglas puras de operaciones de bolsas, costo promedio, venta USD y venta a otra bolsa.
-- `src/modules/cash-registers/domain`: totales y validaciones de cargas diarias.
-- `src/modules/daily-reports/domain`: totales, ajustes y cierre diario.
-- `src/modules/expenses/domain`: validaciones de gastos y anulaciones.
-- `src/modules/weekly-closures/domain`: totales y validaciones de cierre semanal.
-- `src/modules/*/application`: fachadas de casos de uso existentes.
-- `src/shared/domain`: tipos compartidos de resultado.
-
-Los archivos en `lib/` siguen funcionando como capa de compatibilidad e infraestructura actual. La regla es que la UI no debe incorporar nuevas formulas; debe consumir helpers de `src/modules/*/domain` o acciones/casos de uso.
-
-## Modulos
-
-- `Login` con Supabase Auth y sesion de 12 horas.
-- `Dashboard` con resumen del dia, semana, bolsas, cajas, gastos, alertas y notas.
-- `Bolsas` con operaciones USD, historial y venta entre bolsas.
-- `Cajas` con carga diaria por caja y categorias Pago Facil.
-- `Reporte diario` con ajustes manuales y ganancia libre.
-- `Gastos` con filtros, totales y anulacion.
-- `Cierres` diarios y semanales.
-- `Exportaciones` con CSV y vista imprimible.
-- `Usuarios` y `Configuracion` base para administracion interna.
-
-## Variables de entorno
-
-Definilas en `.env.local` o en Vercel:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-
-Reglas:
-
-- `NEXT_PUBLIC_SUPABASE_*` puede usarse en navegador.
-- `SUPABASE_SERVICE_ROLE_KEY` solo se usa en servidor y scripts.
-- No hardcodear claves en componentes cliente, README, logs ni screenshots.
-
-## Roles
-
-- `admin`: acceso total.
-- `encargado`: acceso operativo completo.
-- `cajero`: acceso a su operatoria asignada.
-- `viewer`: solo lectura.
-
-## Flujo diario
-
-1. Entrar a `/login`.
-2. Revisar `/dashboard`.
-3. Cargar cajas en `/cajas`.
-4. Registrar operaciones de bolsas en `/bolsas`.
-5. Controlar `/reporte-diario`.
-6. Revisar `/gastos` y notas importantes.
-
-## Flujo semanal
-
-1. Revisar el estado de `/cierres`.
-2. Confirmar cajas revisadas y pendientes.
-3. Verificar la ganancia semanal Pago Facil.
-4. Exportar CSV o vista imprimible si hace falta respaldo.
-
-## Exportaciones
-
-- `/exportaciones`
-- `/exportaciones/reporte-diario`
-- `/exportaciones/cierre-semanal`
-- `/exportaciones/gastos`
-- `/exportaciones/cargas-cajas`
-- `/exportaciones/bolsas`
-
-Desde ahi se puede filtrar, exportar CSV o abrir una vista imprimible.
-Permisos actuales:
-
-- `admin` y `encargado` exportan todo.
-- `cajero` y `viewer` no tienen acceso al módulo de exportaciones.
-
-## Logica de sesion
-
-- Al iniciar sesion se guarda `session_started_at`.
-- La app calcula `session_expires_at` con una ventana de 12 horas.
-- Si la sesion vence, la ruta protegida redirige a `/login` con el mensaje `Tu sesion vencio. Volve a iniciar sesion.`
-- El cierre manual limpia la sesion de Supabase y la ventana local de la app.
-
-## Auditoria
-
-Las acciones criticas registran `audit_logs` con usuario, accion, entidad, ID y motivo cuando aplica.
-
-Revisar especialmente:
-
-- Operaciones de bolsa.
-- Venta a otra bolsa.
-- Anulaciones.
-- Cargas de caja.
-- Gastos.
-- Ajustes.
-- Cierre y reapertura diaria.
-- Cierre y reapertura semanal.
-- Exportaciones CSV o vista imprimible.
-- Creacion, resolucion y anulación de notas.
-
-Para verificar auditoria:
-
-1. Abrir `audit_logs` en Supabase.
-2. Filtrar por `entity_type` o `action`.
-3. Confirmar `old_data`, `new_data` y `reason` cuando existan.
-
-## Backup manual
-
-- Exportar CSV antes de un cierre si hace falta respaldo.
-- Guardar una copia de la base antes de correr nuevas migraciones.
-- Si una operacion queda inconsistente, revisar la entidad, `audit_logs` y repetir el flujo solo una vez corregido el estado.
-
-## Probar flujos criticos
-
-- `pnpm build`
-- Login por rol.
-- Operacion de bolsa.
-- Venta a otra bolsa.
-- Carga de caja.
-- Gasto.
-- Ajuste.
-- Cierre y reapertura diaria.
-- Cierre y reapertura semanal.
-- Exportacion CSV con roles permitidos.
-
-## Pendiente a futuro
-
-- Integrar calculos avanzados de cierre con mas automatizacion.
-- Refinar analiticas historicas por periodo.
-- Exportaciones PDF dedicadas.
-- Mas automatizaciones sobre movimientos y auditoria avanzada.
-- Checklist manual: `docs/QA_CHECKLIST.md`.
-
-## Migraciones y seeds
-
-Primero aplicar en Supabase SQL Editor:
+Aplicar primero en el SQL Editor de Supabase:
 
 ```bash
 supabase/schema.sql
@@ -190,44 +92,14 @@ supabase/migrations/20260616_daily_report_closures.sql
 supabase/migrations/20260617_weekly_cash_closures.sql
 ```
 
-Despues, con `.env.local` cargado, correr seeds idempotentes:
+Despues correr seeds si hace falta:
 
 ```bash
 pnpm seed:roman
 pnpm seed:operational
 ```
 
-El seed operativo deja:
-
-- Sucursales: Centro, Terminal.
-- Cajas: Caja 1 Lourdes, Caja 2 Victoria, Caja 3 Antonella, Caja 4 Román, Caja 5 Antonella.
-- Categorías Pago Fácil: 10 categorías base.
-- Bolsas: Bolsa 1 a Bolsa 4 con base ARS 2.000.000 y Bolsa 5 con base ARS 5.000.000.
-
-## Modulo de bolsas
-
-Rutas disponibles:
-
-- `/bolsas`
-- `/bolsas/[id]`
-- `/bolsas/nueva-operacion`
-- `/bolsas/[id]/cierre-diario`
-- `/api/bolsas/[id]/csv`
-
-Flujo de prueba recomendado:
-
-1. Entrar a `/bolsas`.
-2. Abrir una bolsa.
-3. Cargar una compra USD o venta USD desde `/bolsas/nueva-operacion`.
-4. Verificar que la operacion quede en el historial.
-5. Probar un ajuste manual con nota obligatoria.
-6. Probar anulacion de una operacion con motivo.
-7. Abrir `/bolsas/[id]/cierre-diario` y guardar un snapshot.
-8. Exportar CSV desde el detalle de bolsa.
-
-## Exportaciones
-
-El modulo de exportaciones queda disponible en:
+## Exportar reportes
 
 - `/exportaciones`
 - `/exportaciones/reporte-diario`
@@ -236,200 +108,53 @@ El modulo de exportaciones queda disponible en:
 - `/exportaciones/cargas-cajas`
 - `/exportaciones/bolsas`
 
-Desde cada vista se puede:
+Permisos:
 
-- Filtrar por fecha y otros parametros segun el tipo de reporte.
-- Ver la tabla consolidada en pantalla.
-- Descargar CSV.
-- Abrir una vista imprimible.
+- `admin` y `encargado` exportan todo.
+- `cajero` tiene acceso restringido segun asignacion.
+- `viewer` no exporta.
 
-Permisos actuales:
+## Revisar auditoria
 
-- `admin` y `encargado`: exportan todo.
-- `viewer`: solo lectura, sin acceso a exportaciones.
-- `cajero`: sin acceso al modulo de exportaciones.
+Las acciones criticas escriben en `audit_logs`.
 
-Validaciones principales:
+Revisar especialmente:
 
-- No vender mas USD que los disponibles.
-- No cargar compra/venta sin cotizacion y cantidad.
-- No permitir prestamo, ajuste o anulacion sin nota o motivo.
-- Las operaciones quedan auditadas y pueden generar notas relacionadas.
+- Operaciones de bolsa.
+- Venta a otra bolsa.
+- Cargas de caja.
+- Gastos y anulaciones.
+- Ajustes y anulaciones.
+- Cierre y reapertura diaria.
+- Cierre y reapertura semanal.
+- Exportaciones.
+- Notas.
 
-## Tablas preparadas
+## Errores comunes
 
-- `profiles`
-- `user_roles`
-- `branches`
-- `cash_registers`
-- `cash_report_categories`
-- `cash_daily_reports`
-- `cash_daily_report_lines`
-- `weekly_cash_closures`
-- `weekly_cash_closure_lines`
-- `bags`
-- `bag_assignments`
-- `audit_logs`
-- `notes`
-- `bag_operations`
-- `bag_daily_snapshots`
+- Falta de variables de entorno en local o Vercel.
+- Migraciones no aplicadas en Supabase.
+- Usuario sin perfil o sin rol.
+- Ruta protegida sin sesion valida.
+- Service role usado por error en cliente.
 
-## Modulo de cajas
+## Antes de usar en produccion
 
-Rutas disponibles:
+- Build exitoso.
+- Variables cargadas.
+- Migraciones aplicadas.
+- Usuario admin creado.
+- Roles revisados.
+- Exportaciones probadas.
+- Backups definidos.
+- QA_CHECKLIST ejecutado.
+- `SUPABASE_SERVICE_ROLE_KEY` fuera del cliente.
+- `.env.local` no versionado.
 
-- `/cajas`
-- `/cajas/[id]`
-- `/cajas/[id]/cargar`
+## Pendientes a futuro
 
-Flujo de prueba recomendado:
-
-1. Entrar a `/cajas` con rol admin, encargado o cajero.
-2. Verificar el orden de las 5 cajas.
-3. Abrir una caja y revisar el historial.
-4. Cargar un reporte diario desde `/cajas/[id]/cargar`.
-5. Confirmar que se recalculan total operado y ganancia.
-6. Crear una nota de caja o de reporte y revisar `audit_logs`.
-
-Reglas principales:
-
-- Admin y encargado cargan y revisan todo.
-- Cajero solo carga su caja asignada.
-- Viewer ve solo lectura.
-- Cada carga se guarda por caja y fecha, sin duplicar registros.
-- Las cargas de hoy alimentan el bloque parcial del dashboard.
-
-## Reporte diario y gastos
-
-Rutas disponibles:
-
-- `/reporte-diario`
-- `/gastos`
-
-Flujo de prueba recomendado:
-
-1. Entrar a `/reporte-diario` con rol admin o encargado.
-2. Cambiar la fecha y confirmar que el resumen por sucursal se actualiza.
-3. Crear un ajuste manual y luego anularlo con motivo.
-4. Entrar a `/gastos`, crear un gasto, filtrarlo por fecha/sucursal/estado/categoría y anularlo.
-5. Revisar el dashboard para verificar gastos hoy, ganancia libre y estado del reporte diario.
-
-Reglas principales:
-
-- Los montos operados no se confunden con la ganancia.
-- Los gastos se descuentan de la ganancia libre.
-- Los ajustes manuales siempre llevan motivo.
-- No se borra nada: ajustes y gastos se anulan.
-
-## Cierre diario
-
-Flujo de prueba:
-
-1. Entrar a `/reporte-diario` con rol admin o encargado.
-2. Revisar el estado de cada sucursal.
-3. Completar o dejar pendientes algunas cajas.
-4. Presionar `Cerrar día` y confirmar.
-5. Verificar si quedó `Cerrado` o `Revisar` según el estado de las cajas.
-6. Probar `Reabrir día` con motivo obligatorio.
-7. Confirmar que, cuando el día está cerrado, no se pueden guardar ajustes, gastos ni cargas de caja.
-
-Validaciones:
-
-- `Cerrar día` crea auditoría y nota si se escribe observación.
-- `Reabrir día` exige motivo y crea auditoría y nota obligatoria.
-- Un reporte cerrado bloquea edición de ajustes, gastos y cargas de caja.
-- El cierre diario no reinicia cajas ni toca bolsas.
-
-## Cierre semanal de Pago Facil
-
-Rutas disponibles:
-
-- `/cierres`
-
-La semana operativa va de viernes a jueves. El selector de fecha toma una fecha cualquiera dentro de esa semana y consolida el rango completo.
-
-Flujo de prueba:
-
-1. Entrar a `/cierres` con rol admin o encargado.
-2. Elegir una fecha dentro de la semana a revisar.
-3. Verificar el resumen por sucursal, el detalle por caja y el ultimo cierre.
-4. Cerrar la semana con una nota opcional.
-5. Confirmar que la semana quede en estado `Cerrado` o `Revisar` segun el estado de las cargas.
-6. Volver a `/cajas/[id]/cargar` para comprobar que una semana cerrada bloquea nuevas cargas.
-7. Reabrir la semana con motivo obligatorio y nota obligatoria.
-
-Reglas principales:
-
-- Solo admin o encargado pueden cerrar o reabrir.
-- `Cerrar semana` guarda auditoria y crea nota si se escribe observacion.
-- `Reabrir semana` exige motivo y nota obligatoria.
-- Si la semana esta cerrada, no se pueden guardar nuevas cargas de caja hasta reabrirla.
-- El cierre semanal no modifica bolsas ni operaciones de USD.
-
-## Como verificar auditoria
-
-1. Abrir las tablas de `audit_logs` en Supabase.
-2. Buscar acciones `daily_report.closed`, `daily_report.reopened`, `expense.created`, `expense.annulled`, `daily_report_adjustment.created` y `daily_report_adjustment.annulled`.
-3. Revisar que el `entity_type` y el `reason` coincidan con la accion realizada.
-
-## Notas internas
-
-Las notas soportan:
-
-- Entidades: `bag`, `bag_operation`, `cash_register`, `cash_daily_report`, `daily_report`, `weekly_cash_closure`, `expense`, `closure`, `general`.
-- Prioridad: `normal`, `importante`, `urgente`.
-- Estado: `abierta`, `resuelta`, `anulada`.
-- Sin borrado fisico: una nota se resuelve o se anula con motivo.
-- Auditoria por accion: crear, marcar prioridad, resolver y anular.
-
-## Como probar notas
-
-1. Iniciar sesion en `/login`.
-2. Entrar a `/dashboard`, `/bolsas/[id]`, `/cajas/[id]`, `/gastos` o `/cierres`.
-3. Crear una nota normal, importante o urgente.
-4. Verificar que la nota aparece en el panel.
-5. Si es importante o urgente y esta abierta, verificar que aparece en `Notas importantes` del dashboard.
-6. Con rol admin o encargado, probar `Resolver`, `Marcar` y `Anular` con motivo.
-7. Revisar `audit_logs` en Supabase para confirmar el registro de acciones.
-8. Crear una nota desde una bolsa o desde una operacion y verificar que queda vinculada.
-
-## Como verificar datos iniciales
-
-En `/configuracion`, con rol admin, deben verse:
-
-- 2 sucursales.
-- 5 cajas.
-- 5 bolsas.
-- Las bolsas muestran saldos, USD, prestado, ganancia y estado operativo.
-- Estado de fuente de datos: `Supabase` si la migracion existe, `Seeds locales` si todavia no esta aplicada.
-
-## RLS a revisar
-
-- Admin: lectura y escritura completa.
-- Encargado: lectura operativa y gestion de notas.
-- Cajero: lectura/acciones asignadas y creacion de notas operativas.
-- Viewer: solo lectura.
-
-Las politicas base estan en `supabase/migrations/20260611_operational_notes.sql` y deben revisarse antes de cargar operaciones reales.
-
-## Exportaciones - politica actualizada
-
-Permisos seguros:
-
-- `admin`: exporta todo.
-- `encargado`: exporta reportes operativos.
-- `cajero`: solo puede exportar cargas de cajas si su caja asignada se identifica de forma confiable; si no, queda bloqueado.
-- `viewer`: no puede exportar reportes.
-
-Decisiones de seguridad:
-
-- La UI oculta botones si el rol no tiene permiso.
-- El backend responde `403` si alguien llama la URL directa sin permiso.
-- No se exponen UUIDs si no son necesarios.
-- No se imprimen claves ni contrase�as en consola.
-
-## Seguridad operativa
-
-- `SUPABASE_SERVICE_ROLE_KEY` solo debe usarse en servidor o scripts.
-- No usar `SUPABASE_SERVICE_ROLE_KEY` en componentes cliente.
-- Las credenciales de alta de usuarios deben compartirse por canal seguro o regenerarse desde Supabase.
+- Mayor automatizacion en cierres.
+- Exportaciones PDF dedicadas.
+- Analitica historica mas profunda.
+- Mas validaciones de consistencia operacional.
+- Mejoras de asistencia para el usuario cajero.

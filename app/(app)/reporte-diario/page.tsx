@@ -436,7 +436,8 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
           ? "revisar"
           : "abierto";
 
-  const allBranches: Branch[] = [data.centro, data.terminal]
+  const visibleBranchGroups = [data.centro, data.terminal].filter((group) => group.branch);
+  const allBranches: Branch[] = visibleBranchGroups
     .map((g) => g.branch)
     .filter((b): b is Branch => b !== null);
 
@@ -445,7 +446,7 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
       <SectionTitle
         description={
           isCashier
-            ? "Vista operativa de tu caja y bolsa para el dia."
+            ? "Vista operativa de tu sucursal. Solo ves tu propio reporte diario."
             : "Planilla operativa diaria — cajas Pago Facil, divisas y ganancia libre por sucursal."
         }
         title="Reporte diario"
@@ -501,25 +502,17 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
         </div>
       ) : null}
 
-      {/* Centro */}
-      <BranchSection
-        allBranches={allBranches}
-        canWrite={canWrite}
-        categories={categories}
-        date={selectedDate}
-        group={data.centro}
-        isCashier={isCashier}
-      />
-
-      {/* Terminal */}
-      <BranchSection
-        allBranches={allBranches}
-        canWrite={canWrite}
-        categories={categories}
-        date={selectedDate}
-        group={data.terminal}
-        isCashier={isCashier}
-      />
+      {visibleBranchGroups.map((group) => (
+        <BranchSection
+          allBranches={allBranches}
+          canWrite={canWrite}
+          categories={categories}
+          date={selectedDate}
+          group={group}
+          isCashier={isCashier}
+          key={group.branch?.id ?? "branch"}
+        />
+      ))}
 
       {/* General bags (no branch) */}
       {!isCashier && data.generalBags.length > 0 ? (

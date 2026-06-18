@@ -114,7 +114,7 @@ function buildEmptyData(date: string): DailyReportDetailedData {
 
 export async function getDailyReportDetailedData(
   dateInput: string | Date,
-  _auth?: { role: string; userId: string } | null
+  auth?: { role: string; userId: string } | null
 ): Promise<DailyReportDetailedData> {
   const date = typeof dateInput === "string" ? dateInput : getBuenosAiresDateString(dateInput);
   const admin = getSupabaseAdminClient();
@@ -250,6 +250,13 @@ export async function getDailyReportDetailedData(
       .map((r) => [r.responsible_user_id!, r.branch_id])
   );
 
+  const visibleBranchIds =
+    auth?.role === "cajero"
+      ? new Set([registerResponsibleBranchMap.get(auth.userId)].filter((branchId): branchId is string => Boolean(branchId)))
+      : new Set(branches.map((branch) => branch.id));
+
+  const isBranchVisible = (branchId: string) => visibleBranchIds.has(branchId);
+
   // Build per-register sheets
   const registerSheets: CashRegisterDailySheet[] = registers.map((register) => {
     const branch = branchMap.get(register.branch_id);
@@ -316,9 +323,10 @@ export async function getDailyReportDetailedData(
 
   const centroBranch = branches.find((b) => b.slug === "centro") ?? null;
   const terminalBranch = branches.find((b) => b.slug === "terminal") ?? null;
+  const dailyReportBranchMap = new Map(dailyReports.map((report) => [report.id, report.branch_id] as const));
 
   function buildGroup(branch: Branch | null): BranchDailyGroup {
-    if (!branch) return emptyGroup();
+    if (!branch || !isBranchVisible(branch.id)) return emptyGroup();
     const branchRegisters = registerSheets.filter((r) => r.register.branch_id === branch.id);
     const branchBags = bagSheets.filter((b) => b.branchId === branch.id);
     const dailyReport = dailyReports.find((r) => r.branch_id === branch.id) ?? null;
@@ -339,7 +347,15 @@ export async function getDailyReportDetailedData(
 
   const centro = buildGroup(centroBranch);
   const terminal = buildGroup(terminalBranch);
-  const generalBags = bagSheets.filter((b) => b.branchId === null);
+  const visibleRegisters = registers.filter((register) => isBranchVisible(register.branch_id));
+  const visibleBags = bagSheets.filter((bag) => bag.branchId !== null && isBranchVisible(bag.branchId));
+  const visibleDailyReports = dailyReports.filter((report) => isBranchVisible(report.branch_id));
+  const visibleExpenses = expenses.filter((expense) => isBranchVisible(expense.branch_id));
+  const visibleAdjustments = activeAdjustments.filter((adjustment) => {
+    const branchId = dailyReportBranchMap.get(adjustment.daily_report_id);
+    return branchId ? isBranchVisible(branchId) : false;
+  });
+  const generalBags = auth?.role === "cajero" ? [] : bagSheets.filter((b) => b.branchId === null);
 
   const grandTotals = calculateDailyReportGrandTotal({
     centro: {
@@ -355,16 +371,16 @@ export async function getDailyReportDetailedData(
       manualCurrencyAdjArs: terminal.totals.manualCurrencyAdjArs
     },
     generalBags,
-    expenses
+    expenses: visibleExpenses
   });
 
   return {
     date,
-    registers: registerSheets,
-    bags: bagSheets,
-    expenses,
-    adjustments: activeAdjustments,
-    dailyReports,
+    registers: visibleRegisters,
+    bags: visibleBags,
+    expenses: visibleExpenses,
+    adjustments: visibleAdjustments,
+    dailyReports: visibleDailyReports,
     categories,
     centro,
     terminal,
