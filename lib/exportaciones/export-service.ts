@@ -5,6 +5,7 @@ import { getBagsOverview } from "@/lib/bags/bag-service";
 import { getCashModuleData } from "@/lib/cash/cash-service";
 import { getExpensePageData } from "@/lib/finance/expense-service";
 import { getDailyReportViewData } from "@/lib/finance/daily-report-service";
+import { getDailyReportDetailedData } from "@/lib/finance/daily-report-detailed-service";
 import { getWeeklyCashClosureViewData } from "@/lib/finance/weekly-cash-closure-service";
 import { getBuenosAiresDateString } from "@/lib/finance/report-dates";
 import { formatCurrencyARS, formatDateAR, formatUSD } from "@/lib/exportaciones/export-utils";
@@ -35,57 +36,232 @@ function getString(value: unknown) {
 }
 
 export async function buildDailyReportExport(date: string, auth: AccessContext) {
-  const [reportData, cashData, expenseData] = await Promise.all([
-    getDailyReportViewData(date, auth),
-    getCashModuleData(auth),
+  const [detailedData, expenseData] = await Promise.all([
+    getDailyReportDetailedData(date, auth),
     getExpensePageData({ date }, auth)
   ]);
 
-  const rows: Array<Record<string, unknown>> = [
-    {
-      row_type: "reporte_diario",
-      fecha: date,
-      sucursal: "General",
-      estado: reportData.branches.map((branch) => `${branch.branch.name}:${branch.dailyReport?.status ?? "abierto"}`).join(" | "),
-      ganancia_pf_automatica: reportData.totals.automaticPfProfitArs,
-      ajuste_pf: reportData.totals.manualPfAdjustmentArs,
-      ganancia_divisas_automatica: reportData.totals.automaticCurrencyProfitArs,
-      ajuste_divisas: reportData.totals.manualCurrencyAdjustmentArs,
-      gastos: reportData.totals.expensesArs,
-      ganancia_libre: reportData.totals.availableProfitArs,
-      cajas: cashData.summary.registers_loaded_today,
-      notas_importantes: 0
-    }
-  ];
+  const { grandTotals, centro, terminal, generalBags } = detailedData;
+  const admin = getSupabaseAdminClient();
+  const expenseCreatorMap = new Map<string, string>();
 
-  reportData.branches.forEach((branch) => {
+  if (admin) {
+    const expenseCreatorIds = Array.from(
+      new Set(
+        expenseData.expenses
+          .map((expense) => expense.created_by)
+          .filter((value): value is string => typeof value === "string" && Boolean(value))
+      )
+    );
+
+    if (expenseCreatorIds.length > 0) {
+      const { data: creatorRows } = await admin.from("profiles").select("id,full_name,email").in("id", expenseCreatorIds);
+      (creatorRows ?? []).forEach((row: MaybeRow) => {
+        const id = getString(row.id);
+        const name = getString(row.full_name) || getString(row.email);
+        if (id) expenseCreatorMap.set(id, name);
+      });
+    }
+  }
+
+  const rows: Array<Record<string, unknown>> = [];
+
+  // Resumen general
+  rows.push({
+    row_type: "resumen_general",
+    fecha: date,
+    sucursal: "General",
+    nombre: "Resumen del dia",
+    estado: detailedData.dailyReports.map((r) => `${r.branch_id}:${r.status}`).join("|"),
+    total_operado_ars: detailedData.registers.reduce((sum, r) => sum + r.totalOperatedArs, 0),
+    ganancia_pf_ars: grandTotals.pfProfitTotal,
+    ganancia_divisas_ars: grandTotals.currencyProfitTotal,
+    ganancia_total_ars: grandTotals.grossProfitArs,
+    usd_comprados: detailedData.bags.reduce((sum, b) => sum + b.boughtUsdToday, 0),
+    usd_vendidos: detailedData.bags.reduce((sum, b) => sum + b.soldUsdToday, 0),
+    es_interna: false,
+    gastos_ars: grandTotals.expensesArs,
+    ganancia_libre_ars: grandTotals.freeProfitArs
+  });
+
+  // Sucursal — Centro
+  if (centro.branch) {
     rows.push({
       row_type: "sucursal",
       fecha: date,
-      sucursal: branch.branch.name,
-      estado: branch.dailyReport?.status ?? "abierto",
-      ganancia_pf_automatica: branch.automaticPfProfitArs,
-      ajuste_pf: branch.manualPfAdjustmentArs,
-      ganancia_divisas_automatica: branch.automaticCurrencyProfitArs,
-      ajuste_divisas: branch.manualCurrencyAdjustmentArs,
-      gastos: branch.expensesArs,
-      ganancia_libre: branch.availableProfitArs,
-      cajas: branch.cashRegisters.length,
-      notas_importantes: branch.adjustments.length
+      sucursal: centro.branch.name,
+      nombre: centro.branch.name,
+      estado: centro.dailyReport?.status ?? "abierto",
+      total_operado_ars: centro.totals.totalOperatedArs,
+      ganancia_pf_ars: centro.totals.pfProfitArs + centro.totals.manualPfAdjArs,
+      ganancia_divisas_ars: centro.totals.currencyProfitArs + centro.totals.manualCurrencyAdjArs,
+      ganancia_total_ars: grandTotals.pfProfitCentro + grandTotals.currencyProfitCentro,
+      usd_comprados: centro.bags.reduce((sum, b) => sum + b.boughtUsdToday, 0),
+      usd_vendidos: centro.bags.reduce((sum, b) => sum + b.soldUsdToday, 0),
+      es_interna: false,
+      gastos_ars: "",
+      ganancia_libre_ars: ""
+    });
+
+    centro.registers.forEach((rs) => {
+      rows.push({
+        row_type: "caja",
+        fecha: date,
+        sucursal: centro.branch!.name,
+        nombre: rs.register.name,
+        estado: rs.status,
+        total_operado_ars: rs.totalOperatedArs,
+        ganancia_pf_ars: rs.pfProfitArs,
+        ganancia_divisas_ars: "",
+        ganancia_total_ars: rs.pfProfitArs,
+        usd_comprados: "",
+        usd_vendidos: "",
+        es_interna: false,
+        gastos_ars: "",
+        ganancia_libre_ars: ""
+      });
+    });
+
+    centro.bags.forEach((bs) => {
+      rows.push({
+        row_type: "bolsa",
+        fecha: date,
+        sucursal: centro.branch!.name,
+        nombre: bs.bag.name,
+        estado: bs.bag.status,
+        total_operado_ars: "",
+        ganancia_pf_ars: "",
+        ganancia_divisas_ars: bs.currencyProfitArs,
+        ganancia_total_ars: bs.currencyProfitArs,
+        usd_comprados: bs.boughtUsdToday,
+        usd_vendidos: bs.soldUsdToday,
+        es_interna: bs.internalOpsCount > 0,
+        gastos_ars: "",
+        ganancia_libre_ars: ""
+      });
+    });
+  }
+
+  // Sucursal — Terminal
+  if (terminal.branch) {
+    rows.push({
+      row_type: "sucursal",
+      fecha: date,
+      sucursal: terminal.branch.name,
+      nombre: terminal.branch.name,
+      estado: terminal.dailyReport?.status ?? "abierto",
+      total_operado_ars: terminal.totals.totalOperatedArs,
+      ganancia_pf_ars: terminal.totals.pfProfitArs + terminal.totals.manualPfAdjArs,
+      ganancia_divisas_ars: terminal.totals.currencyProfitArs + terminal.totals.manualCurrencyAdjArs,
+      ganancia_total_ars: grandTotals.pfProfitTerminal + grandTotals.currencyProfitTerminal,
+      usd_comprados: terminal.bags.reduce((sum, b) => sum + b.boughtUsdToday, 0),
+      usd_vendidos: terminal.bags.reduce((sum, b) => sum + b.soldUsdToday, 0),
+      es_interna: false,
+      gastos_ars: "",
+      ganancia_libre_ars: ""
+    });
+
+    terminal.registers.forEach((rs) => {
+      rows.push({
+        row_type: "caja",
+        fecha: date,
+        sucursal: terminal.branch!.name,
+        nombre: rs.register.name,
+        estado: rs.status,
+        total_operado_ars: rs.totalOperatedArs,
+        ganancia_pf_ars: rs.pfProfitArs,
+        ganancia_divisas_ars: "",
+        ganancia_total_ars: rs.pfProfitArs,
+        usd_comprados: "",
+        usd_vendidos: "",
+        es_interna: false,
+        gastos_ars: "",
+        ganancia_libre_ars: ""
+      });
+    });
+
+    terminal.bags.forEach((bs) => {
+      rows.push({
+        row_type: "bolsa",
+        fecha: date,
+        sucursal: terminal.branch!.name,
+        nombre: bs.bag.name,
+        estado: bs.bag.status,
+        total_operado_ars: "",
+        ganancia_pf_ars: "",
+        ganancia_divisas_ars: bs.currencyProfitArs,
+        ganancia_total_ars: bs.currencyProfitArs,
+        usd_comprados: bs.boughtUsdToday,
+        usd_vendidos: bs.soldUsdToday,
+        es_interna: bs.internalOpsCount > 0,
+        gastos_ars: "",
+        ganancia_libre_ars: ""
+      });
+    });
+  }
+
+  // Bolsas generales
+  generalBags.forEach((bs) => {
+    rows.push({
+      row_type: "bolsa",
+      fecha: date,
+      sucursal: "General",
+      nombre: bs.bag.name,
+      estado: bs.bag.status,
+      total_operado_ars: "",
+      ganancia_pf_ars: "",
+      ganancia_divisas_ars: bs.currencyProfitArs,
+      ganancia_total_ars: bs.currencyProfitArs,
+      usd_comprados: bs.boughtUsdToday,
+      usd_vendidos: bs.soldUsdToday,
+      es_interna: bs.internalOpsCount > 0,
+      gastos_ars: "",
+      ganancia_libre_ars: ""
     });
   });
 
+  // Gastos
   expenseData.expenses.forEach((expense) => {
     rows.push({
       row_type: "gasto",
       fecha: expense.date,
-      sucursal: expense.branch_name,
+      sucursal: expense.branch_name ?? "",
+      nombre: expense.category,
       estado: expense.status,
+      total_operado_ars: "",
+      ganancia_pf_ars: "",
+      ganancia_divisas_ars: "",
+      ganancia_total_ars: "",
+      usd_comprados: "",
+      usd_vendidos: "",
+      es_interna: false,
+      gastos_ars: expense.amount_ars,
+      ganancia_libre_ars: "",
       categoria: expense.category,
       detalle: expense.detail,
-      monto_ars: expense.amount_ars,
       pagado_desde: expense.paid_from,
-      creado_por: expense.created_by ?? ""
+      creado_por: expense.created_by ? expenseCreatorMap.get(expense.created_by) ?? "" : ""
+    });
+  });
+
+  // Ajustes activos
+  detailedData.adjustments.forEach((adj) => {
+    rows.push({
+      row_type: "ajuste",
+      fecha: date,
+      sucursal: "",
+      nombre: adj.adjustment_type,
+      estado: "activo",
+      total_operado_ars: "",
+      ganancia_pf_ars: adj.adjustment_type.startsWith("pf_") ? adj.amount_ars : "",
+      ganancia_divisas_ars: !adj.adjustment_type.startsWith("pf_") ? adj.amount_ars : "",
+      ganancia_total_ars: adj.amount_ars,
+      usd_comprados: "",
+      usd_vendidos: "",
+      es_interna: false,
+      gastos_ars: "",
+      ganancia_libre_ars: "",
+      detalle: adj.reason
     });
   });
 
@@ -95,18 +271,19 @@ export async function buildDailyReportExport(date: string, auth: AccessContext) 
       "row_type",
       "fecha",
       "sucursal",
+      "nombre",
       "estado",
-      "ganancia_pf_automatica",
-      "ajuste_pf",
-      "ganancia_divisas_automatica",
-      "ajuste_divisas",
-      "gastos",
-      "ganancia_libre",
-      "cajas",
-      "notas_importantes",
+      "total_operado_ars",
+      "ganancia_pf_ars",
+      "ganancia_divisas_ars",
+      "ganancia_total_ars",
+      "usd_comprados",
+      "usd_vendidos",
+      "es_interna",
+      "gastos_ars",
+      "ganancia_libre_ars",
       "categoria",
       "detalle",
-      "monto_ars",
       "pagado_desde",
       "creado_por"
     ],
@@ -191,6 +368,28 @@ export async function buildWeeklyClosureExport(date: string, auth: AccessContext
 
 export async function buildExpensesExport(filters: { from: string; to: string; branchId?: string; status?: ExpenseStatus | "all"; category?: string }, auth: AccessContext) {
   const expenseData = await getExpensePageData({ dateFrom: filters.from, dateTo: filters.to, branchId: filters.branchId, status: filters.status, category: filters.category }, auth);
+  const admin = getSupabaseAdminClient();
+  const creatorMap = new Map<string, string>();
+
+  if (admin) {
+    const creatorIds = Array.from(
+      new Set(
+        expenseData.expenses
+          .map((expense) => expense.created_by)
+          .filter((value): value is string => typeof value === "string" && Boolean(value))
+      )
+    );
+
+    if (creatorIds.length > 0) {
+      const { data: creatorRows } = await admin.from("profiles").select("id,full_name,email").in("id", creatorIds);
+      (creatorRows ?? []).forEach((row: MaybeRow) => {
+        const id = getString(row.id);
+        const name = getString(row.full_name) || getString(row.email);
+        if (id) creatorMap.set(id, name);
+      });
+    }
+  }
+
   const rows: Array<Record<string, unknown>> = expenseData.expenses.map((expense) => ({
     fecha: expense.date,
     sucursal: expense.branch_name,
@@ -199,7 +398,7 @@ export async function buildExpensesExport(filters: { from: string; to: string; b
     detalle: expense.detail,
     estado: expense.status,
     pagado_desde: expense.paid_from,
-    usuario_creador: expense.created_by ?? "",
+    usuario_creador: expense.created_by ? creatorMap.get(expense.created_by) ?? "" : "",
     fecha_creacion: expense.created_at,
     motivo_anulacion: expense.annulment_reason ?? ""
   }));
@@ -242,6 +441,22 @@ export async function buildCashLoadsExport(filters: { from: string; to: string; 
   const branchMap = getBranchNameMap(branches);
   const registerMap = new Map((registersResult.data ?? []).map((row: MaybeRow) => [getString(row.id), row] as const));
   const categoryMap = new Map((categoriesResult.data ?? []).map((row: MaybeRow) => [getString(row.id), row] as const));
+  const responsibleIds = Array.from(
+    new Set(
+      (registersResult.data ?? [])
+        .map((row: MaybeRow) => getString(row.responsible_user_id))
+        .filter(Boolean)
+    )
+  );
+  const responsibleMap = new Map<string, string>();
+  if (responsibleIds.length > 0) {
+    const { data: profileRows } = await admin.from("profiles").select("id,full_name,email").in("id", responsibleIds);
+    (profileRows ?? []).forEach((row: MaybeRow) => {
+      const id = getString(row.id);
+      const name = getString(row.full_name) || getString(row.email);
+      if (id) responsibleMap.set(id, name);
+    });
+  }
   const linesByReport = new Map<string, MaybeRow[]>();
   (linesResult.data ?? []).forEach((row: MaybeRow) => {
     const reportId = getString(row.cash_daily_report_id);
@@ -260,7 +475,7 @@ export async function buildCashLoadsExport(filters: { from: string; to: string; 
     rows.push({
       fecha: getString(report.report_date),
       caja: `Caja ${register?.register_number ?? "?"}`,
-      responsable: register?.responsible_user_id ?? "",
+      responsable: register?.responsible_user_id ? responsibleMap.get(getString(register.responsible_user_id)) ?? "" : "",
       sucursal: branchMap.get(branchId) ?? "Sin sucursal",
       estado: getString(report.status),
       total_operado: Number(report.total_operated_ars ?? 0),
@@ -276,7 +491,7 @@ export async function buildCashLoadsExport(filters: { from: string; to: string; 
       rows.push({
         fecha: getString(report.report_date),
         caja: `Caja ${register?.register_number ?? "?"}`,
-        responsable: register?.responsible_user_id ?? "",
+        responsable: register?.responsible_user_id ? responsibleMap.get(getString(register.responsible_user_id)) ?? "" : "",
         sucursal: branchMap.get(branchId) ?? "Sin sucursal",
         estado: getString(report.status),
         total_operado: Number(report.total_operated_ars ?? 0),

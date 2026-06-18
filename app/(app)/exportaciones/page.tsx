@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { canExportType } from "@/lib/exportaciones/export-permissions";
 import { getServerAuthContext } from "@/lib/auth/server";
+import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
 const cards = [
   { href: "/exportaciones/reporte-diario", title: "Reporte diario", description: "Resumen por fecha y sucursal." },
@@ -23,13 +24,31 @@ export default async function ExportacionesPage() {
     return <AccessDenied />;
   }
 
+  const admin = getSupabaseAdminClient();
+  const assignedCashRegisterIds =
+    auth.role === "cajero" && admin
+      ? (
+          await admin.from("cash_registers").select("id").eq("responsible_user_id", auth.userId)
+        ).data?.map((row: { id?: unknown }) => String(row.id ?? "")) ?? []
+      : [];
+
   const visibleCards = cards.filter((card) => {
-    const tipo = card.href.replace("/exportaciones/", "") as Parameters<typeof canExportType>[1];
-    return canExportType(auth.role, tipo);
+    const tipo = card.href.replace("/exportaciones/", "") as "reporte-diario" | "cierre-semanal" | "gastos" | "cargas-cajas" | "bolsas";
+    return canExportType({
+      userRole: auth.role,
+      exportType: tipo,
+      userId: auth.userId,
+      assignedCashRegisterIds
+    }).allowed;
   });
 
   if (visibleCards.length === 0) {
-    return <AccessDenied />;
+    return (
+      <AccessDenied
+        description="No tenés permisos para exportar reportes desde esta cuenta."
+        title="No tenés permisos para exportar este reporte"
+      />
+    );
   }
 
   return (

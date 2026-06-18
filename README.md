@@ -411,3 +411,25 @@ En `/configuracion`, con rol admin, deben verse:
 - Viewer: solo lectura.
 
 Las politicas base estan en `supabase/migrations/20260611_operational_notes.sql` y deben revisarse antes de cargar operaciones reales.
+
+## Exportaciones - politica actualizada
+
+Permisos seguros:
+
+- `admin`: exporta todo.
+- `encargado`: exporta reportes operativos.
+- `cajero`: solo puede exportar cargas de cajas si su caja asignada se identifica de forma confiable; si no, queda bloqueado.
+- `viewer`: no puede exportar reportes.
+
+Decisiones de seguridad:
+
+- La UI oculta botones si el rol no tiene permiso.
+- El backend responde `403` si alguien llama la URL directa sin permiso.
+- No se exponen UUIDs si no son necesarios.
+- No se imprimen claves ni contraseñas en consola.
+
+## Seguridad operativa
+
+- `SUPABASE_SERVICE_ROLE_KEY` solo debe usarse en servidor o scripts.
+- No usar `SUPABASE_SERVICE_ROLE_KEY` en componentes cliente.
+- Las credenciales de alta de usuarios deben compartirse por canal seguro o regenerarse desde Supabase.

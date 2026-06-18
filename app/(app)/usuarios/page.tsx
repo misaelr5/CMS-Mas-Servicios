@@ -73,7 +73,7 @@ export default async function UsuariosPage() {
             <label className="text-sm font-semibold" htmlFor="email">
               Email
             </label>
-            <Input id="email" name="email" type="email" placeholder="usuario@maservicios.com" required />
+            <Input id="email" name="email" type="email" placeholder="usuario@maservicios.ar" required />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-semibold" htmlFor="password">

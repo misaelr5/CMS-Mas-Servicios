@@ -6,6 +6,11 @@ import type {
   Expense,
   ExpenseStatus
 } from "@/lib/db/types";
+import {
+  calculateDailyReportTotals,
+  calculateTotalsFromReports as calculateTotalsFromReportsDomain,
+  getSignedAdjustmentAmount as getSignedAdjustmentAmountDomain
+} from "@/src/modules/daily-reports/domain/daily-report-rules";
 
 export const dailyReportStatusLabels: Record<DailyReportStatus, string> = {
   abierto: "Abierto",
@@ -43,8 +48,7 @@ export function getExpenseStatusTone(status: ExpenseStatus) {
 }
 
 export function getSignedAdjustmentAmount(type: DailyReportAdjustmentType, amount: number) {
-  if (type === "pf_manual_negative" || type === "currency_manual_negative") return -Math.abs(amount);
-  return Math.abs(amount);
+  return getSignedAdjustmentAmountDomain(type, amount);
 }
 
 export function calculateTotalsFromReports(
@@ -53,39 +57,7 @@ export function calculateTotalsFromReports(
   expenses: Expense[],
   automaticCurrencyProfitArs = 0
 ) {
-  const automaticPfProfitArs = reports.reduce((sum, report) => sum + Number(report.total_profit_ars ?? 0), 0);
-  const manualPfAdjustmentArs = adjustments.reduce((sum, adjustment) => {
-    if (adjustment.adjustment_type !== "pf_manual_positive" && adjustment.adjustment_type !== "pf_manual_negative") {
-      return sum;
-    }
-    return sum + getSignedAdjustmentAmount(adjustment.adjustment_type, Number(adjustment.amount_ars ?? 0));
-  }, 0);
-  const manualCurrencyAdjustmentArs = adjustments.reduce((sum, adjustment) => {
-    if (
-      adjustment.adjustment_type !== "currency_manual_positive" &&
-      adjustment.adjustment_type !== "currency_manual_negative"
-    ) {
-      return sum;
-    }
-    return sum + getSignedAdjustmentAmount(adjustment.adjustment_type, Number(adjustment.amount_ars ?? 0));
-  }, 0);
-  const expensesArs = expenses.reduce((sum, expense) => {
-    if (expense.status !== "pagado" && expense.status !== "imputado") {
-      return sum;
-    }
-    return sum + Number(expense.amount_ars ?? 0);
-  }, 0);
-  const grossProfitArs =
-    automaticPfProfitArs + manualPfAdjustmentArs + automaticCurrencyProfitArs + manualCurrencyAdjustmentArs;
-  const availableProfitArs = grossProfitArs - expensesArs;
-
-  return {
-    automaticPfProfitArs,
-    manualPfAdjustmentArs,
-    automaticCurrencyProfitArs,
-    manualCurrencyAdjustmentArs,
-    grossProfitArs,
-    expensesArs,
-    availableProfitArs
-  };
+  return calculateTotalsFromReportsDomain(reports, adjustments, expenses, automaticCurrencyProfitArs);
 }
+
+export { calculateDailyReportTotals };

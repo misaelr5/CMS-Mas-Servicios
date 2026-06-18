@@ -3,13 +3,23 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { createAuditLog } from "@/lib/audit/audit-log";
 import { getServerAuthContext } from "@/lib/auth/server";
-import { canExportType, type ExportReportType } from "@/lib/exportaciones/export-permissions";
+import { canExportType, type ExportFilters, type ExportReportType } from "@/lib/exportaciones/export-permissions";
 import { generateCSV } from "@/lib/exportaciones/export-utils";
 import { buildBagsExport, buildCashLoadsExport, buildDailyReportExport, buildExpensesExport, buildWeeklyClosureExport } from "@/lib/exportaciones/export-service";
 import { getBuenosAiresDateString } from "@/lib/finance/report-dates";
+import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
 function getParam(url: URL, key: string, fallback = "") {
   return url.searchParams.get(key) || fallback;
+}
+
+async function getAssignedCashRegisterIds(userId: string) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return [];
+
+  const { data, error } = await admin.from("cash_registers").select("id").eq("responsible_user_id", userId);
+  if (error) return [];
+  return ((data ?? []) as Array<{ id?: unknown }>).map((row) => String(row.id ?? ""));
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ tipo: string }> }) {
@@ -24,9 +34,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Tipo de exportación inválido." }, { status: 400 });
   }
   const tipo = rawTipo as ExportReportType;
-  if (!canExportType(auth.role, tipo)) {
-    return NextResponse.json({ error: "No tenés permiso para exportar esta información." }, { status: 403 });
-  }
 
   const url = new URL(request.url);
   const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -37,39 +44,82 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Fecha inválida." }, { status: 400 });
   }
 
+  const filters: ExportFilters = {
+    date,
+    from,
+    to,
+    branch_id: getParam(url, "branch_id") || undefined,
+    status: getParam(url, "status") || undefined,
+    category: getParam(url, "category") || undefined,
+    cash_register_id: getParam(url, "cash_register_id") || undefined,
+    bag_id: getParam(url, "bag_id") || undefined,
+    operation_type: getParam(url, "operation_type") || undefined
+  };
+  const assignedCashRegisterIds = auth.role === "cajero" ? await getAssignedCashRegisterIds(auth.userId) : [];
+  const permission = canExportType({
+    userRole: auth.role,
+    exportType: tipo,
+    userId: auth.userId,
+    filters,
+    assignedCashRegisterIds
+  });
+
+  if (!permission.allowed) {
+    await createAuditLog({
+      actorId: auth.userId,
+      action: `export.${tipo}.blocked`,
+      entityType: "export",
+      entityId: null,
+      newData: {
+        tipo,
+        rol: auth.role,
+        filtros: filters,
+        resultado: "blocked"
+      },
+      reason: permission.reason ?? "blocked_by_permissions"
+    });
+
+    return NextResponse.json({ error: permission.reason ?? "No tenés permiso para exportar esta información." }, { status: 403 });
+  }
+
+  const effectiveFilters = {
+    ...filters,
+    ...permission.restrictedFilters
+  };
+
   const exportData =
     tipo === "reporte-diario"
-      ? await buildDailyReportExport(date, { role: auth.role, userId: auth.userId })
+      ? await buildDailyReportExport(effectiveFilters.date ?? date, { role: auth.role, userId: auth.userId })
       : tipo === "cierre-semanal"
-        ? await buildWeeklyClosureExport(date, { role: auth.role, userId: auth.userId })
+        ? await buildWeeklyClosureExport(effectiveFilters.date ?? date, { role: auth.role, userId: auth.userId })
         : tipo === "gastos"
           ? await buildExpensesExport(
               {
-                from,
-                to,
-                branchId: getParam(url, "branch_id") || undefined,
-                status: (getParam(url, "status") || "all") as any,
-                category: getParam(url, "category") || undefined
+                from: effectiveFilters.from ?? from,
+                to: effectiveFilters.to ?? to,
+                branchId: effectiveFilters.branch_id || undefined,
+                status: (effectiveFilters.status || "all") as any,
+                category: effectiveFilters.category || undefined
               },
               { role: auth.role, userId: auth.userId }
             )
           : tipo === "cargas-cajas"
             ? await buildCashLoadsExport(
                 {
-                  from,
-                  to,
-                  branchId: getParam(url, "branch_id") || undefined,
-                  cashRegisterId: getParam(url, "cash_register_id") || undefined,
-                  status: getParam(url, "status") || undefined
+                  from: effectiveFilters.from ?? from,
+                  to: effectiveFilters.to ?? to,
+                  branchId: effectiveFilters.branch_id || undefined,
+                  cashRegisterId: effectiveFilters.cash_register_id || undefined,
+                  status: effectiveFilters.status || undefined
                 },
                 { role: auth.role, userId: auth.userId }
               )
             : await buildBagsExport(
                 {
-                  from,
-                  to,
-                  bagId: getParam(url, "bag_id") || undefined,
-                  operationType: getParam(url, "operation_type") || undefined
+                  from: effectiveFilters.from ?? from,
+                  to: effectiveFilters.to ?? to,
+                  bagId: effectiveFilters.bag_id || undefined,
+                  operationType: effectiveFilters.operation_type || undefined
                 },
                 { role: auth.role, userId: auth.userId }
               );
@@ -85,7 +135,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     entityId: null,
     newData: {
       tipo,
-      filtros: Object.fromEntries(url.searchParams.entries()),
+      rol: auth.role,
+      filtros: effectiveFilters,
+      resultado: "allowed",
       formato: "csv"
     }
   });

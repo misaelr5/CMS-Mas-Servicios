@@ -44,6 +44,17 @@ function branchTone(branchName?: string | null) {
   return branchName?.toLowerCase().includes("terminal") ? "bg-brandYellow/15 text-brandYellow" : "bg-success/15 text-success";
 }
 
+function formatDateTime(value?: string | null) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
+
 export default async function CajasPage() {
   const auth = await getServerAuthContext(cookies());
   const today = getBuenosAiresDateString();
@@ -92,8 +103,8 @@ export default async function CajasPage() {
                 <p className="mt-1 font-heading text-xl font-black text-brandBlack">{formatArs(register.today_operated_ars)}</p>
               </div>
               <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-mediumGray">Carga</p>
-                <Badge variant={locked ? "danger" : loaded ? "success" : "warning"}>{locked ? "Cerrada" : loaded ? "Lista" : "Pendiente"}</Badge>
+                <p className="text-xs uppercase tracking-[0.18em] text-mediumGray">Ultima actualizacion</p>
+                <p className="mt-1 font-heading text-xl font-black text-brandBlack">{formatDateTime(register.updated_at)}</p>
               </div>
             </div>
 
@@ -232,11 +243,8 @@ export default async function CajasPage() {
                           <p className="mt-1 font-heading text-xl font-black tabular-nums">{formatArs(register.today_profit_ars)}</p>
                         </div>
                         <div className="p-4">
-                          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-mediumGray">Siguiente paso</p>
-                          <div className="mt-1 flex items-center gap-2 font-semibold">
-                            {locked ? <LockKeyhole className="h-4 w-4 text-danger" /> : loaded ? <CheckCircle2 className="h-4 w-4 text-success" /> : <Clock3 className="h-4 w-4 text-warning" />}
-                            <span>{locked ? "Dia cerrado" : loaded ? "Carga lista" : "Cargar dia"}</span>
-                          </div>
+                          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-mediumGray">Ultima actualizacion</p>
+                          <p className="mt-1 font-heading text-xl font-black tabular-nums">{formatDateTime(register.updated_at)}</p>
                         </div>
                       </div>
                     </article>

@@ -11,7 +11,7 @@ import type {
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { seedBranches, seedCashRegisters } from "@/lib/operations/seed-data";
 import { getBuenosAiresDateString, isSameBuenosAiresDate } from "@/lib/finance/report-dates";
-import { getSignedAdjustmentAmount } from "@/lib/finance/daily-report-calculations";
+import { getSignedAdjustmentAmount } from "@/src/modules/daily-reports/domain/daily-report-rules";
 import { getFriendlySupabaseErrorMessage } from "@/lib/errors/user-facing";
 
 type MaybeRow = Record<string, unknown>;

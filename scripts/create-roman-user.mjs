@@ -111,4 +111,7 @@ try {
   console.warn(`No se pudieron sincronizar tablas de perfil: ${error instanceof Error ? error.message : "error desconocido"}`);
 }
 
-console.log(`Usuario listo: ${fullName} <${email}> con contraseña ${password}`);
+console.log(`Usuario listo: ${fullName} <${email}>. Perfil y rol sincronizados.`);
+
+
+

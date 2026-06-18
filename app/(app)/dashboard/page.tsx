@@ -1,6 +1,21 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { cookies } from "next/headers";
-import { ArrowRight, BellRing, Boxes, CalendarRange, CircleAlert, Download, FileBarChart2, Landmark, NotebookText, ReceiptText, Settings2, ShieldAlert, Store, TrendingUp } from "lucide-react";
+import {
+  ArrowRight,
+  BellRing,
+  CalendarRange,
+  CircleAlert,
+  Download,
+  FileBarChart2,
+  Landmark,
+  NotebookText,
+  ReceiptText,
+  Settings2,
+  ShieldAlert,
+  Store,
+  TrendingUp,
+  Boxes
+} from "lucide-react";
 
 import { AccessDenied } from "@/components/access-denied";
 import { DataCard } from "@/components/data-card";
@@ -14,9 +29,8 @@ import { getServerAuthContext } from "@/lib/auth/server";
 import { canAccessPath, type Role, roleLabels } from "@/lib/auth/roles";
 import { getBagsOverview } from "@/lib/bags/bag-service";
 import { formatUsd } from "@/lib/bags/bag-calculations";
-import { getCashModuleData } from "@/lib/cash/cash-service";
 import { getExpensePageData } from "@/lib/finance/expense-service";
-import { getDailyReportViewData } from "@/lib/finance/daily-report-service";
+import { getDailyReportDetailedData } from "@/lib/finance/daily-report-detailed-service";
 import { getWeeklyCashClosureViewData } from "@/lib/finance/weekly-cash-closure-service";
 import { getWeeklyCashClosureRange } from "@/lib/finance/weekly-cash-closure-calculations";
 import { getBuenosAiresDateString } from "@/lib/finance/report-dates";
@@ -39,33 +53,42 @@ type DashboardAlert = {
   icon: typeof BellRing;
 };
 
-function resolveReportStatus(branches: Awaited<ReturnType<typeof getDailyReportViewData>>["branches"]) {
-  if (branches.length === 0) return "Sin datos";
-  if (branches.some((branch) => branch.hasNegativeAvailable)) return "Revisar";
-  if (branches.some((branch) => branch.dailyReport?.status === "revisar")) return "Revisar";
-  if (branches.every((branch) => branch.dailyReport?.status === "cerrado")) return "Cerrado";
-  return "Abierto";
-}
-
 function formatSignedArs(value: number) {
   const abs = formatArs(Math.abs(value));
   return value < 0 ? `-${abs}` : `+${abs}`;
 }
 
-function toneForAlert(tone: DashboardAlert["tone"]) {
-  if (tone === "critical") return "danger";
-  if (tone === "warning") return "warning";
-  return "neutral";
+function formatDateTime(value?: string | null) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
 }
 
-function toneForBag(difference: number, status: string) {
-  if (difference < 0) return "error";
-  if (status === "revisar" || status === "pendiente_cierre") return "revisar";
-  return "ok";
+function toneForAlert(tone: DashboardAlert["tone"]) {
+  if (tone === "critical") return "danger" as const;
+  if (tone === "warning") return "warning" as const;
+  return "neutral" as const;
 }
 
 function filterVisibleActions(actions: QuickAction[], role: Role) {
   return actions.filter((action) => canAccessPath(role, action.href));
+}
+
+function registerStatusBadge(status: string) {
+  if (status === "cargado" || status === "revisado") return "success" as const;
+  if (status === "parcial") return "warning" as const;
+  return "neutral" as const;
+}
+
+function bagStatusBadge(status: string) {
+  if (status === "ok") return "success" as const;
+  if (status === "revisar" || status === "pendiente_cierre") return "warning" as const;
+  return "danger" as const;
 }
 
 export default async function DashboardPage() {
@@ -76,31 +99,56 @@ export default async function DashboardPage() {
 
   const today = getBuenosAiresDateString();
   const weekRange = getWeeklyCashClosureRange(today);
-  const [bags, cashData, reportData, expenseData, weeklyClosureData, notes] = await Promise.all([
+
+  const [reportData, bags, expenseData, weeklyClosureData, notes] = await Promise.all([
+    getDailyReportDetailedData(today, { role: auth.role, userId: auth.userId }),
     getBagsOverview(),
-    getCashModuleData({ role: auth.role, userId: auth.userId }),
-    getDailyReportViewData(today, { role: auth.role, userId: auth.userId }),
     getExpensePageData({ date: today }, { role: auth.role, userId: auth.userId }),
     getWeeklyCashClosureViewData(today, { role: auth.role, userId: auth.userId }),
     listImportantNotes(8)
   ]);
 
-  const visibleNotes = notes;
-  const reportStatus = resolveReportStatus(reportData.branches);
-  const reportAvailableToday = reportData.totals.availableProfitArs;
-  const totalCurrencyProfitToday = reportData.totals.automaticCurrencyProfitArs + reportData.totals.manualCurrencyAdjustmentArs;
-  const todayExpenses = expenseData.expenses.filter((expense) => expense.status !== "anulado");
-  const pendingExpensesToday = expenseData.expenses.filter((expense) => expense.status === "pendiente");
-  const activeBags = [...bags].sort((left, right) => left.name.localeCompare(right.name));
-  const bagsWithDifference = activeBags.filter((bag) => Number(bag.difference_ars ?? 0) < 0);
-  const boxes = [...cashData.registers].sort((left, right) => Number(left.register_number ?? 0) - Number(right.register_number ?? 0));
+  const { grandTotals, centro, terminal } = reportData;
+
+  const todayExpenses = expenseData.expenses.filter((e) => e.status !== "anulado");
+  const pendingExpensesToday = expenseData.expenses.filter((e) => e.status === "pendiente");
+
+  const activeBags = [...bags].sort((a, b) => a.name.localeCompare(b.name));
+  const totalCash = bags.reduce((acc, b) => acc + Number(b.current_cash_ars ?? 0), 0);
+  const totalAccount = bags.reduce((acc, b) => acc + Number(b.current_account_ars ?? 0), 0);
+  const totalUsd = bags.reduce((acc, b) => acc + Number(b.current_usd ?? 0), 0);
+  const totalBorrowed = bags.reduce((acc, b) => acc + Number(b.borrowed_ars ?? 0), 0);
+  const totalBagProfit = bags.reduce((acc, b) => acc + Number(b.accumulated_profit_ars ?? 0), 0);
+  const totalBagDifference = bags.reduce((acc, b) => acc + Number(b.difference_ars ?? 0), 0);
+  const bagsToReview = bags.filter((b) => b.status !== "ok").length;
+  const bagsWithDifference = activeBags.filter((b) => Number(b.difference_ars ?? 0) < 0);
+
+  const overallReportStatus =
+    reportData.dailyReports.length === 0
+      ? "Abierto"
+      : reportData.dailyReports.every((r) => r.status === "cerrado")
+        ? "Cerrado"
+        : reportData.dailyReports.some((r) => r.status === "revisar")
+          ? "Revisar"
+          : "Abierto";
+
+  const centroRegisters = centro.registers;
+  const terminalRegisters = terminal.registers;
+  const registersTotal = [...centroRegisters, ...terminalRegisters];
+  const registersPending = registersTotal.filter(
+    (r) => r.status === "pendiente" || r.status === "parcial"
+  ).length;
+
   const firstBag = activeBags[0] ?? null;
-  const firstRegister = boxes.find((register) => auth.role !== "cajero" || register.responsible_user_id === auth.userId) ?? boxes[0] ?? null;
+  const firstRegister =
+    registersTotal.find((r) => auth.role !== "cajero" || r.register.responsible_user_id === auth.userId) ??
+    registersTotal[0] ??
+    null;
 
   const bagActions: QuickAction[] = [
     {
       href: firstBag ? `/bolsas/nueva-operacion?bagId=${firstBag.id}` : "/bolsas",
-      label: "Cargar operación",
+      label: "Cargar operacion",
       description: "Compra, venta o movimiento de una bolsa.",
       icon: TrendingUp,
       priority: "primary"
@@ -108,15 +156,21 @@ export default async function DashboardPage() {
     {
       href: firstBag ? `/bolsas/${firstBag.id}/vender-a-bolsa` : "/bolsas",
       label: "Mover entre bolsas",
-      description: "Operación interna entre dos bolsas.",
+      description: "Operacion interna entre dos bolsas.",
       icon: Boxes,
       priority: "secondary"
     }
   ];
 
   const operationalActions: QuickAction[] = [
-    { href: firstRegister ? `/cajas/${firstRegister.id}/cargar` : "/cajas", label: "Cargar caja", description: "Registrar la carga diaria de la caja.", icon: Store, priority: "primary" },
-    { href: "/reporte-diario", label: "Ver reporte", description: "Estado del día por sucursal.", icon: FileBarChart2, priority: "primary" },
+    {
+      href: firstRegister ? `/cajas/${firstRegister.register.id}/cargar` : "/cajas",
+      label: "Cargar caja",
+      description: "Registrar la carga diaria de la caja.",
+      icon: Store,
+      priority: "primary"
+    },
+    { href: "/reporte-diario", label: "Ver reporte", description: "Planilla diaria por sucursal.", icon: FileBarChart2, priority: "primary" },
     { href: "/gastos", label: "Cargar gasto", description: "Registrar o revisar gastos.", icon: ReceiptText, priority: "primary" },
     { href: "/cajas", label: "Ver cajas", description: "Listado de cajas Pago Facil.", icon: Landmark, priority: "secondary" },
     { href: "/cierres", label: "Cierre semanal", description: "Control de semana operativa.", icon: CalendarRange, priority: "secondary" },
@@ -124,28 +178,27 @@ export default async function DashboardPage() {
     { href: "/configuracion", label: "Ajustes", description: "Roles y datos generales.", icon: Settings2, priority: "secondary" }
   ];
 
-  const quickActions = filterVisibleActions([...bagActions, ...operationalActions], auth.role);
   const visibleBagActions = filterVisibleActions(bagActions, auth.role);
   const visiblePagoFacilActions = filterVisibleActions(operationalActions, auth.role);
 
   const alerts: DashboardAlert[] = [];
 
-  if (cashData.summary.registers_pending_today > 0) {
+  if (registersPending > 0) {
     alerts.push({
       title: "Hay cajas pendientes hoy",
-      description: `${cashData.summary.registers_pending_today} cajas siguen sin carga completa.`,
+      description: `${registersPending} cajas siguen sin carga completa.`,
       href: "/cajas",
       tone: "warning",
       icon: BellRing
     });
   }
 
-  if (reportStatus !== "Cerrado") {
+  if (overallReportStatus !== "Cerrado") {
     alerts.push({
       title: "Reporte diario sin cerrar",
-      description: `El reporte de hoy sigue en estado ${reportStatus.toLowerCase()}.`,
+      description: `El reporte de hoy sigue en estado ${overallReportStatus.toLowerCase()}.`,
       href: "/reporte-diario",
-      tone: reportStatus === "Revisar" ? "critical" : "warning",
+      tone: overallReportStatus === "Revisar" ? "critical" : "warning",
       icon: CircleAlert
     });
   }
@@ -180,27 +233,27 @@ export default async function DashboardPage() {
     });
   }
 
-  if (visibleNotes.length > 0) {
+  if (notes.length > 0) {
     alerts.push({
       title: "Notas urgentes abiertas",
-      description: `${visibleNotes.length} notas importantes o urgentes siguen abiertas.`,
+      description: `${notes.length} notas importantes o urgentes siguen abiertas.`,
       href: "/dashboard",
       tone: "warning",
       icon: NotebookText
     });
   }
 
-  if (reportData.branches.some((branch) => branch.hasNegativeAvailable)) {
+  if (grandTotals.freeProfitArs < 0) {
     alerts.push({
-      title: "Hay sucursales para revisar",
-      description: "Al menos una sucursal tiene ganancia libre negativa.",
+      title: "Ganancia libre negativa",
+      description: "Los gastos superan la ganancia bruta del dia.",
       href: "/reporte-diario",
       tone: "critical",
       icon: CircleAlert
     });
   }
 
-  if (weeklyClosureData.branches.some((branch) => branch.status === "revisar")) {
+  if (weeklyClosureData.branches.some((b) => b.status === "revisar")) {
     alerts.push({
       title: "Cierre semanal marcado para revisar",
       description: "Una o mas cajas quedaron con estado revisar durante la semana.",
@@ -210,18 +263,10 @@ export default async function DashboardPage() {
     });
   }
 
-  const totalCash = bags.reduce((acc, bag) => acc + Number(bag.current_cash_ars ?? 0), 0);
-  const totalAccount = bags.reduce((acc, bag) => acc + Number(bag.current_account_ars ?? 0), 0);
-  const totalUsd = bags.reduce((acc, bag) => acc + Number(bag.current_usd ?? 0), 0);
-  const totalBorrowed = bags.reduce((acc, bag) => acc + Number(bag.borrowed_ars ?? 0), 0);
-  const totalBagProfit = bags.reduce((acc, bag) => acc + Number(bag.accumulated_profit_ars ?? 0), 0);
-  const totalBagDifference = bags.reduce((acc, bag) => acc + Number(bag.difference_ars ?? 0), 0);
-  const bagsToReview = bags.filter((bag) => bag.status !== "ok").length;
-
   return (
     <div className="space-y-6">
       <SectionTitle
-        description="Pantalla principal de MAS SERVICIOS con el estado del dia, alertas operativas y accesos rapidos."
+        description="Estado del dia, cajas, bolsas y alertas operativas."
         title="Dashboard"
         rightSlot={
           <>
@@ -235,43 +280,246 @@ export default async function DashboardPage() {
         }
       />
 
+      {/* Summary StatCards */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          helper="Comisiones PF hoy"
+          label="Ganancia PF"
+          status={grandTotals.pfProfitTotal >= 0 ? "ok" : "error"}
+          value={formatArs(grandTotals.pfProfitTotal)}
+        />
+        <StatCard
+          helper="Divisas hoy"
+          label="Ganancia divisas"
+          status={grandTotals.currencyProfitTotal >= 0 ? "ok" : "error"}
+          value={formatArs(grandTotals.currencyProfitTotal)}
+        />
+        <StatCard
+          helper="No incluye anulados"
+          label="Gastos"
+          status="neutral"
+          value={formatArs(grandTotals.expensesArs)}
+        />
+        <StatCard
+          helper="Bruto menos gastos"
+          label="Ganancia libre"
+          status={grandTotals.freeProfitArs < 0 ? "error" : "ok"}
+          value={formatArs(grandTotals.freeProfitArs)}
+        />
+      </div>
+
+      {/* Per-branch register summary */}
       <div className="grid gap-4 xl:grid-cols-2">
-        <DataCard description="Modulo separado para divisas, saldos, diferencias y movimientos entre bolsas." title="Bolsas">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <StatCard className="shadow-none" helper="Todas las bolsas" label="Efectivo" value={formatArs(totalCash)} />
-            <StatCard className="shadow-none" helper="Todas las bolsas" label="Cuenta" value={formatArs(totalAccount)} />
-            <StatCard className="shadow-none" helper="Disponible total" label="USD" value={formatUsd(totalUsd)} />
-            <StatCard className="shadow-none" helper="Diferencia estimada" label="Diferencia" value={formatSignedArs(totalBagDifference)} status={totalBagDifference < 0 ? "error" : "ok"} />
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {visibleBagActions.map((action) => (
-              <Button asChild key={action.href} variant={action.priority === "secondary" ? "outline" : "default"}>
-                <Link href={action.href}>{action.label}</Link>
-              </Button>
-            ))}
-            <Button asChild variant="secondary">
-              <Link href="/bolsas">Ver bolsas</Link>
-            </Button>
-          </div>
+        {/* Centro cajas */}
+        <DataCard
+          description="Estado de las cajas Centro para el dia."
+          title="Centro — Cajas"
+        >
+          {centroRegisters.length === 0 ? (
+            <EmptyState description="No hay cajas configuradas para Centro." title="Sin cajas" />
+          ) : (
+            <div className="space-y-3">
+              {centroRegisters.map((rs) => (
+                <div
+                  className="rounded-2xl border border-lightGray bg-white p-4 shadow-soft"
+                  key={rs.register.id}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-mediumGray">
+                        Caja {rs.register.register_number}
+                      </p>
+                      <h3 className="mt-0.5 font-heading text-lg font-black text-brandBlack">
+                        {rs.register.name}
+                      </h3>
+                    </div>
+                    <Badge variant={registerStatusBadge(rs.status)}>{rs.status}</Badge>
+                  </div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                    <div className="rounded-xl bg-lightGray/20 p-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Operado</p>
+                      <p className="mt-1 text-sm font-bold text-brandBlack tabular-nums">{formatArs(rs.totalOperatedArs)}</p>
+                    </div>
+                    <div className="rounded-xl bg-lightGray/20 p-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Ganancia</p>
+                      <p className="mt-1 text-sm font-bold text-brandBlack tabular-nums">{formatArs(rs.pfProfitArs)}</p>
+                    </div>
+                    <div className="rounded-xl bg-lightGray/20 p-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Ultima actualizacion</p>
+                      <p className="mt-1 text-sm font-bold text-brandBlack">{formatDateTime(rs.register.updated_at)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <Button asChild size="sm">
+                      <Link href={`/cajas/${rs.register.id}`}>Ver caja</Link>
+                    </Button>
+                    <Button asChild size="sm" variant="secondary">
+                      <Link href={`/cajas/${rs.register.id}/cargar`}>Cargar dia</Link>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-2xl border border-brandYellow/25 bg-brandYellow/10 p-3">
+                <p className="text-xs uppercase tracking-[0.16em] text-brandYellow">Total Centro PF</p>
+                <p className="mt-1 text-xl font-black text-brandWhite">
+                  {formatArs(centro.totals.pfProfitArs + centro.totals.manualPfAdjArs)}
+                </p>
+              </div>
+            </div>
+          )}
         </DataCard>
 
-        <DataCard description="Modulo separado para cajas Pago Facil, reporte diario y gastos." title="Pago Facil">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <StatCard className="shadow-none" helper="Hoy" label="Cajas cargadas" value={`${cashData.summary.registers_loaded_today}`} status={cashData.summary.registers_pending_today === 0 ? "ok" : "revisar"} />
-            <StatCard className="shadow-none" helper="Faltan cargar" label="Cajas pendientes" value={`${cashData.summary.registers_pending_today}`} status={cashData.summary.registers_pending_today > 0 ? "revisar" : "ok"} />
-            <StatCard className="shadow-none" helper="Comisiones cargadas" label="Ganancia PF" value={formatArs(cashData.summary.total_profit_today)} status={cashData.summary.total_profit_today >= 0 ? "ok" : "error"} />
-            <StatCard className="shadow-none" helper="No incluye anulados" label="Gastos hoy" value={formatArs(todayExpenses.reduce((acc, expense) => acc + Number(expense.amount_ars ?? 0), 0))} status={pendingExpensesToday.length > 0 ? "revisar" : "ok"} />
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {visiblePagoFacilActions.map((action) => (
-              <Button asChild key={action.href} variant={action.priority === "secondary" ? "outline" : "default"}>
-                <Link href={action.href}>{action.label}</Link>
-              </Button>
-            ))}
-          </div>
+        {/* Terminal cajas */}
+        <DataCard
+          description="Estado de las cajas Terminal para el dia."
+          title="Terminal — Cajas"
+        >
+          {terminalRegisters.length === 0 ? (
+            <EmptyState description="No hay cajas configuradas para Terminal." title="Sin cajas" />
+          ) : (
+            <div className="space-y-3">
+              {terminalRegisters.map((rs) => (
+                <div
+                  className="rounded-2xl border border-lightGray bg-white p-4 shadow-soft"
+                  key={rs.register.id}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-mediumGray">
+                        Caja {rs.register.register_number}
+                      </p>
+                      <h3 className="mt-0.5 font-heading text-lg font-black text-brandBlack">
+                        {rs.register.name}
+                      </h3>
+                    </div>
+                    <Badge variant={registerStatusBadge(rs.status)}>{rs.status}</Badge>
+                  </div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                    <div className="rounded-xl bg-lightGray/20 p-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Operado</p>
+                      <p className="mt-1 text-sm font-bold text-brandBlack tabular-nums">{formatArs(rs.totalOperatedArs)}</p>
+                    </div>
+                    <div className="rounded-xl bg-lightGray/20 p-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Ganancia</p>
+                      <p className="mt-1 text-sm font-bold text-brandBlack tabular-nums">{formatArs(rs.pfProfitArs)}</p>
+                    </div>
+                    <div className="rounded-xl bg-lightGray/20 p-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Ultima actualizacion</p>
+                      <p className="mt-1 text-sm font-bold text-brandBlack">{formatDateTime(rs.register.updated_at)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <Button asChild size="sm">
+                      <Link href={`/cajas/${rs.register.id}`}>Ver caja</Link>
+                    </Button>
+                    <Button asChild size="sm" variant="secondary">
+                      <Link href={`/cajas/${rs.register.id}/cargar`}>Cargar dia</Link>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-2xl border border-brandYellow/25 bg-brandYellow/10 p-3">
+                <p className="text-xs uppercase tracking-[0.16em] text-brandYellow">Total Terminal PF</p>
+                <p className="mt-1 text-xl font-black text-brandWhite">
+                  {formatArs(terminal.totals.pfProfitArs + terminal.totals.manualPfAdjArs)}
+                </p>
+              </div>
+            </div>
+          )}
         </DataCard>
       </div>
 
+      {/* Bolsas per bag */}
+      <div className="rounded-[28px] border border-brandYellow/20 bg-brandYellow/10 p-4">
+        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-brandYellow">Modulo Bolsas</p>
+        <h2 className="mt-1 font-heading text-2xl font-black text-brandWhite">Divisas y saldos separados</h2>
+      </div>
+
+      <DataCard description="Estado operativo de cada bolsa para el dia." title="Bolsas de divisas">
+        <div className="grid gap-4 xl:grid-cols-2">
+          {activeBags.map((bag) => {
+            const bagSheet = reportData.bags.find((b) => b.bag.id === bag.id);
+            const difference = Number(bag.difference_ars ?? 0);
+            return (
+              <div className="rounded-3xl border border-lightGray bg-white p-4 shadow-soft" key={bag.id}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.22em] text-mediumGray">Bolsa</p>
+                    <h3 className="mt-1 font-heading text-xl font-black text-brandBlack">{bag.name}</h3>
+                    <p className="text-sm text-mediumGray">{bag.responsible_name ?? "Sin asignar"}</p>
+                    {bagSheet?.branchName ? (
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brandYellow/80">
+                        {bagSheet.branchName}
+                      </p>
+                    ) : null}
+                  </div>
+                  <Badge variant={bagStatusBadge(bag.status)}>{bag.status}</Badge>
+                </div>
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                  <div className="rounded-xl border border-lightGray bg-lightGray/20 p-2.5">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Efectivo</p>
+                    <p className="mt-1 text-sm font-semibold text-brandBlack tabular-nums">
+                      {formatArs(Number(bag.current_cash_ars ?? 0))}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-lightGray bg-lightGray/20 p-2.5">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Cuenta</p>
+                    <p className="mt-1 text-sm font-semibold text-brandBlack tabular-nums">
+                      {formatArs(Number(bag.current_account_ars ?? 0))}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-lightGray bg-lightGray/20 p-2.5">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">USD</p>
+                    <p className="mt-1 text-sm font-semibold text-brandBlack tabular-nums">
+                      {formatUsd(Number(bag.current_usd ?? 0))}
+                    </p>
+                  </div>
+                  {bagSheet ? (
+                    <div className="rounded-xl border border-lightGray bg-brandYellow/10 p-2.5 sm:col-span-3">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-brandYellow">Resumen de hoy</p>
+                      <p className="mt-1 text-sm font-semibold text-brandBlack">
+                        {formatUsd(bagSheet.boughtUsdToday)} comprados · {formatUsd(bagSheet.soldUsdToday)} vendidos ·{" "}
+                        {formatArs(bagSheet.currencyProfitArs)} de ganancia
+                      </p>
+                    </div>
+                  ) : null}
+                  <div className="rounded-xl border border-lightGray bg-lightGray/20 p-2.5 sm:col-span-3">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Diferencia estimada</p>
+                    <p className={`mt-1 text-sm font-semibold tabular-nums ${difference < 0 ? "text-danger" : "text-brandBlack"}`}>
+                      {formatSignedArs(difference)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button asChild className="shadow-yellowGlow" size="sm">
+                    <Link href={`/bolsas/${bag.id}`}>Ver detalles</Link>
+                  </Button>
+                  <Button asChild size="sm" variant="secondary">
+                    <Link href={`/bolsas/nueva-operacion?bagId=${bag.id}`}>Nueva operacion</Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/bolsas/${bag.id}/vender-a-bolsa`}>Vender a otra bolsa</Link>
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </DataCard>
+
+      <DataCard description="Ganancia consolidada sin tabla pesada." title="Totales del dia">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard label="PF total" status="ok" value={formatArs(grandTotals.pfProfitTotal)} />
+          <StatCard label="Divisas total" status="ok" value={formatArs(grandTotals.currencyProfitTotal)} />
+          <StatCard label="Gastos" status="neutral" value={formatArs(grandTotals.expensesArs)} />
+          <StatCard label="Ganancia libre" status={grandTotals.freeProfitArs < 0 ? "error" : "ok"} value={formatArs(grandTotals.freeProfitArs)} />
+        </div>
+      </DataCard>
+
+
+      {/* Alerts */}
       <DataCard description="Alertas que requieren revision operativa." title="Alertas operativas">
         {alerts.length === 0 ? (
           <EmptyState description="No hay alertas activas para la jornada actual." title="Todo en orden" />
@@ -280,7 +528,11 @@ export default async function DashboardPage() {
             {alerts.map((alert) => {
               const Icon = alert.icon;
               return (
-                <Link className="group rounded-3xl border border-lightGray bg-white p-4 shadow-soft transition hover:-translate-y-0.5 hover:shadow-medium" href={alert.href} key={alert.title}>
+                <Link
+                  className="group rounded-3xl border border-lightGray bg-white p-4 shadow-soft transition hover:-translate-y-0.5 hover:shadow-medium"
+                  href={alert.href}
+                  key={alert.title}
+                >
                   <div className="flex items-start gap-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brandYellow/20 text-brandBlack">
                       <Icon className="h-5 w-5" />
@@ -304,225 +556,116 @@ export default async function DashboardPage() {
         )}
       </DataCard>
 
-      <div className="rounded-[28px] border border-brandYellow/20 bg-brandYellow/10 p-4">
-        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-brandYellow">Modulo Bolsas</p>
-        <h2 className="mt-1 font-heading text-2xl font-black text-brandWhite">Divisas y saldos separados</h2>
-      </div>
-
-      <DataCard description="Resumen operativo de las cinco bolsas con diferencia estimada." title="Bolsas de divisas">
-        <div className="grid gap-4 xl:grid-cols-2">
-          {activeBags.map((bag) => {
-            const difference = Number(bag.difference_ars ?? 0);
-            return (
-              <div className="rounded-3xl border border-lightGray bg-white p-4 shadow-soft" key={bag.id}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.22em] text-mediumGray">Bolsa</p>
-                    <h3 className="mt-1 font-heading text-xl font-black text-brandBlack">{bag.name}</h3>
-                    <p className="text-sm text-mediumGray">{bag.responsible_name ?? "Sin asignar"}</p>
-                  </div>
-                  <Badge variant={toneForBag(difference, bag.status) === "ok" ? "success" : toneForBag(difference, bag.status) === "revisar" ? "warning" : "danger"}>
-                    {toneForBag(difference, bag.status)}
-                  </Badge>
-                </div>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-lightGray bg-lightGray/20 p-3">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Efectivo disponible</p>
-                    <p className="mt-1 font-semibold text-brandBlack">{formatArs(Number(bag.current_cash_ars ?? 0))}</p>
-                  </div>
-                  <div className="rounded-2xl border border-lightGray bg-lightGray/20 p-3">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Cuenta disponible</p>
-                    <p className="mt-1 font-semibold text-brandBlack">{formatArs(Number(bag.current_account_ars ?? 0))}</p>
-                  </div>
-                  <div className="rounded-2xl border border-lightGray bg-lightGray/20 p-3">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">USD disponibles</p>
-                    <p className="mt-1 font-semibold text-brandBlack">{formatUsd(Number(bag.current_usd ?? 0))}</p>
-                  </div>
-                  <div className="rounded-2xl border border-lightGray bg-lightGray/20 p-3">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Ganancia acumulada</p>
-                    <p className="mt-1 font-semibold text-brandBlack">{formatArs(Number(bag.accumulated_profit_ars ?? 0))}</p>
-                  </div>
-                  <div className="rounded-2xl border border-lightGray bg-lightGray/20 p-3">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Diferencia estimada</p>
-                    <p className="mt-1 font-semibold text-brandBlack">{formatSignedArs(difference)}</p>
-                  </div>
-                  <div className="rounded-2xl border border-lightGray bg-lightGray/20 p-3">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Estado</p>
-                    <p className="mt-1 font-semibold text-brandBlack">{bag.status}</p>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button asChild className="shadow-yellowGlow" size="sm">
-                    <Link href={`/bolsas/${bag.id}`}>Ver detalles</Link>
-                  </Button>
-                  <Button asChild size="sm" variant="secondary">
-                    <Link href={`/bolsas/nueva-operacion?bagId=${bag.id}`}>Nueva operacion</Link>
-                  </Button>
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={`/bolsas/${bag.id}/vender-a-bolsa`}>Vender a otra bolsa</Link>
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </DataCard>
-
-      <div className="rounded-[28px] border border-success/20 bg-success/10 p-4">
-        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-success">Modulo Pago Facil</p>
-        <h2 className="mt-1 font-heading text-2xl font-black text-brandWhite">Cajas, gastos y cierre semanal</h2>
-      </div>
-
-      <DataCard description="Cargas y estados por caja Pago Facil." title="Pago Facil - cajas">
-        <div className="grid gap-4 xl:grid-cols-2">
-          {boxes.map((register) => (
-            <div className="rounded-3xl border border-lightGray bg-white p-4 shadow-soft" key={register.id}>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.22em] text-mediumGray">Caja {register.register_number}</p>
-                  <h3 className="mt-1 font-heading text-xl font-black text-brandBlack">{register.name}</h3>
-                  <p className="text-sm text-mediumGray">{register.branch_name}</p>
-                </div>
-                <Badge variant={register.today_status === "revisado" || register.today_status === "cargado" ? "success" : register.today_status === "parcial" ? "warning" : "neutral"}>
-                  {register.today_status}
-                </Badge>
-              </div>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-lightGray bg-lightGray/20 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Total operado hoy</p>
-                  <p className="mt-1 font-semibold text-brandBlack">{formatArs(Number(register.today_operated_ars ?? 0))}</p>
-                </div>
-                <div className="rounded-2xl border border-lightGray bg-lightGray/20 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Ganancia hoy</p>
-                  <p className="mt-1 font-semibold text-brandBlack">{formatArs(Number(register.today_profit_ars ?? 0))}</p>
-                </div>
-                <div className="rounded-2xl border border-lightGray bg-lightGray/20 p-3 sm:col-span-2">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Estado de carga</p>
-                  <p className="mt-1 font-semibold text-brandBlack">{register.today_report ? register.today_report.status : "pendiente"}</p>
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button asChild className="shadow-yellowGlow" size="sm">
-                  <Link href={`/cajas/${register.id}`}>Ver caja</Link>
-                </Button>
-                <Button asChild size="sm" variant="secondary">
-                  <Link href={`/cajas/${register.id}/cargar`}>Cargar dia</Link>
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </DataCard>
-
+      {/* Expenses + weekly closure */}
       <div className="grid gap-4 xl:grid-cols-2">
-        <DataCard description="Gastos de hoy y su estado de pago." title="Pago Facil - gastos">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <StatCard className="shadow-none" helper="No se cuentan anulados" label="Gastos del dia" value={formatArs(todayExpenses.reduce((acc, expense) => acc + Number(expense.amount_ars ?? 0), 0))} />
-            <StatCard className="shadow-none" helper="Aun no resueltos" label="Pendientes" value={formatArs(pendingExpensesToday.reduce((acc, expense) => acc + Number(expense.amount_ars ?? 0), 0))} />
-            <StatCard className="shadow-none" helper="Cantidad de registros" label="Movimientos" value={`${todayExpenses.length}`} />
+        <DataCard description="Gastos de hoy y su estado de pago." title="Pago Facil — gastos">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatCard
+              className="shadow-none"
+              helper="No se cuentan anulados"
+              label="Gastos del dia"
+              value={formatArs(todayExpenses.reduce((acc, e) => acc + Number(e.amount_ars ?? 0), 0))}
+            />
+            <StatCard
+              className="shadow-none"
+              helper="Aun no resueltos"
+              label="Pendientes"
+              value={formatArs(pendingExpensesToday.reduce((acc, e) => acc + Number(e.amount_ars ?? 0), 0))}
+            />
+            <StatCard
+              className="shadow-none"
+              helper="Cantidad de registros"
+              label="Movimientos"
+              value={`${todayExpenses.length}`}
+            />
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button asChild>
               <Link href="/gastos">Ir a gastos</Link>
             </Button>
-            <Button asChild variant="secondary">
-              <Link href="/gastos">Ver detalle</Link>
-            </Button>
           </div>
         </DataCard>
 
-        <DataCard description="Estado del cierre semanal de Pago Facil." title="Pago Facil - cierre semanal">
-          <div className="grid gap-4 md:grid-cols-2">
-            <StatCard className="shadow-none" helper="Viernes a jueves" label="Semana" value={`${weeklyClosureData.weekStartDate} / ${weeklyClosureData.weekEndDate}`} />
-            <StatCard className="shadow-none" helper="Estado general" label="Cierre" value={weeklyClosureData.status.toUpperCase()} status={weeklyClosureData.status === "cerrado" ? "ok" : weeklyClosureData.status === "revisar" ? "revisar" : "pendiente"} />
-            <StatCard className="shadow-none" helper="Total operado" label="Operado" value={formatArs(weeklyClosureData.totals.totalOperatedArs)} />
-            <StatCard className="shadow-none" helper="Ganancia Pago Facil" label="Ganancia" value={formatArs(weeklyClosureData.totals.totalProfitArs)} />
+        <DataCard description="Estado del cierre semanal de Pago Facil." title="Pago Facil — cierre semanal">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <StatCard
+              className="shadow-none"
+              helper="Viernes a jueves"
+              label="Semana"
+              value={`${weeklyClosureData.weekStartDate} / ${weeklyClosureData.weekEndDate}`}
+            />
+            <StatCard
+              className="shadow-none"
+              helper="Estado general"
+              label="Cierre"
+              status={weeklyClosureData.status === "cerrado" ? "ok" : weeklyClosureData.status === "revisar" ? "revisar" : "pendiente"}
+              value={weeklyClosureData.status.toUpperCase()}
+            />
+            <StatCard
+              className="shadow-none"
+              helper="Total operado"
+              label="Operado"
+              value={formatArs(weeklyClosureData.totals.totalOperatedArs)}
+            />
+            <StatCard
+              className="shadow-none"
+              helper="Ganancia Pago Facil"
+              label="Ganancia"
+              value={formatArs(weeklyClosureData.totals.totalProfitArs)}
+            />
           </div>
-          <div className="mt-4 flex flex-wrap gap-3">
+          <div className="mt-4">
             <Button asChild>
               <Link href="/cierres">Ver cierre semanal</Link>
             </Button>
           </div>
         </DataCard>
-
-        <DataCard description="Ultimas notas importantes y urgentes." title="Notas importantes">
-          {visibleNotes.length === 0 ? (
-            <EmptyState description="No hay notas urgentes o importantes abiertas en este momento." title="Sin notas importantes" />
-          ) : (
-            <div className="space-y-3">
-              {visibleNotes.map((note) => (
-                <Link className="block rounded-2xl border border-lightGray bg-lightGray/20 p-4 transition hover:bg-lightGray/30" href={note.entity_href || "/dashboard"} key={note.id}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-brandBlack">{note.title}</p>
-                      <p className="mt-1 text-sm text-mediumGray">{note.body}</p>
-                      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-mediumGray">{note.entity_label ?? note.entity_type}</p>
-                    </div>
-                    <Badge variant={note.priority === "urgente" ? "danger" : "warning"}>{note.priority}</Badge>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </DataCard>
       </div>
 
+      {/* Resumen operativo + notas */}
       <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
-        <DataCard description="Cruce rapido de cifras principales." title="Revision general">
-          <div className="overflow-x-auto">
-            <table className="min-w-[920px] border-separate border-spacing-0 text-sm">
-              <thead className="bg-lightGray text-brandBlack">
-                <tr>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Indicador</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Valor</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Detalle</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="bg-white">
-                  <td className="border-b border-lightGray px-4 py-4 font-semibold">Ganancia libre</td>
-                  <td className="border-b border-lightGray px-4 py-4 font-black">{formatArs(reportAvailableToday)}</td>
-                  <td className="border-b border-lightGray px-4 py-4 text-mediumGray">Ganancia menos gastos</td>
-                </tr>
-                <tr className="bg-lightGray/15">
-                  <td className="border-b border-lightGray px-4 py-4 font-semibold">Ganancia semanal</td>
-                  <td className="border-b border-lightGray px-4 py-4 font-black">{formatArs(weeklyClosureData.totals.totalProfitArs)}</td>
-                  <td className="border-b border-lightGray px-4 py-4 text-mediumGray">Solo Pago Facil</td>
-                </tr>
-                <tr className="bg-white">
-                  <td className="border-b border-lightGray px-4 py-4 font-semibold">Total operado semanal</td>
-                  <td className="border-b border-lightGray px-4 py-4 font-black">{formatArs(weeklyClosureData.totals.totalOperatedArs)}</td>
-                  <td className="border-b border-lightGray px-4 py-4 text-mediumGray">Caja consolidada</td>
-                </tr>
-                <tr className="bg-lightGray/15">
-                  <td className="border-b border-lightGray px-4 py-4 font-semibold">Diferencia total bolsas</td>
-                  <td className="border-b border-lightGray px-4 py-4 font-black">{formatSignedArs(totalBagDifference)}</td>
-                  <td className="border-b border-lightGray px-4 py-4 text-mediumGray">No incluye transferencias internas</td>
-                </tr>
-                <tr className="bg-white">
-                  <td className="border-b border-lightGray px-4 py-4 font-semibold">Notas urgentes abiertas</td>
-                  <td className="border-b border-lightGray px-4 py-4 font-black">{visibleNotes.length}</td>
-                  <td className="border-b border-lightGray px-4 py-4 text-mediumGray">Seguimiento operativo</td>
-                </tr>
-              </tbody>
-            </table>
+        <DataCard description="Estado general de bolsas y saldos." title="Resumen operativo">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <StatCard className="shadow-none" helper="Con diferencia estimada" label="Bolsas para revisar" value={`${bagsToReview}`} />
+            <StatCard className="shadow-none" helper="Prestado total" label="Total prestado" value={formatArs(totalBorrowed)} />
+            <StatCard className="shadow-none" helper="Efectivo total" label="Efectivo" value={formatArs(totalCash)} />
+            <StatCard className="shadow-none" helper="Cuenta total" label="Cuenta" value={formatArs(totalAccount)} />
+            <StatCard className="shadow-none" helper="USD total disponible" label="USD" value={formatUsd(totalUsd)} />
+            <StatCard className="shadow-none" helper="Ganancia acumulada" label="Bolsas" value={formatArs(totalBagProfit)} />
           </div>
         </DataCard>
 
         <div className="space-y-4">
-          <DataCard description="Estado general de bolsas y cajas para lectura rapida." title="Resumen operativo">
-            <div className="grid gap-4 md:grid-cols-2">
-              <StatCard className="shadow-none" helper="Con diferencia estimada" label="Bolsas para revisar" value={`${bagsToReview}`} />
-              <StatCard className="shadow-none" helper="Prestado total" label="Total prestado" value={formatArs(totalBorrowed)} />
-              <StatCard className="shadow-none" helper="Efectivo total" label="Efectivo" value={formatArs(totalCash)} />
-              <StatCard className="shadow-none" helper="Cuenta total" label="Cuenta" value={formatArs(totalAccount)} />
-              <StatCard className="shadow-none" helper="USD total" label="USD" value={formatUsd(totalUsd)} />
-              <StatCard className="shadow-none" helper="Ganancia acumulada" label="Bolsas" value={formatArs(totalBagProfit)} />
-            </div>
+          <DataCard description="Notas importantes y urgentes abiertas." title="Notas importantes">
+            {notes.length === 0 ? (
+              <EmptyState
+                description="No hay notas urgentes o importantes abiertas en este momento."
+                title="Sin notas importantes"
+              />
+            ) : (
+              <div className="space-y-3">
+                {notes.map((note) => (
+                  <Link
+                    className="block rounded-2xl border border-lightGray bg-lightGray/20 p-4 transition hover:bg-lightGray/30"
+                    href={note.entity_href || "/dashboard"}
+                    key={note.id}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-brandBlack">{note.title}</p>
+                        <p className="mt-1 text-sm text-mediumGray">{note.body}</p>
+                        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-mediumGray">
+                          {note.entity_label ?? note.entity_type}
+                        </p>
+                      </div>
+                      <Badge variant={note.priority === "urgente" ? "danger" : "warning"}>
+                        {note.priority}
+                      </Badge>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </DataCard>
 
           <NotesPanel
@@ -535,6 +678,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* Quick actions */}
       <div className="flex flex-wrap gap-3">
         {canAccessPath(auth.role, "/bolsas") ? (
           <Button asChild>

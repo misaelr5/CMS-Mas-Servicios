@@ -105,7 +105,7 @@ export function LoginForm({ notice }: { notice?: string }) {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="correo@maservicios.com"
+              placeholder="correo@maservicios.ar"
               required
             />
           </div>

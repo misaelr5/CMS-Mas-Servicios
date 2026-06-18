@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useActionState } from "react";
 
@@ -108,7 +108,7 @@ export function CashDailyReportForm({
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-lightGray/70" htmlFor={`operated_amount_ars_${category.id}`}>
-                      Operado
+                      Monto operado
                     </label>
                     <Input
                       defaultValue={existingLine?.operated_amount_ars ?? 0}
@@ -122,7 +122,7 @@ export function CashDailyReportForm({
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-lightGray/70" htmlFor={`profit_amount_ars_${category.id}`}>
-                      Ganancia
+                      Ganancia / comisión
                     </label>
                     <Input
                       defaultValue={existingLine?.profit_amount_ars ?? 0}
@@ -172,9 +172,9 @@ export function CashDailyReportForm({
         <div className="rounded-3xl border border-brandYellow/25 bg-brandYellow/10 p-4 text-brandBlack shadow-soft">
           <p className="text-[11px] uppercase tracking-[0.22em] text-brandBlack/70">Lectura rápida</p>
           <div className="mt-3 space-y-3 text-sm">
-            <div className="rounded-2xl bg-white/65 px-4 py-3 font-semibold">Cargá solo importes. Las notas se manejan en otras pantallas.</div>
-            <div className="rounded-2xl bg-white/65 px-4 py-3 font-semibold">Guardá parcial si todavía no terminaste.</div>
-            <div className="rounded-2xl bg-white/65 px-4 py-3 font-semibold">Las sumas se recalculan automáticamente.</div>
+            <div className="rounded-2xl bg-white/65 px-4 py-3 font-semibold">Monto operado = volumen movido.</div>
+            <div className="rounded-2xl bg-white/65 px-4 py-3 font-semibold">Ganancia / comisión = utilidad de la categoría.</div>
+            <div className="rounded-2xl bg-white/65 px-4 py-3 font-semibold">Si no terminaste, guardá parcial y seguí después.</div>
           </div>
         </div>
       </div>

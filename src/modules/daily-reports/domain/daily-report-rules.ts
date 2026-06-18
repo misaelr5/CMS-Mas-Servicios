@@ -1,6 +1,6 @@
 import type { CashDailyReport, DailyReportAdjustment, Expense } from "@/lib/db/types";
 
-function getSignedAdjustmentAmount(type: DailyReportAdjustment["adjustment_type"], amount: number) {
+export function getSignedAdjustmentAmount(type: DailyReportAdjustment["adjustment_type"], amount: number) {
   if (type === "pf_manual_negative" || type === "currency_manual_negative") return -Math.abs(amount);
   return Math.abs(amount);
 }
@@ -41,6 +41,20 @@ export function calculateDailyReportTotals({
     expensesArs,
     availableProfitArs: grossProfitArs - expensesArs
   };
+}
+
+export function calculateTotalsFromReports(
+  cashReports: CashDailyReport[],
+  adjustments: DailyReportAdjustment[],
+  expenses: Expense[],
+  automaticCurrencyProfitArs = 0
+) {
+  return calculateDailyReportTotals({
+    cashReports,
+    adjustments,
+    expenses,
+    automaticCurrencyProfitArs
+  });
 }
 
 export function validateManualAdjustment({ amountArs, reason }: { amountArs: number; reason: string }) {

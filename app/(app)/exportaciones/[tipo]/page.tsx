@@ -17,6 +17,7 @@ import { formatCurrencyARS, formatDateAR, formatUSD } from "@/lib/exportaciones/
 import { buildBagsExport, buildCashLoadsExport, buildDailyReportExport, buildExpensesExport, buildWeeklyClosureExport } from "@/lib/exportaciones/export-service";
 import { getBuenosAiresDateString } from "@/lib/finance/report-dates";
 import { getWeeklyCashClosureRange } from "@/lib/finance/weekly-cash-closure-calculations";
+import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -46,6 +47,15 @@ function buildCsvLink(tipo: ExportReportType, searchParams: Record<string, strin
     if (typeof value === "string" && value) params.set(key, value);
   });
   return `/api/exportaciones/${tipo}/csv?${params.toString()}`;
+}
+
+async function getAssignedCashRegisterIds(userId: string) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return [];
+
+  const { data, error } = await admin.from("cash_registers").select("id").eq("responsible_user_id", userId);
+  if (error) return [];
+  return ((data ?? []) as Array<{ id?: unknown }>).map((row) => String(row.id ?? ""));
 }
 
 function renderCell(key: string, value: unknown) {
@@ -83,14 +93,37 @@ export default async function ExportacionTipoPage({
     return <AccessDenied />;
   }
 
-  if (!canExportType(auth.role, tipo)) {
-    return <AccessDenied />;
+  const assignedCashRegisterIds = auth.role === "cajero" ? await getAssignedCashRegisterIds(auth.userId) : [];
+  const permission = canExportType({
+    userRole: auth.role,
+    exportType: tipo,
+    userId: auth.userId,
+    filters: {
+      date: getParam(resolvedSearchParams, "date") || undefined,
+      from: getParam(resolvedSearchParams, "from") || undefined,
+      to: getParam(resolvedSearchParams, "to") || undefined,
+      branch_id: getParam(resolvedSearchParams, "branch_id") || undefined,
+      status: getParam(resolvedSearchParams, "status") || undefined,
+      category: getParam(resolvedSearchParams, "category") || undefined,
+      cash_register_id: getParam(resolvedSearchParams, "cash_register_id") || undefined,
+      bag_id: getParam(resolvedSearchParams, "bag_id") || undefined,
+      operation_type: getParam(resolvedSearchParams, "operation_type") || undefined
+    },
+    assignedCashRegisterIds
+  });
+
+  if (!permission.allowed) {
+    return <AccessDenied description={permission.reason ?? "No tenés permisos para exportar este reporte."} title="No tenés permisos para exportar este reporte" />;
   }
 
   const printMode = getParam(resolvedSearchParams, "print") === "true";
   const date = getParam(resolvedSearchParams, "date", getBuenosAiresDateString());
   const from = getParam(resolvedSearchParams, "from", date);
   const to = getParam(resolvedSearchParams, "to", date);
+  const effectiveSearchParams = {
+    ...resolvedSearchParams,
+    ...permission.restrictedFilters
+  };
 
   let exportData:
     | Awaited<ReturnType<typeof buildDailyReportExport>>
@@ -101,38 +134,38 @@ export default async function ExportacionTipoPage({
     | null = null;
 
   if (tipo === "reporte-diario") {
-    exportData = await buildDailyReportExport(date, { role: auth.role, userId: auth.userId });
+    exportData = await buildDailyReportExport(effectiveSearchParams.date || date, { role: auth.role, userId: auth.userId });
   } else if (tipo === "cierre-semanal") {
-    exportData = await buildWeeklyClosureExport(date, { role: auth.role, userId: auth.userId });
+    exportData = await buildWeeklyClosureExport(effectiveSearchParams.date || date, { role: auth.role, userId: auth.userId });
   } else if (tipo === "gastos") {
     exportData = await buildExpensesExport(
       {
-        from,
-        to,
-        branchId: getParam(resolvedSearchParams, "branch_id") || undefined,
-        status: getParam(resolvedSearchParams, "status") as any,
-        category: getParam(resolvedSearchParams, "category") || undefined
+        from: effectiveSearchParams.from || from,
+        to: effectiveSearchParams.to || to,
+        branchId: getParam(effectiveSearchParams, "branch_id") || undefined,
+        status: getParam(effectiveSearchParams, "status") as any,
+        category: getParam(effectiveSearchParams, "category") || undefined
       },
       { role: auth.role, userId: auth.userId }
     );
   } else if (tipo === "cargas-cajas") {
     exportData = await buildCashLoadsExport(
       {
-        from,
-        to,
-        branchId: getParam(resolvedSearchParams, "branch_id") || undefined,
-        cashRegisterId: getParam(resolvedSearchParams, "cash_register_id") || undefined,
-        status: getParam(resolvedSearchParams, "status") || undefined
+        from: effectiveSearchParams.from || from,
+        to: effectiveSearchParams.to || to,
+        branchId: getParam(effectiveSearchParams, "branch_id") || undefined,
+        cashRegisterId: getParam(effectiveSearchParams, "cash_register_id") || undefined,
+        status: getParam(effectiveSearchParams, "status") || undefined
       },
       { role: auth.role, userId: auth.userId }
     );
   } else if (tipo === "bolsas") {
     exportData = await buildBagsExport(
       {
-        from,
-        to,
-        bagId: getParam(resolvedSearchParams, "bag_id") || undefined,
-        operationType: getParam(resolvedSearchParams, "operation_type") || undefined
+        from: effectiveSearchParams.from || from,
+        to: effectiveSearchParams.to || to,
+        bagId: getParam(effectiveSearchParams, "bag_id") || undefined,
+        operationType: getParam(effectiveSearchParams, "operation_type") || undefined
       },
       { role: auth.role, userId: auth.userId }
     );
@@ -148,13 +181,13 @@ export default async function ExportacionTipoPage({
       action: `export.${tipo}.print`,
       entityType: "export",
       entityId: null,
-      newData: { tipo, filtros: resolvedSearchParams, formato: "print" }
+      newData: { tipo, filtros: effectiveSearchParams, formato: "print" }
     });
   }
 
-  const csvLink = buildCsvLink(tipo, resolvedSearchParams);
+  const csvLink = buildCsvLink(tipo, effectiveSearchParams);
   const printParams = new URLSearchParams(
-    Object.entries(resolvedSearchParams).flatMap(([key, value]) => (typeof value === "string" && value ? [[key, value]] : []))
+    Object.entries(effectiveSearchParams).flatMap(([key, value]) => (typeof value === "string" && value ? [[key, value]] : []))
   );
   printParams.set("print", "true");
   const printLink = `/exportaciones/${tipo}?${printParams.toString()}`;
@@ -173,6 +206,7 @@ export default async function ExportacionTipoPage({
       {!printMode ? (
         <form className="grid gap-3 rounded-3xl border border-white/10 bg-darkSurface/80 p-4 shadow-soft md:grid-cols-2 xl:grid-cols-4" method="get">
           <input name="print" type="hidden" value="false" />
+          {permission.restrictedFilters?.cash_register_id ? <input name="cash_register_id" type="hidden" value={permission.restrictedFilters.cash_register_id} /> : null}
           {tipo === "reporte-diario" ? (
             <>
               <div className="space-y-2">
