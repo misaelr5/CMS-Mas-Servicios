@@ -347,7 +347,7 @@ export async function getDailyReportDetailedData(
 
   const centro = buildGroup(centroBranch);
   const terminal = buildGroup(terminalBranch);
-  const visibleRegisters = registers.filter((register) => isBranchVisible(register.branch_id));
+  const visibleRegisters = registerSheets.filter((sheet) => isBranchVisible(sheet.register.branch_id));
   const visibleBags = bagSheets.filter((bag) => bag.branchId !== null && isBranchVisible(bag.branchId));
   const visibleDailyReports = dailyReports.filter((report) => isBranchVisible(report.branch_id));
   const visibleExpenses = expenses.filter((expense) => isBranchVisible(expense.branch_id));
