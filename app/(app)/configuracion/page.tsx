@@ -52,7 +52,7 @@ export default async function ConfiguracionPage() {
           <div className="mt-4 space-y-3 text-sm text-mediumGray">
             <p>• Branding y layout ya definidos en la etapa anterior.</p>
             <p>• Sesión persistente por 12 horas.</p>
-            <p>• Protección de rutas activa desde middleware.</p>
+            <p>• Protección de rutas activa desde proxy.</p>
             <p>• Supabase preparado para crecer sin rediseñar la base.</p>
           </div>
         </div>
