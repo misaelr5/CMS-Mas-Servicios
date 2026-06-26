@@ -6,3 +6,13 @@ coverage
 .DS_Store
 .env.local
 .env.*.local
+
+# Logs y artefactos locales del dev server
+*.log
+dev-server.*.log
+
+# Capturas / artefactos de prueba
+localhost-*.png
+
+# Config local de Claude Code (no compartir settings.local)
+.claude/settings.local.json
