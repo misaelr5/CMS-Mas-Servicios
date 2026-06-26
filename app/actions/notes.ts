@@ -76,7 +76,8 @@ export async function createNoteAction(_prevState: ActionState, formData: FormDa
     entity_type: entityType,
     entity_id: isUuid(entityId) ? entityId : null,
     entity_label: entityLabel || null,
-    entity_href: entityHref || null,
+    // Solo aceptar rutas internas relativas; evita hrefs tipo javascript: o URLs externas.
+    entity_href: entityHref.startsWith("/") ? entityHref : null,
     title,
     body,
     priority,

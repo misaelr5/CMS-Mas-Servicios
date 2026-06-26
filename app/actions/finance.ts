@@ -284,7 +284,12 @@ export async function annulDailyReportAdjustmentAction(_prevState: ActionState, 
   if (!oldData || oldData.annulled_at) {
     return { ok: false, message: "El ajuste no existe o ya fue anulado." };
   }
-  if (oldData.branch_id !== branchId) {
+  // report_adjustments no tiene branch_id propio; la sucursal vive en el daily_report padre.
+  const { data: parentReport } = await (admin.from("daily_reports") as any)
+    .select("branch_id")
+    .eq("id", oldData.daily_report_id)
+    .maybeSingle();
+  if (!parentReport || parentReport.branch_id !== branchId) {
     return { ok: false, message: "No podés anular ajustes de otra sucursal." };
   }
 

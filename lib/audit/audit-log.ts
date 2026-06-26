@@ -21,6 +21,7 @@ export async function createAuditLog({
 }: CreateAuditLogInput) {
   const admin = getSupabaseAdminClient();
   if (!admin) {
+    console.error("[createAuditLog] sin admin client; no se registro la accion", { action, entityType, entityId });
     return { ok: false, reason: "missing-admin-client" as const };
   }
 
@@ -35,6 +36,7 @@ export async function createAuditLog({
   });
 
   if (error) {
+    console.error("[createAuditLog] no se pudo escribir el audit log", { action, entityType, entityId, reason: error.message });
     return { ok: false, reason: error.message };
   }
 
