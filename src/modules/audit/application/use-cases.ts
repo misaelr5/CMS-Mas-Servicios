@@ -1,1 +1,2 @@
-export { createAuditLog as createAuditLogUseCase } from "@/lib/audit/audit-log";
+// Caso de uso publico del modulo audit, ya cableado por el composition root.
+export { recordAuditLog as createAuditLogUseCase } from "../index";

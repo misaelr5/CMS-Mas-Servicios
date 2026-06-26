@@ -1,4 +1,10 @@
-import { getSupabaseAdminClient } from "@/lib/supabase/server";
+// Facade publico de auditoria.
+//
+// Mantiene la firma historica `createAuditLog` para no cambiar a los callers
+// (app/actions/*), pero delega en el modulo hexagonal audit (composition root).
+// La logica real vive en src/modules/audit (puerto + adapter + use case).
+
+import { recordAuditLog } from "@/src/modules/audit";
 
 export type CreateAuditLogInput = {
   actorId?: string | null;
@@ -10,35 +16,6 @@ export type CreateAuditLogInput = {
   reason?: string | null;
 };
 
-export async function createAuditLog({
-  actorId = null,
-  action,
-  entityType,
-  entityId = null,
-  oldData = null,
-  newData = null,
-  reason = null
-}: CreateAuditLogInput) {
-  const admin = getSupabaseAdminClient();
-  if (!admin) {
-    console.error("[createAuditLog] sin admin client; no se registro la accion", { action, entityType, entityId });
-    return { ok: false, reason: "missing-admin-client" as const };
-  }
-
-  const { error } = await (admin.from("audit_logs") as any).insert({
-    user_id: actorId,
-    action,
-    entity_type: entityType,
-    entity_id: entityId,
-    old_data: oldData,
-    new_data: newData,
-    reason
-  });
-
-  if (error) {
-    console.error("[createAuditLog] no se pudo escribir el audit log", { action, entityType, entityId, reason: error.message });
-    return { ok: false, reason: error.message };
-  }
-
-  return { ok: true as const };
+export async function createAuditLog(input: CreateAuditLogInput) {
+  return recordAuditLog(input);
 }
