@@ -11,6 +11,7 @@ import type { NoteEntityType, NotePriority } from "@/lib/db/types";
 import { isUuid, normalizePriority } from "@/lib/notes/notes-service";
 import { getFriendlySupabaseErrorMessage } from "@/lib/errors/user-facing";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
+import { getString } from "@/lib/forms/form-data";
 
 type ActionState = {
   ok: boolean;
@@ -20,11 +21,6 @@ type ActionState = {
 const canWriteNotes = (role: Role) => role === "admin" || role === "encargado" || role === "cajero";
 const canResolveNotes = (role: Role) => role === "admin" || role === "encargado";
 const canAnnulNotes = (role: Role) => role === "admin" || role === "encargado";
-
-function getString(formData: FormData, key: string) {
-  const value = formData.get(key);
-  return typeof value === "string" ? value.trim() : "";
-}
 
 function getEntityType(value: string): NoteEntityType {
   const allowed: NoteEntityType[] = [

@@ -22,6 +22,7 @@ import {
 } from "@/lib/finance/daily-report-service";
 import { getWeeklyCashClosureLockState } from "@/lib/finance/weekly-cash-closure-service";
 import { getFriendlySupabaseErrorMessage } from "@/lib/errors/user-facing";
+import { getString } from "@/lib/forms/form-data";
 
 type ActionState = {
   ok: boolean;
@@ -31,11 +32,6 @@ type ActionState = {
 
 const canWrite = (role: Role) => role === "admin" || role === "encargado" || role === "cajero";
 const canReview = (role: Role) => role === "admin" || role === "encargado";
-
-function getString(formData: FormData, key: string) {
-  const value = formData.get(key);
-  return typeof value === "string" ? value.trim() : "";
-}
 
 function todayIsoInBuenosAires() {
   return new Intl.DateTimeFormat("en-CA", {

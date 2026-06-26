@@ -42,10 +42,10 @@ export function getHomePathForRole(role: Role) {
 export function canAccessPath(role: Role, pathname: string) {
   if (isAdmin(role)) return true;
   const match = routePermissions.find((entry) => entry.pattern.test(pathname));
-  if (!match) return true;
+  if (!match) return false;
   return match.roles.includes(role);
 }
 
 export function allowedRolesForPath(pathname: string) {
-  return routePermissions.find((entry) => entry.pattern.test(pathname))?.roles ?? roles;
+  return routePermissions.find((entry) => entry.pattern.test(pathname))?.roles ?? [];
 }

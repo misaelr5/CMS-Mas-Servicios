@@ -20,6 +20,7 @@ import {
   recalculateDailyReportBranch
 } from "@/lib/finance/daily-report-service";
 import { getFriendlySupabaseErrorMessage } from "@/lib/errors/user-facing";
+import { getString, getNumber } from "@/lib/forms/form-data";
 
 type ActionState = {
   ok: boolean;
@@ -27,16 +28,6 @@ type ActionState = {
 };
 
 const canWriteReports = (role: Role) => role === "admin" || role === "encargado";
-
-function getString(formData: FormData, key: string) {
-  const value = formData.get(key);
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function getNumber(formData: FormData, key: string) {
-  const value = Number(getString(formData, key));
-  return Number.isFinite(value) ? value : 0;
-}
 
 function safePath(path: string) {
   return path.startsWith("/") ? path : "/reporte-diario";

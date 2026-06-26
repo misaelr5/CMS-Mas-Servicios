@@ -14,6 +14,7 @@ import {
   getWeeklyCashClosureViewData
 } from "@/lib/finance/weekly-cash-closure-service";
 import { getWeeklyCashClosureRange } from "@/lib/finance/weekly-cash-closure-calculations";
+import { getString } from "@/lib/forms/form-data";
 
 type ActionState = {
   ok: boolean;
@@ -21,11 +22,6 @@ type ActionState = {
 };
 
 const canManageClosures = (role: Role) => role === "admin" || role === "encargado";
-
-function getString(formData: FormData, key: string) {
-  const value = formData.get(key);
-  return typeof value === "string" ? value.trim() : "";
-}
 
 function safePath(path: string) {
   return path.startsWith("/") ? path : "/cierres";
