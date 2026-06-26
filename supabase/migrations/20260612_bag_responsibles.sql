@@ -1,10 +1,10 @@
 with desired_responsibles (bag_slug, email) as (
   values
-    ('bolsa-1', 'lourdes@maservicios.com'),
-    ('bolsa-2', 'victoria@maservicios.com'),
-    ('bolsa-3', 'antonella@maservicios.com'),
-    ('bolsa-4', 'roman@maservicios.com'),
-    ('bolsa-5', 'rocio@maservicios.com')
+    ('bolsa-1', 'lourdes@maservicios.ar'),
+    ('bolsa-2', 'victoria@maservicios.ar'),
+    ('bolsa-3', 'antonella@maservicios.ar'),
+    ('bolsa-4', 'roman@maservicios.ar'),
+    ('bolsa-5', 'rocio@maservicios.ar')
 ),
 resolved as (
   select
@@ -21,11 +21,11 @@ where b.id = r.bag_id;
 
 with desired_responsibles (bag_slug, email) as (
   values
-    ('bolsa-1', 'lourdes@maservicios.com'),
-    ('bolsa-2', 'victoria@maservicios.com'),
-    ('bolsa-3', 'antonella@maservicios.com'),
-    ('bolsa-4', 'roman@maservicios.com'),
-    ('bolsa-5', 'rocio@maservicios.com')
+    ('bolsa-1', 'lourdes@maservicios.ar'),
+    ('bolsa-2', 'victoria@maservicios.ar'),
+    ('bolsa-3', 'antonella@maservicios.ar'),
+    ('bolsa-4', 'roman@maservicios.ar'),
+    ('bolsa-5', 'rocio@maservicios.ar')
 ),
 resolved as (
   select
@@ -43,11 +43,11 @@ set status = excluded.status;
 
 with desired_responsibles (bag_slug, email) as (
   values
-    ('bolsa-1', 'lourdes@maservicios.com'),
-    ('bolsa-2', 'victoria@maservicios.com'),
-    ('bolsa-3', 'antonella@maservicios.com'),
-    ('bolsa-4', 'roman@maservicios.com'),
-    ('bolsa-5', 'rocio@maservicios.com')
+    ('bolsa-1', 'lourdes@maservicios.ar'),
+    ('bolsa-2', 'victoria@maservicios.ar'),
+    ('bolsa-3', 'antonella@maservicios.ar'),
+    ('bolsa-4', 'roman@maservicios.ar'),
+    ('bolsa-5', 'rocio@maservicios.ar')
 ),
 resolved as (
   select

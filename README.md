@@ -79,6 +79,15 @@ pnpm start
 - `pnpm seed:roman`: crea o sincroniza el usuario principal.
 - `pnpm seed:operational`: carga datos operativos iniciales.
 
+## Usuario de desarrollo
+
+Para pruebas locales, el usuario principal queda alineado con Supabase en:
+
+- Email: `roman@maservicios.ar`
+- Password: `Rom5an`
+
+El seed tambien reconoce alias viejos si aparecieran en bases anteriores, pero la referencia vigente es `.ar`.
+
 ## Migraciones Supabase
 
 Aplicar primero en el SQL Editor de Supabase:
