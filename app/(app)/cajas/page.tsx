@@ -203,7 +203,7 @@ export default async function CajasPage() {
                   const locked = lockedBranchIds.has(register.branch_id);
                   const loaded = isCashReportLoaded(safeStatus(register.today_status));
                   return (
-                    <article key={register.id} className="overflow-hidden rounded-[28px] border border-lightGray bg-white text-brandBlack shadow-medium">
+                    <article key={register.id} className="group/caja overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.035] text-brandWhite shadow-lift backdrop-blur-xl transition-all duration-200 hover:border-brandYellow/25 hover:bg-white/[0.06]">
                       <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
@@ -213,8 +213,8 @@ export default async function CajasPage() {
                             </Badge>
                             <Badge variant={locked ? "danger" : "success"}>{locked ? "Cerrado" : "Abierto"}</Badge>
                           </div>
-                          <h3 className="mt-3 font-heading text-2xl font-black text-brandBlack">{register.responsible_name ?? register.name}</h3>
-                          <p className="text-sm text-mediumGray">{register.slug}</p>
+                          <h3 className="mt-3 font-heading text-2xl font-black text-brandWhite">{register.responsible_name ?? register.name}</h3>
+                          <p className="text-sm text-lightGray/55">{register.slug}</p>
                         </div>
 
                         <div className="flex flex-wrap gap-2">
@@ -233,18 +233,18 @@ export default async function CajasPage() {
                         </div>
                       </div>
 
-                      <div className="grid border-t border-lightGray bg-lightGray/20 sm:grid-cols-3">
-                        <div className="border-b border-lightGray p-4 sm:border-b-0 sm:border-r">
-                          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-mediumGray">Operado</p>
-                          <p className="mt-1 font-heading text-xl font-black tabular-nums">{formatArs(register.today_operated_ars)}</p>
+                      <div className="grid border-t border-white/10 bg-black/20 sm:grid-cols-3">
+                        <div className="border-b border-white/10 p-4 sm:border-b-0 sm:border-r">
+                          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-lightGray/50">Operado</p>
+                          <p className="mt-1 font-heading text-xl font-black tabular-nums text-brandWhite">{formatArs(register.today_operated_ars)}</p>
                         </div>
-                        <div className="border-b border-lightGray p-4 sm:border-b-0 sm:border-r">
-                          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-mediumGray">Ganancia</p>
-                          <p className="mt-1 font-heading text-xl font-black tabular-nums">{formatArs(register.today_profit_ars)}</p>
+                        <div className="border-b border-white/10 p-4 sm:border-b-0 sm:border-r">
+                          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-lightGray/50">Ganancia</p>
+                          <p className="mt-1 font-heading text-xl font-black tabular-nums text-brandYellow">{formatArs(register.today_profit_ars)}</p>
                         </div>
                         <div className="p-4">
-                          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-mediumGray">Ultima actualizacion</p>
-                          <p className="mt-1 font-heading text-xl font-black tabular-nums">{formatDateTime(register.updated_at)}</p>
+                          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-lightGray/50">Ultima actualizacion</p>
+                          <p className="mt-1 font-heading text-xl font-black tabular-nums text-brandWhite">{formatDateTime(register.updated_at)}</p>
                         </div>
                       </div>
                     </article>

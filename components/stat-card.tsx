@@ -33,7 +33,7 @@ export function StatCard({
   className?: string;
 }) {
   return (
-    <Card className={cn("group bg-white text-brandBlack shadow-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift", className)}>
+    <Card className={cn("group border-white/10 bg-white/[0.035] text-brandWhite shadow-lift backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:border-brandYellow/25 hover:bg-white/[0.06]", className)}>
       <CardHeader className="pb-2 pt-4">
         <div className="flex items-start justify-between gap-3">
           {Icon ? (
@@ -49,10 +49,10 @@ export function StatCard({
           <StatusBadge status={status} className="ml-auto shrink-0" />
         </div>
         <div className="mt-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mediumGray">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-lightGray/50">
             {label}
           </p>
-          <p className="mt-1.5 font-heading text-3xl font-black leading-none tabular-nums text-brandBlack transition-colors duration-200">
+          <p className="mt-1.5 font-heading text-3xl font-black leading-none tabular-nums text-brandWhite transition-colors duration-200">
             {value}
           </p>
           {trend ? (
@@ -73,7 +73,7 @@ export function StatCard({
         </div>
       </CardHeader>
       {helper ? (
-        <CardContent className="pb-4 pt-0 text-sm text-mediumGray">
+        <CardContent className="pb-4 pt-0 text-sm text-lightGray/55">
           {helper}
         </CardContent>
       ) : null}
