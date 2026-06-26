@@ -1,0 +1,52 @@
+{
+  "modelContextWindow": "expanded",
+  "rules": {
+    "codeReview": {
+      "strict": true,
+      "triggerOn": ["finance", "calculations", "audit", "security"]
+    },
+    "money": {
+      "validateRounding": true,
+      "validateSigns": true,
+      "requireAuditLog": true
+    }
+  },
+  "activateSkillsFor": [
+    "cms-feature-builder",
+    "cms-logic-validator",
+    "cms-security-audit",
+    "code-review",
+    "verify"
+  ],
+  "projectDescription": "MAS SERVICIOS CMS — Internal financial platform for currency bags, cash registers, daily reports, and closures. RBAC-protected, fully audited, strict money calculations.",
+  "hooks": {
+    "PostEdit": [
+      {
+        "files": "lib/finance/**",
+        "message": "⚠️ Dinero modificado. Ejecuta /cms-logic-validator antes de commit.",
+        "severity": "high"
+      },
+      {
+        "files": "src/modules/**/calculations.ts",
+        "message": "⚠️ Cálculos financieros. Valida con /cms-logic-validator.",
+        "severity": "high"
+      },
+      {
+        "files": "app/actions/**",
+        "message": "🔐 Server Action modificada. Revisa con /cms-security-audit.",
+        "severity": "high"
+      },
+      {
+        "files": "lib/auth/**",
+        "message": "🔐 Auth modificada. Audita con /cms-security-audit.",
+        "severity": "high"
+      }
+    ],
+    "PreCommit": [
+      {
+        "message": "🚨 CHECKLIST PRE-COMMIT:\n[ ] Sin hardcoded secrets\n[ ] Audit logs en dinero\n[ ] Roles validados server-side\n[ ] Tests de lógica financiera\n[ ] RLS policies revisadas",
+        "severity": "critical"
+      }
+    ]
+  }
+}
