@@ -16,3 +16,9 @@ localhost-*.png
 
 # Config local de Claude Code (no compartir settings.local)
 .claude/settings.local.json
+
+# Playwright
+test-results
+playwright-report
+blob-report
+.playwright
