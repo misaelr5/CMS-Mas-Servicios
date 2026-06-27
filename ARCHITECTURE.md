@@ -63,7 +63,7 @@ service en `lib/` como facade para no romper callers:
 
 - [x] **audit** — referencia
 - [x] **notes** — `lib/notes/notes-service.ts` (lecturas: list / listImportant)
-- [ ] **expenses** — `lib/finance/expense-service.ts`
+- [x] **expenses** — `lib/finance/expense-service.ts` (page data: dominio puro separa agregacion de fetching)
 - [ ] **cash-registers** — `lib/cash/cash-service.ts`
 - [ ] **daily-reports** — `lib/finance/daily-report-service.ts`
 - [ ] **weekly-closures** — `lib/finance/weekly-cash-closure-service.ts`
