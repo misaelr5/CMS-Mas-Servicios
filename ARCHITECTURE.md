@@ -62,7 +62,7 @@ Cada dominio se migra con el mismo patrón, manteniendo la firma pública del
 service en `lib/` como facade para no romper callers:
 
 - [x] **audit** — referencia
-- [ ] **notes** — `lib/notes/notes-service.ts`
+- [x] **notes** — `lib/notes/notes-service.ts` (lecturas: list / listImportant)
 - [ ] **expenses** — `lib/finance/expense-service.ts`
 - [ ] **cash-registers** — `lib/cash/cash-service.ts`
 - [ ] **daily-reports** — `lib/finance/daily-report-service.ts`
