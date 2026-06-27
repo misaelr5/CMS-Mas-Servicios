@@ -2,10 +2,13 @@
 
 ## 1. Pre-deploy (local)
 
-- [ ] `pnpm build` termina en verde (sin errores de TypeScript)
-- [ ] `pnpm lint` sin errores
-- [ ] `.env.local` NO está versionado (`git status` no lo muestra)
-- [ ] Sin secrets hardcodeados en el código
+Gate en un solo comando: `pnpm predeploy` (corre `build` + `lint`).
+
+- [x] `pnpm build` termina en verde (sin errores de TypeScript) — verificado
+- [x] `pnpm lint` sin errores — verificado
+- [x] `.env.local` NO está versionado (`git status` no lo muestra) — verificado
+- [x] Sin secrets hardcodeados en el código — scan limpio (JWT/service_role/sk-)
+- [x] Smoke en modo producción (`next start`): `/api/health` → 200 `{"status":"ok"}` y `/login` → 200 — verificado localmente
 
 ## 2. Base de datos (Supabase SQL Editor)
 
