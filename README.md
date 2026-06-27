@@ -70,12 +70,25 @@ pnpm build
 pnpm start
 ```
 
+## Tests
+
+```bash
+pnpm test
+pnpm e2e
+```
+
+`pnpm test` corre pruebas unitarias rapidas sobre reglas de dinero y dominio.
+`pnpm e2e` corre Playwright contra la app.
+
 ## Scripts disponibles
 
 - `pnpm dev`: desarrollo local.
 - `pnpm build`: build de produccion.
 - `pnpm start`: arranque en modo produccion.
 - `pnpm lint`: lint del proyecto.
+- `pnpm test`: tests unitarios de dominio.
+- `pnpm e2e`: tests end-to-end con Playwright.
+- `pnpm predeploy`: build + lint + tests unitarios.
 - `pnpm seed:roman`: crea o sincroniza el usuario principal.
 - `pnpm seed:operational`: carga datos operativos iniciales.
 
@@ -95,11 +108,18 @@ Aplicar primero en el SQL Editor de Supabase:
 ```bash
 supabase/schema.sql
 supabase/migrations/20260611_operational_notes.sql
+supabase/migrations/20260612_bag_internal_transfers.sql
+supabase/migrations/20260612_bag_responsibles.sql
 supabase/migrations/20260612_cash_pay_facil.sql
 supabase/migrations/20260613_daily_reports_expenses.sql
 supabase/migrations/20260616_daily_report_closures.sql
+supabase/migrations/20260617_integrity_hardening.sql
 supabase/migrations/20260617_weekly_cash_closures.sql
+supabase/migrations/20260626_audit_logs_insert_lockdown.sql
+supabase/migrations/20260627_rls_scope_hardening.sql
 ```
+
+La migracion `20260627_rls_scope_hardening.sql` es critica: cierra lecturas y escrituras directas por REST fuera del rol/asignacion correspondiente.
 
 Despues correr seeds si hace falta:
 
@@ -152,6 +172,8 @@ Revisar especialmente:
 - Build exitoso.
 - Variables cargadas.
 - Migraciones aplicadas.
+- `20260627_rls_scope_hardening.sql` aplicado en Supabase.
+- `pnpm predeploy` exitoso.
 - Usuario admin creado.
 - Roles revisados.
 - Exportaciones probadas.
