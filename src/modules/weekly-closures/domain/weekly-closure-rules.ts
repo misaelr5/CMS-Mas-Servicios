@@ -1,3 +1,5 @@
+import { roundArs } from "@/src/shared/domain/money";
+
 export type WeeklyClosureLine = {
   totalOperatedArs: number;
   totalProfitArs: number;
@@ -9,8 +11,8 @@ export type WeeklyClosureLine = {
 export function calculateWeeklyClosureTotals(lines: WeeklyClosureLine[]) {
   return lines.reduce(
     (acc, line) => {
-      acc.totalOperatedArs += Number(line.totalOperatedArs ?? 0);
-      acc.totalProfitArs += Number(line.totalProfitArs ?? 0);
+      acc.totalOperatedArs = roundArs(acc.totalOperatedArs + Number(line.totalOperatedArs ?? 0));
+      acc.totalProfitArs = roundArs(acc.totalProfitArs + Number(line.totalProfitArs ?? 0));
       acc.loadedDaysCount += Number(line.loadedDaysCount ?? 0);
       acc.pendingDaysCount += Number(line.pendingDaysCount ?? 0);
       acc.reviewedDaysCount += Number(line.reviewedDaysCount ?? 0);

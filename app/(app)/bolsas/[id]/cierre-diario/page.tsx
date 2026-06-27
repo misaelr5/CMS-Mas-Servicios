@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { NotesPanel } from "@/components/notes/notes-panel";
 import { AccessDenied } from "@/components/access-denied";
 import { BagCloseForm } from "@/components/bags/bag-close-form";
+import { BagWeekCloseForm } from "@/components/bags/bag-week-close-form";
 import { SectionTitle } from "@/components/section-title";
 import { DataCard } from "@/components/data-card";
 import { EmptyState } from "@/components/empty-state";
@@ -67,6 +68,15 @@ export default async function CierreDiarioPage({ params }: { params: Promise<{ i
           <BagCloseForm bag={bag} />
         </DataCard>
       </div>
+
+      {auth?.role === "admin" ? (
+        <DataCard
+          description="Cierre de semana: snapshot + ganancia a 0 (saldos intactos). Solo admin."
+          title="Arrancar nueva semana"
+        >
+          <BagWeekCloseForm bag={bag} />
+        </DataCard>
+      ) : null}
 
       <NotesPanel
         description="Notas ligadas al cierre diario de la bolsa."

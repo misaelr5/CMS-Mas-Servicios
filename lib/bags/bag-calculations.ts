@@ -1,4 +1,5 @@
 import type { Bag, BagOperationType } from "@/lib/db/types";
+import { roundArs } from "@/src/shared/domain/money";
 import {
   calculateAverageUsdCost,
   calculateBagOperationImpact,
@@ -41,7 +42,7 @@ export function computeAverageUsdCost(currentAverage: number, currentUsd: number
 
 export function estimateTotal(bag: Pick<Bag, "current_cash_ars" | "current_account_ars" | "current_usd" | "borrowed_ars">, referenceRate?: number | null) {
   const rate = referenceRate && referenceRate > 0 ? referenceRate : 0;
-  return (bag.current_cash_ars ?? 0) + (bag.current_account_ars ?? 0) + (bag.current_usd ?? 0) * rate - (bag.borrowed_ars ?? 0);
+  return roundArs((bag.current_cash_ars ?? 0) + (bag.current_account_ars ?? 0) + (bag.current_usd ?? 0) * rate - (bag.borrowed_ars ?? 0));
 }
 
 export function bagStatusFromDifference(difference: number, hasReferenceRate: boolean) {

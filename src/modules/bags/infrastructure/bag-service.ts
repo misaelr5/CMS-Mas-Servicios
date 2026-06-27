@@ -7,6 +7,7 @@ import { getDefaultBagOpeningBalances, seedBags } from "@/lib/operations/seed-da
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { bagStatusFromDifference, calculateAverageUsdCost, calculateUsdSaleProfit, estimateTotal } from "@/lib/bags/bag-calculations";
 import { getFriendlySupabaseErrorMessage } from "@/lib/errors/user-facing";
+import { isNegativeMoney, roundArs, roundRate, roundUsd, toFiniteNumber } from "@/src/shared/domain/money";
 
 export type BagOverview = Bag & {
   branch_name?: string | null;
@@ -32,8 +33,7 @@ export type BagDetail = {
 };
 
 function asNumber(value: unknown) {
-  const numeric = Number(value ?? 0);
-  return Number.isFinite(numeric) ? numeric : 0;
+  return toFiniteNumber(value as number | string | null | undefined);
 }
 
 const defaultBagResponsibleBySlug: Record<string, string> = {
@@ -363,14 +363,14 @@ export async function createInternalBagTransfer({
 
   const origin = mapBagRow(originData);
   const destination = mapBagRow(destinationData);
-  const totalArs = amountUsd * internalRateArs;
+  const totalArs = roundArs(amountUsd * internalRateArs);
 
-  const originCashBalance = Number(origin.current_cash_ars ?? 0);
-  const originAccountBalance = Number(origin.current_account_ars ?? 0);
-  const originUsdBalance = Number(origin.current_usd ?? 0);
-  const destinationCashBalance = Number(destination.current_cash_ars ?? 0);
-  const destinationAccountBalance = Number(destination.current_account_ars ?? 0);
-  const destinationUsdBalance = Number(destination.current_usd ?? 0);
+  const originCashBalance = roundArs(origin.current_cash_ars ?? 0);
+  const originAccountBalance = roundArs(origin.current_account_ars ?? 0);
+  const originUsdBalance = roundUsd(origin.current_usd ?? 0);
+  const destinationCashBalance = roundArs(destination.current_cash_ars ?? 0);
+  const destinationAccountBalance = roundArs(destination.current_account_ars ?? 0);
+  const destinationUsdBalance = roundUsd(destination.current_usd ?? 0);
 
   if (transferMode === "venta") {
     if (originUsdBalance < amountUsd) {
@@ -396,46 +396,46 @@ export async function createInternalBagTransfer({
     cash: originCashBalance,
     account: originAccountBalance,
     usd: originUsdBalance,
-    borrowed: Number(origin.borrowed_ars ?? 0),
-    average: Number(origin.average_usd_cost ?? 0)
+    borrowed: roundArs(origin.borrowed_ars ?? 0),
+    average: roundRate(origin.average_usd_cost ?? 0)
   };
   const destinationPrevious = {
     cash: destinationCashBalance,
     account: destinationAccountBalance,
     usd: destinationUsdBalance,
-    borrowed: Number(destination.borrowed_ars ?? 0),
-    average: Number(destination.average_usd_cost ?? 0)
+    borrowed: roundArs(destination.borrowed_ars ?? 0),
+    average: roundRate(destination.average_usd_cost ?? 0)
   };
 
-  const originNextUsd = transferMode === "venta" ? originPrevious.usd - amountUsd : originPrevious.usd + amountUsd;
-  const destinationNextUsd = transferMode === "venta" ? destinationPrevious.usd + amountUsd : destinationPrevious.usd - amountUsd;
+  const originNextUsd = roundUsd(transferMode === "venta" ? originPrevious.usd - amountUsd : originPrevious.usd + amountUsd);
+  const destinationNextUsd = roundUsd(transferMode === "venta" ? destinationPrevious.usd + amountUsd : destinationPrevious.usd - amountUsd);
   const originNextAverage =
     transferMode === "compra" && originNextUsd > 0
-      ? (originPrevious.usd * originPrevious.average + amountUsd * internalRateArs) / originNextUsd
+      ? calculateAverageUsdCost(originPrevious.average, originPrevious.usd, amountUsd, internalRateArs)
       : transferMode === "venta" && originNextUsd <= 0
         ? 0
         : originPrevious.average;
   const destinationNextAverage =
     transferMode === "venta"
       ? destinationNextUsd > 0
-        ? (destinationPrevious.usd * destinationPrevious.average + amountUsd * internalRateArs) / destinationNextUsd
+        ? calculateAverageUsdCost(destinationPrevious.average, destinationPrevious.usd, amountUsd, internalRateArs)
         : 0
       : destinationNextUsd > 0
         ? destinationPrevious.average
         : 0;
   const originNext = {
-    cash: originPrevious.cash + (transferMode === "venta" ? (originReceiveDestination === "efectivo" ? totalArs : 0) : -(originReceiveDestination === "efectivo" ? totalArs : 0)),
-    account: originPrevious.account + (transferMode === "venta" ? (originReceiveDestination === "cuenta" ? totalArs : 0) : -(originReceiveDestination === "cuenta" ? totalArs : 0)),
+    cash: roundArs(originPrevious.cash + (transferMode === "venta" ? (originReceiveDestination === "efectivo" ? totalArs : 0) : -(originReceiveDestination === "efectivo" ? totalArs : 0))),
+    account: roundArs(originPrevious.account + (transferMode === "venta" ? (originReceiveDestination === "cuenta" ? totalArs : 0) : -(originReceiveDestination === "cuenta" ? totalArs : 0))),
     usd: originNextUsd,
     borrowed: originPrevious.borrowed,
-    average: originNextAverage
+    average: roundRate(originNextAverage)
   };
   const destinationNext = {
-    cash: destinationPrevious.cash + (transferMode === "venta" ? -(destinationPaymentSource === "efectivo" ? totalArs : 0) : (destinationPaymentSource === "efectivo" ? totalArs : 0)),
-    account: destinationPrevious.account + (transferMode === "venta" ? -(destinationPaymentSource === "cuenta" ? totalArs : 0) : (destinationPaymentSource === "cuenta" ? totalArs : 0)),
+    cash: roundArs(destinationPrevious.cash + (transferMode === "venta" ? -(destinationPaymentSource === "efectivo" ? totalArs : 0) : (destinationPaymentSource === "efectivo" ? totalArs : 0))),
+    account: roundArs(destinationPrevious.account + (transferMode === "venta" ? -(destinationPaymentSource === "cuenta" ? totalArs : 0) : (destinationPaymentSource === "cuenta" ? totalArs : 0))),
     usd: destinationNextUsd,
     borrowed: destinationPrevious.borrowed,
-    average: destinationNextAverage
+    average: roundRate(destinationNextAverage)
   };
 
   const { data: transfer, error: transferError } = await (admin.from("bag_internal_transfers") as any)
@@ -724,8 +724,8 @@ export async function annulInternalBagTransfer({
 
   const origin = mapBagRow(originData);
   const destination = mapBagRow(destinationData);
-  const amountUsd = Number(transfer.amount_usd ?? 0);
-  const totalArs = Number(transfer.total_ars ?? 0);
+  const amountUsd = roundUsd(transfer.amount_usd ?? 0);
+  const totalArs = roundArs(transfer.total_ars ?? 0);
   const originOperationType = originOperation.operation_type as BagOperationType;
   const destinationOperationType = destinationOperation.operation_type as BagOperationType;
   const originWasSale = originOperationType === "venta_interna_bolsa" && destinationOperationType === "compra_interna_bolsa";
@@ -740,12 +740,12 @@ export async function annulInternalBagTransfer({
     return { ok: false, message: "No se pudieron identificar los saldos afectados por la transferencia." };
   }
 
-  const originCurrentCash = Number(origin.current_cash_ars ?? 0);
-  const originCurrentAccount = Number(origin.current_account_ars ?? 0);
-  const originCurrentUsd = Number(origin.current_usd ?? 0);
-  const destinationCurrentUsd = Number(destination.current_usd ?? 0);
+  const originCurrentCash = roundArs(origin.current_cash_ars ?? 0);
+  const originCurrentAccount = roundArs(origin.current_account_ars ?? 0);
+  const originCurrentUsd = roundUsd(origin.current_usd ?? 0);
+  const destinationCurrentUsd = roundUsd(destination.current_usd ?? 0);
   const originSelectedBalance = originMoneyLocation === "efectivo" ? originCurrentCash : originCurrentAccount;
-  const destinationSelectedBalance = destinationMoneyLocation === "efectivo" ? Number(destination.current_cash_ars ?? 0) : Number(destination.current_account_ars ?? 0);
+  const destinationSelectedBalance = destinationMoneyLocation === "efectivo" ? roundArs(destination.current_cash_ars ?? 0) : roundArs(destination.current_account_ars ?? 0);
 
   if (originWasSale && originSelectedBalance < totalArs) {
     return { ok: false, message: "La bolsa origen no tiene saldo suficiente para compensar la anulacion." };
@@ -766,37 +766,37 @@ export async function annulInternalBagTransfer({
   const originPrevious = {
     cash: originCurrentCash,
     account: originCurrentAccount,
-    usd: Number(origin.current_usd ?? 0),
-    borrowed: Number(origin.borrowed_ars ?? 0),
-    average: Number(origin.average_usd_cost ?? 0)
+    usd: roundUsd(origin.current_usd ?? 0),
+    borrowed: roundArs(origin.borrowed_ars ?? 0),
+    average: roundRate(origin.average_usd_cost ?? 0)
   };
   const destinationPrevious = {
-    cash: Number(destination.current_cash_ars ?? 0),
-    account: Number(destination.current_account_ars ?? 0),
+    cash: roundArs(destination.current_cash_ars ?? 0),
+    account: roundArs(destination.current_account_ars ?? 0),
     usd: destinationCurrentUsd,
-    borrowed: Number(destination.borrowed_ars ?? 0),
-    average: Number(destination.average_usd_cost ?? 0)
+    borrowed: roundArs(destination.borrowed_ars ?? 0),
+    average: roundRate(destination.average_usd_cost ?? 0)
   };
 
-  const returnedUsdRate = Number(originOperation.previous_usd ?? 0) > 0 ? Number(originData.average_usd_cost ?? origin.average_usd_cost ?? 0) : Number(transfer.internal_rate_ars ?? 0);
-  const originNextUsd = originWasSale ? originPrevious.usd + amountUsd : originPrevious.usd - amountUsd;
-  const destinationNextUsd = originWasSale ? destinationPrevious.usd - amountUsd : destinationPrevious.usd + amountUsd;
-  const originNextAverage = originNextUsd > 0 ? (originWasSale ? (originPrevious.usd * originPrevious.average + amountUsd * returnedUsdRate) / originNextUsd : originPrevious.average) : 0;
-  const destinationNextAverage = destinationNextUsd > 0 ? (originWasPurchase ? destinationPrevious.average : (destinationPrevious.usd * destinationPrevious.average + amountUsd * returnedUsdRate) / destinationNextUsd) : 0;
+  const returnedUsdRate = roundRate(Number(originOperation.previous_usd ?? 0) > 0 ? Number(originData.average_usd_cost ?? origin.average_usd_cost ?? 0) : Number(transfer.internal_rate_ars ?? 0));
+  const originNextUsd = roundUsd(originWasSale ? originPrevious.usd + amountUsd : originPrevious.usd - amountUsd);
+  const destinationNextUsd = roundUsd(originWasSale ? destinationPrevious.usd - amountUsd : destinationPrevious.usd + amountUsd);
+  const originNextAverage = originNextUsd > 0 ? (originWasSale ? calculateAverageUsdCost(originPrevious.average, originPrevious.usd, amountUsd, returnedUsdRate) : originPrevious.average) : 0;
+  const destinationNextAverage = destinationNextUsd > 0 ? (originWasPurchase ? destinationPrevious.average : calculateAverageUsdCost(destinationPrevious.average, destinationPrevious.usd, amountUsd, returnedUsdRate)) : 0;
 
   const originNext = {
-    cash: originPrevious.cash + (originMoneyLocation === "efectivo" ? (originWasSale ? -totalArs : totalArs) : 0),
-    account: originPrevious.account + (originMoneyLocation === "cuenta" ? (originWasSale ? -totalArs : totalArs) : 0),
+    cash: roundArs(originPrevious.cash + (originMoneyLocation === "efectivo" ? (originWasSale ? -totalArs : totalArs) : 0)),
+    account: roundArs(originPrevious.account + (originMoneyLocation === "cuenta" ? (originWasSale ? -totalArs : totalArs) : 0)),
     usd: originNextUsd,
     borrowed: originPrevious.borrowed,
-    average: originNextAverage
+    average: roundRate(originNextAverage)
   };
   const destinationNext = {
-    cash: destinationPrevious.cash + (destinationMoneyLocation === "efectivo" ? (originWasSale ? totalArs : -totalArs) : 0),
-    account: destinationPrevious.account + (destinationMoneyLocation === "cuenta" ? (originWasSale ? totalArs : -totalArs) : 0),
+    cash: roundArs(destinationPrevious.cash + (destinationMoneyLocation === "efectivo" ? (originWasSale ? totalArs : -totalArs) : 0)),
+    account: roundArs(destinationPrevious.account + (destinationMoneyLocation === "cuenta" ? (originWasSale ? totalArs : -totalArs) : 0)),
     usd: destinationNextUsd,
     borrowed: destinationPrevious.borrowed,
-    average: destinationNextAverage
+    average: roundRate(destinationNextAverage)
   };
 
   const originLabel = getBagDisplayLabel({ ...origin, responsible_name: null });
@@ -1083,28 +1083,28 @@ export async function processBagOperation({
     (bag.borrowed_ars ?? 0) === 0;
 
   const openingBalances = getDefaultBagOpeningBalances(bag.base_limit_ars);
-  const previousCash = shouldUseOpeningCash ? openingBalances.current_cash_ars : bag.current_cash_ars ?? 0;
-  const previousAccount = shouldUseOpeningCash ? openingBalances.current_account_ars : bag.current_account_ars ?? 0;
-  const previousUsd = bag.current_usd ?? 0;
-  const previousBorrowed = bag.borrowed_ars ?? 0;
-  const previousAverage = bag.average_usd_cost ?? 0;
-  const previousBaseLimit = bag.base_limit_ars;
+  const previousCash = roundArs(shouldUseOpeningCash ? openingBalances.current_cash_ars : bag.current_cash_ars ?? 0);
+  const previousAccount = roundArs(shouldUseOpeningCash ? openingBalances.current_account_ars : bag.current_account_ars ?? 0);
+  const previousUsd = roundUsd(bag.current_usd ?? 0);
+  const previousBorrowed = roundArs(bag.borrowed_ars ?? 0);
+  const previousAverage = roundRate(bag.average_usd_cost ?? 0);
+  const previousBaseLimit = roundArs(bag.base_limit_ars);
 
   let nextCash = previousCash;
   let nextAccount = previousAccount;
   let nextUsd = previousUsd;
   let nextBorrowed = previousBorrowed;
-  let profitArs = profitDelta;
-  let totalArs = amountUsd * rateArs;
+  let profitArs = roundArs(profitDelta);
+  let totalArs = roundArs(amountUsd * rateArs);
   let status: "confirmada" | "revisar" | "anulada" = confirmAsReview ? "revisar" : "confirmada";
   let nextBaseLimit = previousBaseLimit;
 
   switch (operationType) {
     case "compra_usd": {
-      totalArs = amountUsd * rateArs;
+      totalArs = roundArs(amountUsd * rateArs);
       if (moneySource === "efectivo") nextCash -= totalArs;
       if (moneySource === "cuenta") nextAccount -= totalArs;
-      nextUsd += amountUsd;
+      nextUsd = roundUsd(nextUsd + amountUsd);
       bag.average_usd_cost = calculateAverageUsdCost(previousAverage, previousUsd, amountUsd, rateArs);
       break;
     }
@@ -1112,54 +1112,68 @@ export async function processBagOperation({
       if (amountUsd > previousUsd) {
         return { ok: false, message: "No hay USD suficientes para vender." };
       }
-      totalArs = amountUsd * rateArs;
+      totalArs = roundArs(amountUsd * rateArs);
       if (moneyDestination === "efectivo") nextCash += totalArs;
       if (moneyDestination === "cuenta") nextAccount += totalArs;
-      nextUsd -= amountUsd;
+      nextUsd = roundUsd(nextUsd - amountUsd);
       profitArs = calculateUsdSaleProfit(amountUsd, rateArs, previousAverage);
-      bag.accumulated_profit_ars = (bag.accumulated_profit_ars ?? 0) + profitArs;
+      bag.accumulated_profit_ars = roundArs((bag.accumulated_profit_ars ?? 0) + profitArs);
       if (previousAverage <= 0) {
         status = "revisar";
       }
       break;
     }
     case "ingreso_pesos_efectivo":
-      nextCash += totalArs || cashDelta;
+      nextCash += totalArs || roundArs(cashDelta);
       break;
     case "egreso_pesos_efectivo":
-      nextCash -= totalArs || cashDelta;
+      nextCash -= totalArs || roundArs(cashDelta);
       break;
     case "ingreso_pesos_cuenta":
-      nextAccount += totalArs || accountDelta;
+      nextAccount += totalArs || roundArs(accountDelta);
       break;
     case "egreso_pesos_cuenta":
-      nextAccount -= totalArs || accountDelta;
+      nextAccount -= totalArs || roundArs(accountDelta);
       break;
     case "prestamo_entregado":
-      nextCash -= totalArs || cashDelta;
-      nextBorrowed += totalArs || cashDelta;
+      nextCash -= totalArs || roundArs(cashDelta);
+      nextBorrowed += totalArs || roundArs(cashDelta);
       break;
     case "prestamo_recibido":
-      nextCash += totalArs || cashDelta;
-      nextBorrowed -= totalArs || cashDelta;
+      nextCash += totalArs || roundArs(cashDelta);
+      nextBorrowed -= totalArs || roundArs(cashDelta);
       break;
     case "devolucion_prestamo":
-      nextCash += cashDelta;
-      nextBorrowed -= borrowedDelta || cashDelta;
+      nextCash += roundArs(cashDelta);
+      nextBorrowed -= roundArs(borrowedDelta || cashDelta);
       break;
     case "ajuste_manual":
-      nextCash += cashDelta;
-      nextAccount += accountDelta;
-      nextUsd += usdDelta;
-      nextBorrowed += borrowedDelta;
-      bag.accumulated_profit_ars = (bag.accumulated_profit_ars ?? 0) + profitDelta;
-      nextBaseLimit += baseLimitAdjustment;
+      nextCash += roundArs(cashDelta);
+      nextAccount += roundArs(accountDelta);
+      nextUsd = roundUsd(nextUsd + usdDelta);
+      nextBorrowed += roundArs(borrowedDelta);
+      bag.accumulated_profit_ars = roundArs((bag.accumulated_profit_ars ?? 0) + profitDelta);
+      nextBaseLimit += roundArs(baseLimitAdjustment);
       break;
     case "anulacion_operacion":
       break;
   }
 
-  const hasNegativeBalance = nextCash < 0 || nextAccount < 0 || nextUsd < 0 || nextBorrowed < 0;
+  nextCash = roundArs(nextCash);
+  nextAccount = roundArs(nextAccount);
+  nextUsd = roundUsd(nextUsd);
+  nextBorrowed = roundArs(nextBorrowed);
+  nextBaseLimit = roundArs(nextBaseLimit);
+  profitArs = roundArs(profitArs);
+  totalArs = roundArs(totalArs);
+  bag.average_usd_cost = roundRate(bag.average_usd_cost ?? previousAverage);
+  bag.accumulated_profit_ars = roundArs(bag.accumulated_profit_ars ?? 0);
+
+  const hasNegativeBalance =
+    isNegativeMoney(nextCash) ||
+    isNegativeMoney(nextAccount) ||
+    isNegativeMoney(nextUsd, 4) ||
+    isNegativeMoney(nextBorrowed);
   if (hasNegativeBalance) {
     return { ok: false, message: "La operacion dejaria saldos negativos." };
   }
@@ -1174,8 +1188,8 @@ export async function processBagOperation({
     status: bag.status,
     base_limit_ars: nextBaseLimit
   };
-  const estimatedTotal = estimateTotal(nextBag, nextBag.average_usd_cost);
-  const difference = estimatedTotal - Number(nextBaseLimit);
+  const estimatedTotal = roundArs(estimateTotal(nextBag, nextBag.average_usd_cost));
+  const difference = roundArs(estimatedTotal - Number(nextBaseLimit));
   nextBag.status = bagStatusFromDifference(difference, true) as Bag["status"];
 
   const operationPayload = {
@@ -1342,6 +1356,53 @@ export async function createDailySnapshot({ bagId, actorId, note }: { bagId: str
   });
 
   return { ok: true, snapshot: data as BagDailySnapshot };
+}
+
+// Cierre semanal de una bolsa: guarda un snapshot del estado actual (que preserva
+// la ganancia de la semana) y luego resetea SOLO accumulated_profit_ars a 0.
+// Efectivo, cuenta, USD y prestado quedan intactos (la plata real no se toca).
+export async function closeBagWeek({ bagId, actorId, note }: { bagId: string; actorId: string; note?: string | null }) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return { ok: false as const, message: "Falta configurar Supabase." };
+
+  // 1. Snapshot del estado actual (captura la ganancia antes del reset).
+  const snapshot = await createDailySnapshot({ bagId, actorId, note: note ?? "Cierre semanal" });
+  if (!snapshot.ok) {
+    return { ok: false as const, message: snapshot.message ?? "No se pudo guardar el snapshot de cierre." };
+  }
+
+  // 2. Leer la ganancia acumulada actual para auditar el antes.
+  const { data: bagData, error: bagError } = await (admin.from("bags") as any).select("*").eq("id", bagId).maybeSingle();
+  if (bagError || !bagData) return { ok: false as const, message: "No se pudo encontrar la bolsa." };
+  const previousProfitArs = Number(bagData.accumulated_profit_ars ?? 0);
+
+  // 3. Resetear SOLO la ganancia acumulada. Saldos intactos.
+  const { data: updated, error: updateError } = await (admin.from("bags") as any)
+    .update({ accumulated_profit_ars: 0 })
+    .eq("id", bagId)
+    .select("*")
+    .single();
+  if (updateError) {
+    return { ok: false as const, message: getFriendlySupabaseErrorMessage(updateError, "No se pudo cerrar la semana de la bolsa.") };
+  }
+
+  // 4. Audit log de la operacion critica.
+  await createAuditLog({
+    actorId,
+    action: "bag.week_closed",
+    entityType: "bag",
+    entityId: bagId,
+    oldData: { accumulated_profit_ars: previousProfitArs },
+    newData: { accumulated_profit_ars: 0, snapshot_id: (snapshot.snapshot as { id?: string } | undefined)?.id ?? null },
+    reason: note ?? "Cierre semanal: snapshot + ganancia a 0"
+  });
+
+  return {
+    ok: true as const,
+    message: "Semana cerrada: snapshot guardado y ganancia reseteada a 0. Saldos intactos.",
+    previousProfitArs,
+    bag: mapBagRow(updated)
+  };
 }
 
 export async function annullBagOperation({ operationId, actorId, reason }: { operationId: string; actorId: string; reason: string }) {

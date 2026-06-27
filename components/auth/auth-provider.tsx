@@ -5,7 +5,8 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
-import { clearSessionWindow, getSessionWindow, isSessionExpired, setSessionWindow, type SessionWindow } from "@/lib/auth/session";
+import { clearSessionWindowAction, getSessionWindowAction, startSessionWindowAction } from "@/app/actions/auth";
+import { isSessionExpired, type SessionWindow } from "@/lib/auth/session";
 import { normalizeRole, type Role } from "@/lib/auth/roles";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -48,11 +49,12 @@ async function loadAuthState() {
 
   const { data } = await supabase.auth.getUser();
   const user = data.user;
-  const sessionWindow = getSessionWindow();
+  const sessionWindowResult = await getSessionWindowAction();
+  const sessionWindow = sessionWindowResult.ok ? sessionWindowResult.sessionWindow : null;
 
   if (!user || !sessionWindow || sessionWindow.user_id !== user.id || isSessionExpired(sessionWindow)) {
     await supabase.auth.signOut();
-    clearSessionWindow();
+    await clearSessionWindowAction();
     return null;
   }
 
@@ -73,10 +75,6 @@ async function loadAuthState() {
   }
 
   const role = normalizeRole(roleRow?.role ?? user.user_metadata?.role);
-
-  if (!getSessionWindow()) {
-    setSessionWindow(user.id, sessionWindow.session_started_at);
-  }
 
   return {
     userId: user.id,
@@ -106,13 +104,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = async () => {
       if (!supabase) {
-        clearSessionWindow();
+        await clearSessionWindowAction();
         router.replace("/login");
         return;
       }
 
       await supabase.auth.signOut();
-      clearSessionWindow();
+      await clearSessionWindowAction();
       router.replace("/login");
     };
 
@@ -183,7 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!active) return;
 
       if (event === "SIGNED_OUT") {
-        clearSessionWindow();
+        void clearSessionWindowAction();
         setState({
           status: "unauthenticated",
           userId: null,
@@ -200,8 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (event === "SIGNED_IN" && session?.user) {
-        setSessionWindow(session.user.id);
-        void sync();
+        void startSessionWindowAction().then(() => sync());
       }
 
       if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {

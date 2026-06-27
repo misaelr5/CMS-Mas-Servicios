@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Loader2, LogIn, XCircle } from "lucide-react";
 
-import { clearSessionWindow, setSessionWindow } from "@/lib/auth/session";
+import { clearSessionWindowAction, startSessionWindowAction } from "@/app/actions/auth";
 import { getHomePathForRole, normalizeRole } from "@/lib/auth/roles";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,7 +43,12 @@ export function LoginForm({ notice }: { notice?: string }) {
         throw new Error("No se pudo iniciar sesión.");
       }
 
-      setSessionWindow(data.user.id);
+      const sessionWindow = await startSessionWindowAction();
+      if (!sessionWindow.ok) {
+        await supabase.auth.signOut();
+        throw new Error(sessionWindow.message);
+      }
+
       const { data: roleData } = await supabase
         .from("user_roles")
         .select("role")
@@ -53,7 +58,7 @@ export function LoginForm({ notice }: { notice?: string }) {
       router.replace(getHomePathForRole(role));
       router.refresh();
     } catch (loginError) {
-      clearSessionWindow();
+      await clearSessionWindowAction();
       setError(
         loginError instanceof Error ? loginError.message : "No se pudo iniciar sesión."
       );

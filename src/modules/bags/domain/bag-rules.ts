@@ -1,3 +1,5 @@
+import { isNegativeMoney, roundArs, roundRate, roundUsd, toFiniteNumber } from "@/src/shared/domain/money";
+
 export type MoneyLocation = "efectivo" | "cuenta";
 
 export type BagBalance = {
@@ -45,18 +47,29 @@ export type BagOperationImpact = {
 };
 
 function finiteNumber(value: number | undefined | null) {
-  const numeric = Number(value ?? 0);
-  return Number.isFinite(numeric) ? numeric : 0;
+  return toFiniteNumber(value);
+}
+
+function normalizeBalance(balance: BagBalance): BagBalance {
+  return {
+    cashArs: roundArs(balance.cashArs),
+    accountArs: roundArs(balance.accountArs),
+    usd: roundUsd(balance.usd),
+    borrowedArs: roundArs(balance.borrowedArs),
+    averageUsdCost: roundRate(balance.averageUsdCost),
+    accumulatedProfitArs: roundArs(balance.accumulatedProfitArs),
+    baseLimitArs: roundArs(balance.baseLimitArs)
+  };
 }
 
 export function calculateAverageUsdCost(currentAverage: number, currentUsd: number, acquiredUsd: number, rate: number) {
-  const totalUsd = currentUsd + acquiredUsd;
+  const totalUsd = roundUsd(currentUsd + acquiredUsd);
   if (totalUsd <= 0) return 0;
-  return (currentAverage * currentUsd + rate * acquiredUsd) / totalUsd;
+  return roundRate((currentAverage * currentUsd + rate * acquiredUsd) / totalUsd);
 }
 
 export function calculateUsdSaleProfit(amountUsd: number, saleRateArs: number, averageUsdCost: number) {
-  return (saleRateArs - averageUsdCost) * amountUsd;
+  return roundArs((saleRateArs - averageUsdCost) * amountUsd);
 }
 
 export function calculateBagOperationImpact(input: BagOperationImpactInput): BagOperationImpact {
@@ -68,10 +81,10 @@ export function calculateBagOperationImpact(input: BagOperationImpactInput): Bag
   const borrowedDelta = finiteNumber(input.borrowedDelta);
   const profitDelta = finiteNumber(input.profitDelta);
   const baseLimitAdjustment = finiteNumber(input.baseLimitAdjustment);
-  const previous = input.previous;
+  const previous = normalizeBalance(input.previous);
   const next: BagBalance = { ...previous };
-  let totalArs = amountUsd * rateArs;
-  let profitArs = profitDelta;
+  let totalArs = roundArs(amountUsd * rateArs);
+  let profitArs = roundArs(profitDelta);
 
   switch (input.operationType) {
     case "compra_usd": {
@@ -127,7 +140,7 @@ export function calculateBagOperationImpact(input: BagOperationImpactInput): Bag
       break;
   }
 
-  return { next, totalArs, profitArs };
+  return { next: normalizeBalance(next), totalArs, profitArs: roundArs(profitArs) };
 }
 
 export function validateBagOperation(input: BagOperationImpactInput) {
@@ -151,7 +164,12 @@ export function validateBagOperation(input: BagOperationImpactInput) {
   }
 
   const impact = calculateBagOperationImpact(input);
-  if (impact.next.cashArs < 0 || impact.next.accountArs < 0 || impact.next.usd < 0 || impact.next.borrowedArs < 0) {
+  if (
+    isNegativeMoney(impact.next.cashArs) ||
+    isNegativeMoney(impact.next.accountArs) ||
+    isNegativeMoney(impact.next.usd, 4) ||
+    isNegativeMoney(impact.next.borrowedArs)
+  ) {
     return { ok: false as const, message: "La operacion dejaria saldos negativos." };
   }
 
@@ -169,9 +187,9 @@ export type InternalBagTransferInput = {
 };
 
 export function calculateInternalBagTransferImpact(input: InternalBagTransferInput) {
-  const totalArs = input.amountUsd * input.internalRateArs;
-  const origin = { ...input.origin };
-  const destination = { ...input.destination };
+  const totalArs = roundArs(input.amountUsd * input.internalRateArs);
+  const origin = normalizeBalance(input.origin);
+  const destination = normalizeBalance(input.destination);
 
   if (input.transferMode === "venta") {
     origin.usd -= input.amountUsd;
@@ -193,7 +211,13 @@ export function calculateInternalBagTransferImpact(input: InternalBagTransferInp
     if (destination.usd <= 0) destination.averageUsdCost = 0;
   }
 
-  return { origin, destination, totalArs, isInternal: true, affectsProfit: false };
+  return {
+    origin: normalizeBalance(origin),
+    destination: normalizeBalance(destination),
+    totalArs,
+    isInternal: true,
+    affectsProfit: false
+  };
 }
 
 export function validateSellToAnotherBag(input: InternalBagTransferInput) {
@@ -203,25 +227,25 @@ export function validateSellToAnotherBag(input: InternalBagTransferInput) {
   if (input.transferMode === "venta") {
     if (input.origin.usd < input.amountUsd) return { ok: false as const, message: "No hay USD suficientes en la bolsa origen." };
     const destinationBalance = input.destinationPaymentSource === "efectivo" ? input.destination.cashArs : input.destination.accountArs;
-    if (destinationBalance < input.amountUsd * input.internalRateArs) {
+    if (destinationBalance < roundArs(input.amountUsd * input.internalRateArs)) {
       return { ok: false as const, message: "La bolsa destino no tiene pesos suficientes." };
     }
   } else {
     if (input.destination.usd < input.amountUsd) return { ok: false as const, message: "No hay USD suficientes en la bolsa destino." };
     const originBalance = input.originReceiveDestination === "efectivo" ? input.origin.cashArs : input.origin.accountArs;
-    if (originBalance < input.amountUsd * input.internalRateArs) {
+    if (originBalance < roundArs(input.amountUsd * input.internalRateArs)) {
       return { ok: false as const, message: "La bolsa origen no tiene pesos suficientes." };
     }
   }
 
   const impact = calculateInternalBagTransferImpact(input);
   if (
-    impact.origin.cashArs < 0 ||
-    impact.origin.accountArs < 0 ||
-    impact.origin.usd < 0 ||
-    impact.destination.cashArs < 0 ||
-    impact.destination.accountArs < 0 ||
-    impact.destination.usd < 0
+    isNegativeMoney(impact.origin.cashArs) ||
+    isNegativeMoney(impact.origin.accountArs) ||
+    isNegativeMoney(impact.origin.usd, 4) ||
+    isNegativeMoney(impact.destination.cashArs) ||
+    isNegativeMoney(impact.destination.accountArs) ||
+    isNegativeMoney(impact.destination.usd, 4)
   ) {
     return { ok: false as const, message: "El movimiento dejaria saldos negativos." };
   }

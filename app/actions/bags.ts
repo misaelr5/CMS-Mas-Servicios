@@ -7,7 +7,7 @@ import { createAuditLog } from "@/lib/audit/audit-log";
 import { getServerAuthContext } from "@/lib/auth/server";
 import { type Role } from "@/lib/auth/roles";
 import type { BagOperationType } from "@/lib/db/types";
-import { annulInternalBagTransfer, createDailySnapshot, annullBagOperation, createInternalBagTransfer, getAssignedBagIdsForUser, processBagOperation } from "@/lib/bags/bag-service";
+import { annulInternalBagTransfer, createDailySnapshot, closeBagWeek, annullBagOperation, createInternalBagTransfer, getAssignedBagIdsForUser, processBagOperation } from "@/lib/bags/bag-service";
 import { bagOperationTypes } from "@/lib/bags/bag-calculations";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { getString, getNumber } from "@/lib/forms/form-data";
@@ -198,6 +198,34 @@ export async function createBagSnapshotAction(_prevState: ActionState, formData:
   revalidatePath(`/bolsas/${bagId}/cierre-diario`);
   revalidatePath("/dashboard");
   return { ok: true, message: "Cierre diario guardado." };
+}
+
+export async function closeBagWeekAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const auth = await getServerAuthContext(cookies());
+  if (!auth || auth.role !== "admin") {
+    return { ok: false, message: "Solo un admin puede cerrar la semana de una bolsa." };
+  }
+
+  const bagId = getString(formData, "bag_id");
+  const note = getString(formData, "note");
+  const confirm = getString(formData, "confirm");
+  if (!bagId) {
+    return { ok: false, message: "Elegí una bolsa." };
+  }
+  if (confirm !== "1") {
+    return { ok: false, message: "Confirmá el cierre semanal tildando la casilla." };
+  }
+
+  const result = await closeBagWeek({ bagId, actorId: auth.userId, note: note || null });
+  if (!result.ok) {
+    return { ok: false, message: result.message };
+  }
+
+  revalidatePath("/bolsas");
+  revalidatePath(`/bolsas/${bagId}`);
+  revalidatePath(`/bolsas/${bagId}/cierre-diario`);
+  revalidatePath("/dashboard");
+  return { ok: true, message: result.message };
 }
 
 export async function createInternalBagTransferAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {

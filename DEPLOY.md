@@ -17,14 +17,23 @@ Aplicar migraciones en orden si la base es nueva:
 ```
 supabase/schema.sql
 supabase/migrations/20260611_operational_notes.sql
-supabase/migrations/20260612_*.sql
+supabase/migrations/20260612_bag_internal_transfers.sql
+supabase/migrations/20260612_bag_responsibles.sql
+supabase/migrations/20260612_cash_pay_facil.sql
 supabase/migrations/20260613_daily_reports_expenses.sql
 supabase/migrations/20260616_daily_report_closures.sql
-supabase/migrations/20260617_*.sql
-supabase/migrations/20260626_audit_logs_insert_lockdown.sql   <-- NUEVA, aplicar sí o sí
+supabase/migrations/20260617_weekly_cash_closures.sql
+supabase/migrations/20260617_integrity_hardening.sql        <-- REQUERIDA (ver abajo)
+supabase/migrations/20260626_audit_logs_insert_lockdown.sql <-- NUEVA, aplicar sí o sí
+supabase/migrations/20260627_rls_scope_hardening.sql        <-- NUEVA, aplicar sí o sí
 ```
 
+- [ ] **Migración `20260617_integrity_hardening` aplicada** — crea el índice único
+      `bag_daily_snapshots (bag_id, date)`. **Sin ella, el cierre diario de bolsas
+      Y el cierre semanal fallan** ("No se pudo guardar el cierre diario"), porque el
+      upsert usa `onConflict (bag_id, date)`.
 - [ ] **Migración `20260626_audit_logs_insert_lockdown` aplicada** (cierra el insert de audit_logs a usuarios autenticados)
+- [ ] **Migración `20260627_rls_scope_hardening` aplicada** (cierra lecturas/escrituras directas fuera de rol/asignación)
 - [ ] Seeds corridos si la base es nueva: `pnpm seed:roman`, `pnpm seed:operational`
 - [ ] Backups/Point-in-time recovery habilitado en Supabase
 
