@@ -61,14 +61,23 @@ const recordAuditLog = makeRecordAuditLog(fakeRepo);
 Cada dominio se migra con el mismo patrón, manteniendo la firma pública del
 service en `lib/` como facade para no romper callers:
 
-- [x] **audit** — referencia
-- [x] **notes** — `lib/notes/notes-service.ts` (lecturas: list / listImportant)
-- [x] **expenses** — `lib/finance/expense-service.ts` (page data: dominio puro separa agregacion de fetching)
-- [ ] **cash-registers** — `lib/cash/cash-service.ts`
-- [ ] **daily-reports** — `lib/finance/daily-report-service.ts`
-- [ ] **weekly-closures** — `lib/finance/weekly-cash-closure-service.ts`
-- [ ] **bags** — `lib/bags/bag-service.ts` (el más grande; conviene dividirlo al migrar)
-- [ ] **exports** — `lib/exportaciones/export-service.ts`
+Dos niveles de migración:
+
+- **Completo (puerto + dominio puro + caso de uso):** audit, notes, expenses.
+- **Adapter relocado (service movido a `infrastructure/` detrás de un facade
+  en `lib/`):** cash-registers, daily-reports, weekly-closures, exports, bags.
+  Falta la refinación: extraer puertos explícitos + lógica pura (como en
+  expenses). El seam estructural ya está; la inversión de dependencia formal
+  es el siguiente paso por dominio.
+
+- [x] **audit** — completo (referencia)
+- [x] **notes** — completo (lecturas: list / listImportant)
+- [x] **expenses** — completo (dominio puro separa agregacion de fetching)
+- [x] **cash-registers** — adapter relocado (`infrastructure/cash-service.ts`)
+- [x] **daily-reports** — adapter relocado (service + detailed-service)
+- [x] **weekly-closures** — adapter relocado
+- [x] **exports** — adapter relocado
+- [x] **bags** — adapter relocado; **pendiente dividir** (~1400 líneas) y extraer puertos
 
 ### Pasos por dominio
 
