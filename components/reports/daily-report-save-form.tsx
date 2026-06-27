@@ -26,11 +26,11 @@ export function DailyReportSaveForm({
   const [state, formAction, isPending] = useActionState(saveDailyReportAction, initialState);
 
   if (!canWrite) {
-    return <p className="text-sm text-mediumGray">Solo lectura para tu rol.</p>;
+    return <p className="text-sm text-lightGray/55">Solo lectura para tu rol.</p>;
   }
 
   if (isLocked) {
-    return <p className="rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-semibold text-brandBlack">Este reporte diario está cerrado. Reabrilo para modificarlo.</p>;
+    return <p className="rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-semibold text-brandWhite">Este reporte diario está cerrado. Reabrilo para modificarlo.</p>;
   }
 
   return (

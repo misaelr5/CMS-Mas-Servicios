@@ -83,69 +83,69 @@ export default async function CajaDetallePage({ params }: { params: Promise<{ id
       <DataCard description="Vista ejecutiva de todo lo cargado hoy, resumido por categoria." title="Resumen operativo de hoy">
         <div className="space-y-6">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-            <div className="rounded-2xl border border-lightGray bg-white p-4 shadow-soft">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Caja</p>
-              <p className="mt-1 font-heading text-lg font-black text-brandBlack">{register.register_number ? `Caja ${register.register_number}` : register.name}</p>
-              <p className="text-sm text-mediumGray">{register.slug}</p>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-soft">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Caja</p>
+              <p className="mt-1 font-heading text-lg font-black text-brandWhite">{register.register_number ? `Caja ${register.register_number}` : register.name}</p>
+              <p className="text-sm text-lightGray/55">{register.slug}</p>
             </div>
-            <div className="rounded-2xl border border-lightGray bg-white p-4 shadow-soft">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Responsable</p>
-              <p className="mt-1 font-heading text-lg font-black text-brandBlack">{register.responsible_name ?? register.name}</p>
-              <p className="text-sm text-mediumGray">Asignacion de usuario</p>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-soft">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Responsable</p>
+              <p className="mt-1 font-heading text-lg font-black text-brandWhite">{register.responsible_name ?? register.name}</p>
+              <p className="text-sm text-lightGray/55">Asignacion de usuario</p>
             </div>
-            <div className="rounded-2xl border border-lightGray bg-white p-4 shadow-soft">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Estado</p>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-soft">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Estado</p>
               <div className="mt-2">
                 <StatusBadge status={getCashReportStatusTone(register.today_status)} />
               </div>
-              <p className="mt-2 text-sm text-mediumGray">{cashReportStatusLabels[register.today_status]}</p>
+              <p className="mt-2 text-sm text-lightGray/55">{cashReportStatusLabels[register.today_status]}</p>
             </div>
-            <div className="rounded-2xl border border-lightGray bg-white p-4 shadow-soft">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Operado total</p>
-              <p className="mt-1 font-heading text-2xl font-black text-brandBlack">{formatArs(summaryTotals.operated)}</p>
-              <p className="text-sm text-mediumGray">Volumen del dia</p>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-soft">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Operado total</p>
+              <p className="mt-1 font-heading text-2xl font-black text-brandWhite">{formatArs(summaryTotals.operated)}</p>
+              <p className="text-sm text-lightGray/55">Volumen del dia</p>
             </div>
-            <div className="rounded-2xl border border-lightGray bg-white p-4 shadow-soft">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Comision total</p>
-              <p className="mt-1 font-heading text-2xl font-black text-brandBlack">{formatArs(summaryTotals.profit)}</p>
-              <p className="text-sm text-mediumGray">Utilidad del dia</p>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-soft">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Comision total</p>
+              <p className="mt-1 font-heading text-2xl font-black text-brandWhite">{formatArs(summaryTotals.profit)}</p>
+              <p className="text-sm text-lightGray/55">Utilidad del dia</p>
             </div>
-            <div className="rounded-2xl border border-lightGray bg-white p-4 shadow-soft">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Categorias con movimiento</p>
-              <p className="mt-1 font-heading text-2xl font-black text-brandBlack">{categoriesWithMovement}</p>
-              <p className="text-sm text-mediumGray">{cashData.categories.length} categorias cargadas</p>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-soft">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Categorias con movimiento</p>
+              <p className="mt-1 font-heading text-2xl font-black text-brandWhite">{categoriesWithMovement}</p>
+              <p className="text-sm text-lightGray/55">{cashData.categories.length} categorias cargadas</p>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-lightGray bg-white shadow-soft">
-            <div className="border-b border-lightGray px-4 py-4">
-              <h3 className="font-heading text-lg font-black text-brandBlack">Detalle por categoria</h3>
-              <p className="text-sm text-mediumGray">Cada fila resume cuanto se opero, cuanto dejo y si quedo observacion.</p>
+          <div className="rounded-3xl border border-white/10 bg-white/[0.06] shadow-soft">
+            <div className="border-b border-white/10 px-4 py-4">
+              <h3 className="font-heading text-lg font-black text-brandWhite">Detalle por categoria</h3>
+              <p className="text-sm text-lightGray/55">Cada fila resume cuanto se opero, cuanto dejo y si quedo observacion.</p>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full border-separate border-spacing-0 text-sm">
-                <thead className="bg-lightGray text-brandBlack">
+                <thead className="bg-black/20 text-brandWhite">
                   <tr>
-                    <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Categoria</th>
-                    <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
-                    <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Comision</th>
-                    <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Observacion</th>
-                    <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Categoria</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Comision</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Observacion</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
                   </tr>
                 </thead>
                 <tbody>
                   {summaryRows.map((row, index) => (
-                    <tr key={row.category.id} className={index % 2 === 0 ? "bg-white" : "bg-lightGray/20"}>
-                      <td className="border-b border-lightGray px-4 py-4 align-top">
-                        <p className="font-semibold text-brandBlack">{row.category.name}</p>
-                        <p className="text-xs text-mediumGray">Orden {row.category.sort_order}</p>
+                    <tr key={row.category.id} className={index % 2 === 0 ? "bg-white/[0.06]" : "bg-black/20"}>
+                      <td className="border-b border-white/10 px-4 py-4 align-top">
+                        <p className="font-semibold text-brandWhite">{row.category.name}</p>
+                        <p className="text-xs text-lightGray/55">Orden {row.category.sort_order}</p>
                       </td>
-                      <td className="border-b border-lightGray px-4 py-4 align-top font-semibold text-brandBlack">{formatArs(row.operated)}</td>
-                      <td className="border-b border-lightGray px-4 py-4 align-top font-semibold text-brandBlack">{formatArs(row.profit)}</td>
-                      <td className="border-b border-lightGray px-4 py-4 align-top text-mediumGray">
+                      <td className="border-b border-white/10 px-4 py-4 align-top font-semibold text-brandWhite">{formatArs(row.operated)}</td>
+                      <td className="border-b border-white/10 px-4 py-4 align-top font-semibold text-brandWhite">{formatArs(row.profit)}</td>
+                      <td className="border-b border-white/10 px-4 py-4 align-top text-lightGray/55">
                         {row.line?.notes ? row.line.notes : "Sin observacion"}
                       </td>
-                      <td className="border-b border-lightGray px-4 py-4 align-top">
+                      <td className="border-b border-white/10 px-4 py-4 align-top">
                         <StatusBadge status={row.hasMovement ? "ok" : "pendiente"} />
                       </td>
                     </tr>
@@ -153,19 +153,19 @@ export default async function CajaDetallePage({ params }: { params: Promise<{ id
                 </tbody>
               </table>
             </div>
-            <div className="border-t border-lightGray bg-lightGray/20 px-4 py-4">
+            <div className="border-t border-white/10 bg-black/20 px-4 py-4">
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white bg-white p-4 shadow-soft">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Fuente</p>
-                  <p className="mt-1 font-semibold text-brandBlack">{cashData.source === "database" ? "Supabase" : "Seeds locales"}</p>
+                <div className="rounded-2xl border border-white bg-white/[0.06] p-4 shadow-soft">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Fuente</p>
+                  <p className="mt-1 font-semibold text-brandWhite">{cashData.source === "database" ? "Supabase" : "Seeds locales"}</p>
                 </div>
-                <div className="rounded-2xl border border-white bg-white p-4 shadow-soft">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Carga de hoy</p>
-                  <p className="mt-1 font-semibold text-brandBlack">{register.today_report ? cashReportStatusLabels[register.today_status] : "Pendiente"}</p>
+                <div className="rounded-2xl border border-white bg-white/[0.06] p-4 shadow-soft">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Carga de hoy</p>
+                  <p className="mt-1 font-semibold text-brandWhite">{register.today_report ? cashReportStatusLabels[register.today_status] : "Pendiente"}</p>
                 </div>
-                <div className="rounded-2xl border border-white bg-white p-4 shadow-soft">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Lectura</p>
-                  <p className="mt-1 font-semibold text-brandBlack">Vista superior para controlar la caja sin entrar al historial.</p>
+                <div className="rounded-2xl border border-white bg-white/[0.06] p-4 shadow-soft">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Lectura</p>
+                  <p className="mt-1 font-semibold text-brandWhite">Vista superior para controlar la caja sin entrar al historial.</p>
                 </div>
               </div>
             </div>
@@ -179,28 +179,28 @@ export default async function CajaDetallePage({ params }: { params: Promise<{ id
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-[860px] border-separate border-spacing-0 text-sm">
-              <thead className="bg-lightGray text-brandBlack">
+              <thead className="bg-black/20 text-brandWhite">
                 <tr>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Fecha</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Ganancia</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Categorias</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Cargado por</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Fecha</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Ganancia</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Categorias</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Cargado por</th>
                 </tr>
               </thead>
               <tbody>
                 {recentHistory.map((report, index) => (
-                  <tr key={report.id} className={index % 2 === 0 ? "bg-white" : "bg-lightGray/15"}>
-                    <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatReportDate(report.report_date)}</td>
-                    <td className="border-b border-lightGray px-4 py-4">
+                  <tr key={report.id} className={index % 2 === 0 ? "bg-white/[0.06]" : "bg-black/20"}>
+                    <td className="border-b border-white/10 px-4 py-4 font-semibold">{formatReportDate(report.report_date)}</td>
+                    <td className="border-b border-white/10 px-4 py-4">
                       <StatusBadge status={getCashReportStatusTone(report.status)} />
-                      <p className="mt-1 text-xs text-mediumGray">{cashReportStatusLabels[report.status]}</p>
+                      <p className="mt-1 text-xs text-lightGray/55">{cashReportStatusLabels[report.status]}</p>
                     </td>
-                    <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(Number(report.total_operated_ars ?? 0))}</td>
-                    <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(Number(report.total_profit_ars ?? 0))}</td>
-                    <td className="border-b border-lightGray px-4 py-4 text-mediumGray">{report.lines.length}</td>
-                    <td className="border-b border-lightGray px-4 py-4 text-mediumGray">{report.created_by_name ?? "-"}</td>
+                    <td className="border-b border-white/10 px-4 py-4 font-semibold">{formatArs(Number(report.total_operated_ars ?? 0))}</td>
+                    <td className="border-b border-white/10 px-4 py-4 font-semibold">{formatArs(Number(report.total_profit_ars ?? 0))}</td>
+                    <td className="border-b border-white/10 px-4 py-4 text-lightGray/55">{report.lines.length}</td>
+                    <td className="border-b border-white/10 px-4 py-4 text-lightGray/55">{report.created_by_name ?? "-"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -208,34 +208,34 @@ export default async function CajaDetallePage({ params }: { params: Promise<{ id
           </div>
         )}
         {hasMoreHistory ? (
-          <details className="mt-4 rounded-2xl border border-lightGray bg-lightGray/15 p-4">
-            <summary className="cursor-pointer list-none text-sm font-semibold text-brandBlack">
+          <details className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
+            <summary className="cursor-pointer list-none text-sm font-semibold text-brandWhite">
               Ver historial completo
             </summary>
             <div className="mt-4 overflow-x-auto">
               <table className="min-w-[980px] border-separate border-spacing-0 text-sm">
-                <thead className="bg-lightGray text-brandBlack">
+                <thead className="bg-black/20 text-brandWhite">
                   <tr>
-                    <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Fecha</th>
-                    <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
-                    <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
-                    <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Ganancia</th>
-                    <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Categorias</th>
-                    <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Cargado por</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Fecha</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Ganancia</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Categorias</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Cargado por</th>
                   </tr>
                 </thead>
                 <tbody>
                   {register.history.map((report, index) => (
-                    <tr key={report.id} className={index % 2 === 0 ? "bg-white" : "bg-lightGray/15"}>
-                      <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatReportDate(report.report_date)}</td>
-                      <td className="border-b border-lightGray px-4 py-4">
+                    <tr key={report.id} className={index % 2 === 0 ? "bg-white/[0.06]" : "bg-black/20"}>
+                      <td className="border-b border-white/10 px-4 py-4 font-semibold">{formatReportDate(report.report_date)}</td>
+                      <td className="border-b border-white/10 px-4 py-4">
                         <StatusBadge status={getCashReportStatusTone(report.status)} />
-                        <p className="mt-1 text-xs text-mediumGray">{cashReportStatusLabels[report.status]}</p>
+                        <p className="mt-1 text-xs text-lightGray/55">{cashReportStatusLabels[report.status]}</p>
                       </td>
-                      <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(Number(report.total_operated_ars ?? 0))}</td>
-                      <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(Number(report.total_profit_ars ?? 0))}</td>
-                      <td className="border-b border-lightGray px-4 py-4 text-mediumGray">{report.lines.length}</td>
-                      <td className="border-b border-lightGray px-4 py-4 text-mediumGray">{report.created_by_name ?? "-"}</td>
+                      <td className="border-b border-white/10 px-4 py-4 font-semibold">{formatArs(Number(report.total_operated_ars ?? 0))}</td>
+                      <td className="border-b border-white/10 px-4 py-4 font-semibold">{formatArs(Number(report.total_profit_ars ?? 0))}</td>
+                      <td className="border-b border-white/10 px-4 py-4 text-lightGray/55">{report.lines.length}</td>
+                      <td className="border-b border-white/10 px-4 py-4 text-lightGray/55">{report.created_by_name ?? "-"}</td>
                     </tr>
                   ))}
                 </tbody>

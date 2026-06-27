@@ -23,19 +23,19 @@ export function NoteCard({
   const isOpen = note.status === "abierta";
 
   return (
-    <article className="rounded-md border border-lightGray bg-lightGray/30 p-4 text-brandBlack">
+    <article className="rounded-md border border-white/10 bg-black/20 p-4 text-brandWhite">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <h4 className="font-heading text-base font-bold">{note.title}</h4>
             <NoteStatusBadge priority={note.priority} status={note.status} />
           </div>
-          <p className="text-sm text-mediumGray">{note.body}</p>
+          <p className="text-sm text-lightGray/55">{note.body}</p>
           {note.entity_label ? (
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-mediumGray">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-lightGray/55">
               Relacionada:{" "}
               {note.entity_href ? (
-                <Link className="text-brandBlack underline underline-offset-4" href={note.entity_href}>
+                <Link className="text-brandWhite underline underline-offset-4" href={note.entity_href}>
                   {note.entity_label}
                 </Link>
               ) : (
@@ -44,11 +44,11 @@ export function NoteCard({
             </p>
           ) : null}
         </div>
-        <p className="text-xs text-mediumGray">{new Date(note.created_at).toLocaleString("es-AR")}</p>
+        <p className="text-xs text-lightGray/55">{new Date(note.created_at).toLocaleString("es-AR")}</p>
       </div>
 
       {isOpen && (canResolve || canAnnul) ? (
-        <div className="mt-4 grid gap-3 border-t border-lightGray pt-4 lg:grid-cols-[1fr_auto_auto]">
+        <div className="mt-4 grid gap-3 border-t border-white/10 pt-4 lg:grid-cols-[1fr_auto_auto]">
           {canResolve ? (
             <form action={updateNotePriorityAction} className="flex gap-2">
               <input name="note_id" type="hidden" value={note.id} />

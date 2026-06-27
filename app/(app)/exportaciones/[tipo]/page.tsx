@@ -194,7 +194,7 @@ export default async function ExportacionTipoPage({
   const headers = exportData.headers;
 
   return (
-    <div className={printMode ? "space-y-4 bg-white text-brandBlack print:bg-white" : "space-y-6"}>
+    <div className={printMode ? "space-y-4 bg-white/[0.06] text-brandWhite print:bg-white/[0.06]" : "space-y-6"}>
       <div className={printMode ? "print:hidden" : ""}>
         <SectionTitle
           description="Vista imprimible y exportacion CSV del reporte seleccionado."
@@ -219,7 +219,7 @@ export default async function ExportacionTipoPage({
                 <label className="text-sm font-semibold text-brandWhite" htmlFor="branch_id">
                   Sucursal
                 </label>
-                <select className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-brandBlack shadow-sm" defaultValue={getParam(resolvedSearchParams, "branch_id")} id="branch_id" name="branch_id">
+                <select className="h-11 w-full rounded-md border border-border bg-white/[0.06] px-3 text-sm text-brandWhite shadow-sm" defaultValue={getParam(resolvedSearchParams, "branch_id")} id="branch_id" name="branch_id">
                   <option value="">Ambas</option>
                   <option value="Centro">Centro</option>
                   <option value="Terminal">Terminal</option>
@@ -274,7 +274,7 @@ export default async function ExportacionTipoPage({
                 <label className="text-sm font-semibold text-brandWhite" htmlFor="status">
                   Estado
                 </label>
-                <select className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-brandBlack shadow-sm" defaultValue={getParam(resolvedSearchParams, "status")} id="status" name="status">
+                <select className="h-11 w-full rounded-md border border-border bg-white/[0.06] px-3 text-sm text-brandWhite shadow-sm" defaultValue={getParam(resolvedSearchParams, "status")} id="status" name="status">
                   <option value="">Todos</option>
                   <option value="pendiente">Pendiente</option>
                   <option value="pagado">Pagado</option>
@@ -296,7 +296,7 @@ export default async function ExportacionTipoPage({
               <label className="text-sm font-semibold text-brandWhite" htmlFor="status">
                 Estado
               </label>
-              <select className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-brandBlack shadow-sm" defaultValue={getParam(resolvedSearchParams, "status")} id="status" name="status">
+              <select className="h-11 w-full rounded-md border border-border bg-white/[0.06] px-3 text-sm text-brandWhite shadow-sm" defaultValue={getParam(resolvedSearchParams, "status")} id="status" name="status">
                 <option value="">Todos</option>
                 <option value="pendiente">Pendiente</option>
                 <option value="parcial">Parcial</option>
@@ -311,7 +311,7 @@ export default async function ExportacionTipoPage({
               <label className="text-sm font-semibold text-brandWhite" htmlFor="operation_type">
                 Tipo de operación
               </label>
-              <select className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-brandBlack shadow-sm" defaultValue={getParam(resolvedSearchParams, "operation_type")} id="operation_type" name="operation_type">
+              <select className="h-11 w-full rounded-md border border-border bg-white/[0.06] px-3 text-sm text-brandWhite shadow-sm" defaultValue={getParam(resolvedSearchParams, "operation_type")} id="operation_type" name="operation_type">
                 <option value="">Todos</option>
                 <option value="compra_usd">Comprar USD</option>
                 <option value="venta_usd">Vender USD</option>
@@ -339,11 +339,11 @@ export default async function ExportacionTipoPage({
           </div>
         </form>
       ) : (
-        <div className="rounded-3xl border border-lightGray bg-white p-4 shadow-soft print:border-0 print:p-0 print:shadow-none">
+        <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-4 shadow-soft print:border-0 print:p-0 print:shadow-none">
           <div className="mb-4 print:mb-2">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-mediumGray">MAS SERVICIOS</p>
-            <h1 className="font-heading text-3xl font-black text-brandBlack">{getKindTitle(tipo)}</h1>
-            <p className="text-sm text-mediumGray">{exportData.subtitle}</p>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-lightGray/55">MAS SERVICIOS</p>
+            <h1 className="font-heading text-3xl font-black text-brandWhite">{getKindTitle(tipo)}</h1>
+            <p className="text-sm text-lightGray/55">{exportData.subtitle}</p>
           </div>
           <div className="flex flex-wrap gap-3 print:hidden">
             <ExportCsvButton href={csvLink} label="Descargar CSV" />
@@ -361,10 +361,10 @@ export default async function ExportacionTipoPage({
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-[1200px] border-separate border-spacing-0 text-sm">
-              <thead className="bg-lightGray text-brandBlack">
+              <thead className="bg-black/20 text-brandWhite">
                 <tr>
                   {headers.map((header) => (
-                    <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]" key={header}>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]" key={header}>
                       {header.replaceAll("_", " ")}
                     </th>
                   ))}
@@ -372,9 +372,9 @@ export default async function ExportacionTipoPage({
               </thead>
               <tbody>
                 {exportData.rows.map((row, index) => (
-                  <tr className={index % 2 === 0 ? "bg-white" : "bg-lightGray/15"} key={`${tipo}-${index}`}>
+                  <tr className={index % 2 === 0 ? "bg-white/[0.06]" : "bg-black/20"} key={`${tipo}-${index}`}>
                     {headers.map((header) => (
-                      <td className="border-b border-lightGray px-4 py-3" key={header}>
+                      <td className="border-b border-white/10 px-4 py-3" key={header}>
                         {renderCell(header, (row as Record<string, unknown>)[header])}
                       </td>
                     ))}

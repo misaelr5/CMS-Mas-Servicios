@@ -99,27 +99,27 @@ export default async function CierresPage({ searchParams }: { searchParams?: Sea
       <DataCard description="Estado general de la semana operativa." title="Resumen semanal">
         <div className="overflow-x-auto">
           <table className="min-w-[920px] border-separate border-spacing-0 text-sm">
-            <thead className="bg-lightGray text-brandBlack">
+            <thead className="bg-black/20 text-brandWhite">
               <tr>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Sucursal</th>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Ganancia</th>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Cargados</th>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Pendientes</th>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Revisados</th>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
+                <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Sucursal</th>
+                <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
+                <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Ganancia</th>
+                <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Cargados</th>
+                <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Pendientes</th>
+                <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Revisados</th>
+                <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
               </tr>
             </thead>
             <tbody>
               {closureData.branches.map((branch, index) => (
-                <tr className={index % 2 === 0 ? "bg-white" : "bg-lightGray/15"} key={branch.branch.id}>
-                  <td className="border-b border-lightGray px-4 py-4 font-semibold">{branch.branch.name}</td>
-                  <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(branch.totalOperatedArs)}</td>
-                  <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(branch.totalProfitArs)}</td>
-                  <td className="border-b border-lightGray px-4 py-4 font-semibold">{branch.loadedDaysCount}</td>
-                  <td className="border-b border-lightGray px-4 py-4 font-semibold">{branch.pendingDaysCount}</td>
-                  <td className="border-b border-lightGray px-4 py-4 font-semibold">{branch.reviewedDaysCount}</td>
-                  <td className="border-b border-lightGray px-4 py-4">
+                <tr className={index % 2 === 0 ? "bg-white/[0.06]" : "bg-black/20"} key={branch.branch.id}>
+                  <td className="border-b border-white/10 px-4 py-4 font-semibold">{branch.branch.name}</td>
+                  <td className="border-b border-white/10 px-4 py-4 font-semibold">{formatArs(branch.totalOperatedArs)}</td>
+                  <td className="border-b border-white/10 px-4 py-4 font-semibold">{formatArs(branch.totalProfitArs)}</td>
+                  <td className="border-b border-white/10 px-4 py-4 font-semibold">{branch.loadedDaysCount}</td>
+                  <td className="border-b border-white/10 px-4 py-4 font-semibold">{branch.pendingDaysCount}</td>
+                  <td className="border-b border-white/10 px-4 py-4 font-semibold">{branch.reviewedDaysCount}</td>
+                  <td className="border-b border-white/10 px-4 py-4">
                     <Badge variant={badgeVariantFromTone(getWeeklyClosureTone(branch.status))}>
                       {weeklyCashClosureStatusLabels[branch.status]}
                     </Badge>
@@ -127,13 +127,13 @@ export default async function CierresPage({ searchParams }: { searchParams?: Sea
                 </tr>
               ))}
               <tr className="bg-brandYellow/15">
-                <td className="border-t border-lightGray px-4 py-4 font-black uppercase tracking-[0.18em]">Total general</td>
-                <td className="border-t border-lightGray px-4 py-4 font-black">{formatArs(closureData.totals.totalOperatedArs)}</td>
-                <td className="border-t border-lightGray px-4 py-4 font-black">{formatArs(closureData.totals.totalProfitArs)}</td>
-                <td className="border-t border-lightGray px-4 py-4 font-black">{closureData.totals.loadedDaysCount}</td>
-                <td className="border-t border-lightGray px-4 py-4 font-black">{closureData.totals.pendingDaysCount}</td>
-                <td className="border-t border-lightGray px-4 py-4 font-black">{closureData.totals.reviewedDaysCount}</td>
-                <td className="border-t border-lightGray px-4 py-4 font-black">{weeklyCashClosureStatusLabels[closureData.status]}</td>
+                <td className="border-t border-white/10 px-4 py-4 font-black uppercase tracking-[0.18em]">Total general</td>
+                <td className="border-t border-white/10 px-4 py-4 font-black">{formatArs(closureData.totals.totalOperatedArs)}</td>
+                <td className="border-t border-white/10 px-4 py-4 font-black">{formatArs(closureData.totals.totalProfitArs)}</td>
+                <td className="border-t border-white/10 px-4 py-4 font-black">{closureData.totals.loadedDaysCount}</td>
+                <td className="border-t border-white/10 px-4 py-4 font-black">{closureData.totals.pendingDaysCount}</td>
+                <td className="border-t border-white/10 px-4 py-4 font-black">{closureData.totals.reviewedDaysCount}</td>
+                <td className="border-t border-white/10 px-4 py-4 font-black">{weeklyCashClosureStatusLabels[closureData.status]}</td>
               </tr>
             </tbody>
           </table>
@@ -146,34 +146,34 @@ export default async function CierresPage({ searchParams }: { searchParams?: Sea
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-[1200px] border-separate border-spacing-0 text-sm">
-              <thead className="bg-lightGray text-brandBlack">
+              <thead className="bg-black/20 text-brandWhite">
                 <tr>
-                  <th className="sticky left-0 z-20 border-b border-lightGray bg-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Caja</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Sucursal</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Ganancia</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Cargados</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Pendientes</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Revisados</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
+                  <th className="sticky left-0 z-20 border-b border-white/10 bg-black/20 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Caja</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Sucursal</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Ganancia</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Cargados</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Pendientes</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Revisados</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
                 </tr>
               </thead>
               <tbody>
                 {closureData.registerSummaries.map((register, index) => (
-                  <tr className={index % 2 === 0 ? "bg-white" : "bg-lightGray/15"} key={register.cashRegister.id}>
-                    <td className="sticky left-0 z-10 border-b border-lightGray bg-inherit px-4 py-4">
+                  <tr className={index % 2 === 0 ? "bg-white/[0.06]" : "bg-black/20"} key={register.cashRegister.id}>
+                    <td className="sticky left-0 z-10 border-b border-white/10 bg-inherit px-4 py-4">
                       <div className="space-y-1">
-                        <p className="font-black text-brandBlack">Caja {register.cashRegister.register_number ?? "?"}</p>
-                        <p className="text-xs text-mediumGray">{register.cashRegister.name}</p>
+                        <p className="font-black text-brandWhite">Caja {register.cashRegister.register_number ?? "?"}</p>
+                        <p className="text-xs text-lightGray/55">{register.cashRegister.name}</p>
                       </div>
                     </td>
-                    <td className="border-b border-lightGray px-4 py-4">{register.branch.name}</td>
-                    <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(register.totalOperatedArs)}</td>
-                    <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(register.totalProfitArs)}</td>
-                    <td className="border-b border-lightGray px-4 py-4 font-semibold">{register.loadedDaysCount}</td>
-                    <td className="border-b border-lightGray px-4 py-4 font-semibold">{register.pendingDaysCount}</td>
-                    <td className="border-b border-lightGray px-4 py-4 font-semibold">{register.reviewedDaysCount}</td>
-                    <td className="border-b border-lightGray px-4 py-4">
+                    <td className="border-b border-white/10 px-4 py-4">{register.branch.name}</td>
+                    <td className="border-b border-white/10 px-4 py-4 font-semibold">{formatArs(register.totalOperatedArs)}</td>
+                    <td className="border-b border-white/10 px-4 py-4 font-semibold">{formatArs(register.totalProfitArs)}</td>
+                    <td className="border-b border-white/10 px-4 py-4 font-semibold">{register.loadedDaysCount}</td>
+                    <td className="border-b border-white/10 px-4 py-4 font-semibold">{register.pendingDaysCount}</td>
+                    <td className="border-b border-white/10 px-4 py-4 font-semibold">{register.reviewedDaysCount}</td>
+                    <td className="border-b border-white/10 px-4 py-4">
                       <Badge variant={badgeVariantFromTone(getWeeklyClosureTone(register.status))}>
                         {weeklyCashClosureStatusLabels[register.status]}
                       </Badge>
@@ -229,19 +229,19 @@ export default async function CierresPage({ searchParams }: { searchParams?: Sea
         <DataCard description="Referencia para saber que queda como ultimo registro." title="Ultimo cierre">
           {closureData.lastClosure ? (
             <div className="space-y-3">
-              <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Semana</p>
-                <p className="mt-1 font-semibold text-brandBlack">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Semana</p>
+                <p className="mt-1 font-semibold text-brandWhite">
                   {closureData.lastClosure.week_start_date} a {closureData.lastClosure.week_end_date}
                 </p>
               </div>
-              <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Estado</p>
-                <p className="mt-1 font-semibold text-brandBlack">{weeklyCashClosureStatusLabels[closureData.lastClosure.status]}</p>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Estado</p>
+                <p className="mt-1 font-semibold text-brandWhite">{weeklyCashClosureStatusLabels[closureData.lastClosure.status]}</p>
               </div>
-              <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Cerrado / reabierto</p>
-                <p className="mt-1 text-sm text-brandBlack">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Cerrado / reabierto</p>
+                <p className="mt-1 text-sm text-brandWhite">
                   Cierre: {closureData.lastClosure.closed_at ?? "-"}
                   <br />
                   Reapertura: {closureData.lastClosure.reopened_at ?? "-"}

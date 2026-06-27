@@ -26,12 +26,12 @@ export function ExpenseForm({
   const [state, formAction, isPending] = useActionState(createExpenseAction, initialState);
 
   if (!canWrite) {
-    return <p className="text-sm text-mediumGray">Solo lectura para tu rol.</p>;
+    return <p className="text-sm text-lightGray/55">Solo lectura para tu rol.</p>;
   }
 
   if (isLocked) {
     return (
-      <p className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-semibold text-brandBlack">
+      <p className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-semibold text-brandWhite">
         <Lock className="h-4 w-4 shrink-0 text-warning" />
         Este reporte diario está cerrado. Reabrilo para modificarlo.
       </p>
@@ -57,7 +57,7 @@ export function ExpenseForm({
 
         <FormField label="Monto" htmlFor="amount_ars" required>
           <div className="relative">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-mediumGray">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-lightGray/55">
               $
             </span>
             <Input

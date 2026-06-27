@@ -6,7 +6,7 @@ import { Sidebar } from "@/components/sidebar";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,212,0,0.12),_transparent_22%),linear-gradient(180deg,_#111111_0%,_#161616_40%,_#111111_100%)] text-brandWhite print:bg-white print:text-black">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,212,0,0.12),_transparent_22%),linear-gradient(180deg,_#111111_0%,_#161616_40%,_#111111_100%)] text-brandWhite print:bg-white/[0.06] print:text-black">
       <Sidebar />
       <div className="lg:pl-72">
         <Header />

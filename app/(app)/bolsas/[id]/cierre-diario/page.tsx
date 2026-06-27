@@ -49,7 +49,7 @@ export default async function CierreDiarioPage({ params }: { params: Promise<{ i
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <DataCard description="Estado actual" title="Resumen">
-          <div className="space-y-2 text-sm text-brandBlack">
+          <div className="space-y-2 text-sm text-brandWhite">
             <p>Efectivo: {formatArs(Number(bag.current_cash_ars ?? 0))}</p>
             <p>Cuenta: {formatArs(Number(bag.current_account_ars ?? 0))}</p>
             <p>USD: {formatUsd(Number(bag.current_usd ?? 0))}</p>
@@ -57,7 +57,7 @@ export default async function CierreDiarioPage({ params }: { params: Promise<{ i
           </div>
         </DataCard>
         <DataCard description="Resultado" title="Corte estimado">
-          <div className="space-y-2 text-sm text-brandBlack">
+          <div className="space-y-2 text-sm text-brandWhite">
             <p>Total estimado: {formatArs(estimated)}</p>
             <p>Diferencia: {formatArs(difference)}</p>
             <p>Costo promedio USD: {formatArs(Number(bag.average_usd_cost ?? 0))}</p>

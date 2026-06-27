@@ -55,21 +55,21 @@ export default async function CajaCargarPage({ params }: { params: Promise<{ id:
 
       <DataCard description="La fecha se toma para la carga del día y se guarda por caja." title="Encabezado">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Fecha</p>
-            <p className="mt-1 font-semibold text-brandBlack">{todayIsoInBuenosAires()}</p>
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Fecha</p>
+            <p className="mt-1 font-semibold text-brandWhite">{todayIsoInBuenosAires()}</p>
           </div>
-          <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Caja</p>
-            <p className="mt-1 font-semibold text-brandBlack">{register.register_number ? `Caja ${register.register_number}` : register.name}</p>
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Caja</p>
+            <p className="mt-1 font-semibold text-brandWhite">{register.register_number ? `Caja ${register.register_number}` : register.name}</p>
           </div>
-          <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Sucursal</p>
-            <p className="mt-1 font-semibold text-brandBlack">{register.branch_name}</p>
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Sucursal</p>
+            <p className="mt-1 font-semibold text-brandWhite">{register.branch_name}</p>
           </div>
-          <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-mediumGray">Estado actual</p>
-            <p className="mt-1 font-semibold text-brandBlack">{register.today_status}</p>
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Estado actual</p>
+            <p className="mt-1 font-semibold text-brandWhite">{register.today_status}</p>
           </div>
         </div>
       </DataCard>

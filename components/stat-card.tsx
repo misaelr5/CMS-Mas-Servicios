@@ -9,7 +9,7 @@ const iconBgByStatus: Record<StatusBadgeTone, string> = {
   ok: "bg-success/12 text-success",
   revisar: "bg-warning/12 text-warning",
   error: "bg-danger/12 text-danger",
-  pendiente: "bg-mediumGray/12 text-mediumGray",
+  pendiente: "bg-mediumGray/12 text-lightGray/55",
   neutral: "bg-brandYellow/12 text-brandYellow"
 };
 

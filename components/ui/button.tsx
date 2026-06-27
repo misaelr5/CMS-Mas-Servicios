@@ -17,7 +17,7 @@ const buttonVariants = cva(
         outline: "border border-border bg-transparent text-foreground hover:bg-white/5 hover:border-white/25",
         ghost: "bg-transparent text-foreground hover:bg-white/5",
         destructive: "bg-danger text-white hover:bg-danger/90 hover:shadow-[0_0_16px_rgba(217,45,32,0.35)]",
-        soft: "bg-lightGray text-brandBlack hover:bg-white"
+        soft: "bg-black/20 text-brandWhite hover:bg-white/[0.06]"
       },
       size: {
         default: "h-11 px-4 py-2",

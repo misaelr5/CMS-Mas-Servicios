@@ -32,7 +32,7 @@ export function NoteForm({
 
   if (!canWrite) {
     return (
-      <div className="rounded-md border border-lightGray bg-lightGray/30 p-4 text-sm text-mediumGray">
+      <div className="rounded-md border border-white/10 bg-black/20 p-4 text-sm text-lightGray/55">
         Tu rol permite leer notas, pero no crear nuevas.
       </div>
     );
@@ -56,7 +56,7 @@ export function NoteForm({
       </div>
 
       <textarea
-        className="min-h-24 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm placeholder:text-mediumGray focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="min-h-24 w-full rounded-md border border-border bg-white/[0.06] px-3 py-2 text-sm text-brandWhite shadow-sm placeholder:text-lightGray/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         name="body"
         placeholder="Detalle interno para el equipo"
         required

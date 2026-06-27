@@ -36,7 +36,7 @@ export function CashDailyReportForm({
 
   if (isLocked || weekLocked) {
     return (
-      <div className="rounded-3xl border border-warning/30 bg-warning/10 p-4 text-sm font-semibold text-brandBlack">
+      <div className="rounded-3xl border border-warning/30 bg-warning/10 p-4 text-sm font-semibold text-brandWhite">
         {weekLocked ? "Esta semana está cerrada. Reabrila para modificarla." : "Este reporte diario está cerrado. Reabrilo para modificarlo."}
       </div>
     );
@@ -142,8 +142,8 @@ export function CashDailyReportForm({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-3xl border border-lightGray bg-white p-4 text-brandBlack shadow-soft">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-mediumGray">Control</p>
+        <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-4 text-brandWhite shadow-soft">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-lightGray/55">Control</p>
           <div className="mt-3 space-y-2 text-sm">
             <p>
               Caja: <span className="font-semibold">{register.register_number ? `Caja ${register.register_number}` : register.name}</span>
@@ -161,7 +161,7 @@ export function CashDailyReportForm({
 
           {canReview ? (
             <div className="mt-4 space-y-2">
-              <label className="text-sm font-semibold text-brandBlack" htmlFor="negative_profit_reason">
+              <label className="text-sm font-semibold text-brandWhite" htmlFor="negative_profit_reason">
                 Motivo si hay ganancia negativa
               </label>
               <Input id="negative_profit_reason" name="negative_profit_reason" placeholder="Obligatorio para admin/encargado si cargas negativos" />
@@ -169,8 +169,8 @@ export function CashDailyReportForm({
           ) : null}
         </div>
 
-        <div className="rounded-3xl border border-brandYellow/25 bg-brandYellow/10 p-4 text-brandBlack shadow-soft">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-brandBlack/70">Lectura rápida</p>
+        <div className="rounded-3xl border border-brandYellow/25 bg-brandYellow/10 p-4 text-brandWhite shadow-soft">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-brandWhite/70">Lectura rápida</p>
           <div className="mt-3 space-y-3 text-sm">
             <div className="rounded-2xl bg-white/65 px-4 py-3 font-semibold">Monto operado = volumen movido.</div>
             <div className="rounded-2xl bg-white/65 px-4 py-3 font-semibold">Ganancia / comisión = utilidad de la categoría.</div>
@@ -182,7 +182,7 @@ export function CashDailyReportForm({
       {state.message ? (
         <p role="alert" className={state.ok ? "text-sm font-semibold text-success" : "text-sm font-semibold text-danger"}>{state.message}</p>
       ) : (
-        <p className="text-sm text-mediumGray">Completá los importes por categoría. Si una carga queda a medias, guardala como parcial para no perder el trabajo.</p>
+        <p className="text-sm text-lightGray/55">Completá los importes por categoría. Si una carga queda a medias, guardala como parcial para no perder el trabajo.</p>
       )}
 
       <div className="flex flex-wrap gap-3">

@@ -24,14 +24,14 @@ export async function ImportantNotesWidget() {
       ) : (
         <div className="space-y-3">
           {notes.map((note) => (
-            <article className="rounded-md border border-lightGray bg-lightGray/30 p-4" key={note.id}>
+            <article className="rounded-md border border-white/10 bg-black/20 p-4" key={note.id}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h4 className="font-heading text-base font-bold text-brandBlack">{note.title}</h4>
+                <h4 className="font-heading text-base font-bold text-brandWhite">{note.title}</h4>
                 <NoteStatusBadge priority={note.priority} status={note.status} />
               </div>
-              <p className="mt-2 text-sm text-mediumGray">{note.body}</p>
+              <p className="mt-2 text-sm text-lightGray/55">{note.body}</p>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-mediumGray">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-lightGray/55">
                   {note.entity_label ?? "General"}
                 </p>
                 {note.entity_href ? (

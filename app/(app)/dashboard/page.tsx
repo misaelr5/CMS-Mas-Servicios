@@ -321,32 +321,32 @@ export default async function DashboardPage() {
             <div className="space-y-3">
               {centroRegisters.map((rs) => (
                 <div
-                  className="rounded-2xl border border-lightGray bg-white p-4 shadow-soft"
+                  className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-soft"
                   key={rs.register.id}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-mediumGray">
+                      <p className="text-xs uppercase tracking-[0.2em] text-lightGray/55">
                         Caja {rs.register.register_number}
                       </p>
-                      <h3 className="mt-0.5 font-heading text-lg font-black text-brandBlack">
+                      <h3 className="mt-0.5 font-heading text-lg font-black text-brandWhite">
                         {rs.register.name}
                       </h3>
                     </div>
                     <Badge variant={registerStatusBadge(rs.status)}>{rs.status}</Badge>
                   </div>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                    <div className="rounded-xl bg-lightGray/20 p-2.5">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Operado</p>
-                      <p className="mt-1 text-sm font-bold text-brandBlack tabular-nums">{formatArs(rs.totalOperatedArs)}</p>
+                    <div className="rounded-xl bg-black/20 p-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Operado</p>
+                      <p className="mt-1 text-sm font-bold text-brandWhite tabular-nums">{formatArs(rs.totalOperatedArs)}</p>
                     </div>
-                    <div className="rounded-xl bg-lightGray/20 p-2.5">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Ganancia</p>
-                      <p className="mt-1 text-sm font-bold text-brandBlack tabular-nums">{formatArs(rs.pfProfitArs)}</p>
+                    <div className="rounded-xl bg-black/20 p-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Ganancia</p>
+                      <p className="mt-1 text-sm font-bold text-brandWhite tabular-nums">{formatArs(rs.pfProfitArs)}</p>
                     </div>
-                    <div className="rounded-xl bg-lightGray/20 p-2.5">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Ultima actualizacion</p>
-                      <p className="mt-1 text-sm font-bold text-brandBlack">{formatDateTime(rs.register.updated_at)}</p>
+                    <div className="rounded-xl bg-black/20 p-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Ultima actualizacion</p>
+                      <p className="mt-1 text-sm font-bold text-brandWhite">{formatDateTime(rs.register.updated_at)}</p>
                     </div>
                   </div>
                   <div className="mt-3 flex gap-2">
@@ -380,32 +380,32 @@ export default async function DashboardPage() {
             <div className="space-y-3">
               {terminalRegisters.map((rs) => (
                 <div
-                  className="rounded-2xl border border-lightGray bg-white p-4 shadow-soft"
+                  className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-soft"
                   key={rs.register.id}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-mediumGray">
+                      <p className="text-xs uppercase tracking-[0.2em] text-lightGray/55">
                         Caja {rs.register.register_number}
                       </p>
-                      <h3 className="mt-0.5 font-heading text-lg font-black text-brandBlack">
+                      <h3 className="mt-0.5 font-heading text-lg font-black text-brandWhite">
                         {rs.register.name}
                       </h3>
                     </div>
                     <Badge variant={registerStatusBadge(rs.status)}>{rs.status}</Badge>
                   </div>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                    <div className="rounded-xl bg-lightGray/20 p-2.5">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Operado</p>
-                      <p className="mt-1 text-sm font-bold text-brandBlack tabular-nums">{formatArs(rs.totalOperatedArs)}</p>
+                    <div className="rounded-xl bg-black/20 p-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Operado</p>
+                      <p className="mt-1 text-sm font-bold text-brandWhite tabular-nums">{formatArs(rs.totalOperatedArs)}</p>
                     </div>
-                    <div className="rounded-xl bg-lightGray/20 p-2.5">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Ganancia</p>
-                      <p className="mt-1 text-sm font-bold text-brandBlack tabular-nums">{formatArs(rs.pfProfitArs)}</p>
+                    <div className="rounded-xl bg-black/20 p-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Ganancia</p>
+                      <p className="mt-1 text-sm font-bold text-brandWhite tabular-nums">{formatArs(rs.pfProfitArs)}</p>
                     </div>
-                    <div className="rounded-xl bg-lightGray/20 p-2.5">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Ultima actualizacion</p>
-                      <p className="mt-1 text-sm font-bold text-brandBlack">{formatDateTime(rs.register.updated_at)}</p>
+                    <div className="rounded-xl bg-black/20 p-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Ultima actualizacion</p>
+                      <p className="mt-1 text-sm font-bold text-brandWhite">{formatDateTime(rs.register.updated_at)}</p>
                     </div>
                   </div>
                   <div className="mt-3 flex gap-2">
@@ -441,12 +441,12 @@ export default async function DashboardPage() {
             const bagSheet = reportData.bags.find((b) => b.bag.id === bag.id);
             const difference = Number(bag.difference_ars ?? 0);
             return (
-              <div className="rounded-3xl border border-lightGray bg-white p-4 shadow-soft" key={bag.id}>
+              <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-4 shadow-soft" key={bag.id}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.22em] text-mediumGray">Bolsa</p>
-                    <h3 className="mt-1 font-heading text-xl font-black text-brandBlack">{bag.name}</h3>
-                    <p className="text-sm text-mediumGray">{bag.responsible_name ?? "Sin asignar"}</p>
+                    <p className="text-xs uppercase tracking-[0.22em] text-lightGray/55">Bolsa</p>
+                    <h3 className="mt-1 font-heading text-xl font-black text-brandWhite">{bag.name}</h3>
+                    <p className="text-sm text-lightGray/55">{bag.responsible_name ?? "Sin asignar"}</p>
                     {bagSheet?.branchName ? (
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brandYellow/80">
                         {bagSheet.branchName}
@@ -457,36 +457,36 @@ export default async function DashboardPage() {
                 </div>
 
                 <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                  <div className="rounded-xl border border-lightGray bg-lightGray/20 p-2.5">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Efectivo</p>
-                    <p className="mt-1 text-sm font-semibold text-brandBlack tabular-nums">
+                  <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Efectivo</p>
+                    <p className="mt-1 text-sm font-semibold text-brandWhite tabular-nums">
                       {formatArs(Number(bag.current_cash_ars ?? 0))}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-lightGray bg-lightGray/20 p-2.5">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Cuenta</p>
-                    <p className="mt-1 text-sm font-semibold text-brandBlack tabular-nums">
+                  <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Cuenta</p>
+                    <p className="mt-1 text-sm font-semibold text-brandWhite tabular-nums">
                       {formatArs(Number(bag.current_account_ars ?? 0))}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-lightGray bg-lightGray/20 p-2.5">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">USD</p>
-                    <p className="mt-1 text-sm font-semibold text-brandBlack tabular-nums">
+                  <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">USD</p>
+                    <p className="mt-1 text-sm font-semibold text-brandWhite tabular-nums">
                       {formatUsd(Number(bag.current_usd ?? 0))}
                     </p>
                   </div>
                   {bagSheet ? (
-                    <div className="rounded-xl border border-lightGray bg-brandYellow/10 p-2.5 sm:col-span-3">
+                    <div className="rounded-xl border border-white/10 bg-brandYellow/10 p-2.5 sm:col-span-3">
                       <p className="text-[10px] uppercase tracking-[0.16em] text-brandYellow">Resumen de hoy</p>
-                      <p className="mt-1 text-sm font-semibold text-brandBlack">
+                      <p className="mt-1 text-sm font-semibold text-brandWhite">
                         {formatUsd(bagSheet.boughtUsdToday)} comprados · {formatUsd(bagSheet.soldUsdToday)} vendidos ·{" "}
                         {formatArs(bagSheet.currencyProfitArs)} de ganancia
                       </p>
                     </div>
                   ) : null}
-                  <div className="rounded-xl border border-lightGray bg-lightGray/20 p-2.5 sm:col-span-3">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-mediumGray">Diferencia estimada</p>
-                    <p className={`mt-1 text-sm font-semibold tabular-nums ${difference < 0 ? "text-danger" : "text-brandBlack"}`}>
+                  <div className="rounded-xl border border-white/10 bg-black/20 p-2.5 sm:col-span-3">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Diferencia estimada</p>
+                    <p className={`mt-1 text-sm font-semibold tabular-nums ${difference < 0 ? "text-danger" : "text-brandWhite"}`}>
                       {formatSignedArs(difference)}
                     </p>
                   </div>
@@ -529,21 +529,21 @@ export default async function DashboardPage() {
               const Icon = alert.icon;
               return (
                 <Link
-                  className="group rounded-3xl border border-lightGray bg-white p-4 shadow-soft transition hover:-translate-y-0.5 hover:shadow-medium"
+                  className="group rounded-3xl border border-white/10 bg-white/[0.06] p-4 shadow-soft transition hover:-translate-y-0.5 hover:shadow-medium"
                   href={alert.href}
                   key={alert.title}
                 >
                   <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brandYellow/20 text-brandBlack">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brandYellow/20 text-brandWhite">
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="font-heading text-base font-bold text-brandBlack">{alert.title}</h3>
+                        <h3 className="font-heading text-base font-bold text-brandWhite">{alert.title}</h3>
                         <Badge variant={toneForAlert(alert.tone)}>{alert.tone}</Badge>
                       </div>
-                      <p className="mt-1 text-sm text-mediumGray">{alert.description}</p>
-                      <p className="mt-3 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.18em] text-brandBlack">
+                      <p className="mt-1 text-sm text-lightGray/55">{alert.description}</p>
+                      <p className="mt-3 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.18em] text-brandWhite">
                         Ir a revisar
                         <ArrowRight className="h-3.5 w-3.5" />
                       </p>
@@ -646,15 +646,15 @@ export default async function DashboardPage() {
               <div className="space-y-3">
                 {notes.map((note) => (
                   <Link
-                    className="block rounded-2xl border border-lightGray bg-lightGray/20 p-4 transition hover:bg-lightGray/30"
+                    className="block rounded-2xl border border-white/10 bg-black/20 p-4 transition hover:bg-black/20"
                     href={note.entity_href || "/dashboard"}
                     key={note.id}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="font-semibold text-brandBlack">{note.title}</p>
-                        <p className="mt-1 text-sm text-mediumGray">{note.body}</p>
-                        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-mediumGray">
+                        <p className="font-semibold text-brandWhite">{note.title}</p>
+                        <p className="mt-1 text-sm text-lightGray/55">{note.body}</p>
+                        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-lightGray/55">
                           {note.entity_label ?? note.entity_type}
                         </p>
                       </div>

@@ -20,7 +20,7 @@ export function FormField({
   return (
     <div className={cn("space-y-2", className)}>
       <label
-        className="text-sm font-semibold text-brandBlack"
+        className="text-sm font-semibold text-brandWhite"
         htmlFor={htmlFor}
       >
         {label}
@@ -31,7 +31,7 @@ export function FormField({
         ) : null}
       </label>
       {children}
-      {hint ? <p className="text-xs text-mediumGray">{hint}</p> : null}
+      {hint ? <p className="text-xs text-lightGray/55">{hint}</p> : null}
     </div>
   );
 }

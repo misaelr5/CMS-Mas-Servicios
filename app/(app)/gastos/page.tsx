@@ -110,7 +110,7 @@ export default async function GastosPage({ searchParams }: { searchParams?: Sear
           <label className="text-sm font-semibold text-brandWhite" htmlFor="branch_id">
             Sucursal
           </label>
-          <select className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-brandBlack shadow-sm" defaultValue={selectedBranchId} id="branch_id" name="branch_id">
+          <select className="h-11 w-full rounded-md border border-border bg-white/[0.06] px-3 text-sm text-brandWhite shadow-sm" defaultValue={selectedBranchId} id="branch_id" name="branch_id">
             <option value="">Todas</option>
             {expenseData.branches.map((branch) => (
               <option key={branch.id} value={branch.id}>
@@ -123,7 +123,7 @@ export default async function GastosPage({ searchParams }: { searchParams?: Sear
           <label className="text-sm font-semibold text-brandWhite" htmlFor="status">
             Estado
           </label>
-          <select className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-brandBlack shadow-sm" defaultValue={selectedStatus} id="status" name="status">
+          <select className="h-11 w-full rounded-md border border-border bg-white/[0.06] px-3 text-sm text-brandWhite shadow-sm" defaultValue={selectedStatus} id="status" name="status">
             {statuses.map((status) => (
               <option key={status} value={status}>
                 {status === "all" ? "Todos" : expenseStatusLabels[status]}
@@ -135,7 +135,7 @@ export default async function GastosPage({ searchParams }: { searchParams?: Sear
           <label className="text-sm font-semibold text-brandWhite" htmlFor="category">
             Categoría
           </label>
-          <select className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-brandBlack shadow-sm" defaultValue={selectedCategory} id="category" name="category">
+          <select className="h-11 w-full rounded-md border border-border bg-white/[0.06] px-3 text-sm text-brandWhite shadow-sm" defaultValue={selectedCategory} id="category" name="category">
             <option value="">Todas</option>
             {expenseData.categories.map((category) => (
               <option key={category} value={category}>
@@ -168,17 +168,17 @@ export default async function GastosPage({ searchParams }: { searchParams?: Sear
 
         <DataCard description="Resumen del corte de gastos para el rango seleccionado." title="Resumen">
           <div className="space-y-3">
-            <div className="flex items-center justify-between rounded-2xl border border-lightGray/80 bg-lightGray/25 px-4 py-3">
-              <span className="text-sm text-mediumGray">Pendientes</span>
-              <span className="font-semibold text-brandBlack">{formatArs(expenseData.totals.pending_amount_ars)}</span>
+            <div className="flex items-center justify-between rounded-2xl border border-white/10/80 bg-black/20 px-4 py-3">
+              <span className="text-sm text-lightGray/55">Pendientes</span>
+              <span className="font-semibold text-brandWhite">{formatArs(expenseData.totals.pending_amount_ars)}</span>
             </div>
-            <div className="flex items-center justify-between rounded-2xl border border-lightGray/80 bg-lightGray/25 px-4 py-3">
-              <span className="text-sm text-mediumGray">Pagados</span>
-              <span className="font-semibold text-brandBlack">{formatArs(expenseData.totals.paid_amount_ars)}</span>
+            <div className="flex items-center justify-between rounded-2xl border border-white/10/80 bg-black/20 px-4 py-3">
+              <span className="text-sm text-lightGray/55">Pagados</span>
+              <span className="font-semibold text-brandWhite">{formatArs(expenseData.totals.paid_amount_ars)}</span>
             </div>
-            <div className="flex items-center justify-between rounded-2xl border border-lightGray/80 bg-lightGray/25 px-4 py-3">
-              <span className="text-sm text-mediumGray">Imputados</span>
-              <span className="font-semibold text-brandBlack">{formatArs(expenseData.totals.imputed_amount_ars)}</span>
+            <div className="flex items-center justify-between rounded-2xl border border-white/10/80 bg-black/20 px-4 py-3">
+              <span className="text-sm text-lightGray/55">Imputados</span>
+              <span className="font-semibold text-brandWhite">{formatArs(expenseData.totals.imputed_amount_ars)}</span>
             </div>
           </div>
         </DataCard>
@@ -192,7 +192,7 @@ export default async function GastosPage({ searchParams }: { searchParams?: Sear
             const canAnnul = canWrite && expense.status !== "anulado";
             return (
               <DataCard
-                className="bg-white text-brandBlack"
+                className="bg-white/[0.06] text-brandWhite"
                 description={`${expense.branch_name} · ${expense.date} · ${expense.paid_from}`}
                 key={expense.id}
                 title={expense.category}
@@ -201,7 +201,7 @@ export default async function GastosPage({ searchParams }: { searchParams?: Sear
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="text-2xl font-black">{formatArs(Number(expense.amount_ars ?? 0))}</p>
-                      <p className="mt-1 text-sm text-mediumGray">{expense.detail}</p>
+                      <p className="mt-1 text-sm text-lightGray/55">{expense.detail}</p>
                     </div>
                     <Badge variant={badgeVariantFromStatusTone(getExpenseStatusTone(expense.status))}>
                       {expenseStatusLabels[expense.status]}

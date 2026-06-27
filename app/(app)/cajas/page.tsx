@@ -94,17 +94,17 @@ export default async function CajasPage() {
         ) : (
           <DataCard description={`${register.branch_name} - ${register.responsible_name ?? register.name}`} title={register.register_number ? `Caja ${register.register_number}` : register.name}>
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-mediumGray">Estado de hoy</p>
-                <p className="mt-1 font-heading text-xl font-black text-brandBlack">{formatStatus(register.today_status)}</p>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-lightGray/55">Estado de hoy</p>
+                <p className="mt-1 font-heading text-xl font-black text-brandWhite">{formatStatus(register.today_status)}</p>
               </div>
-              <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-mediumGray">Operado</p>
-                <p className="mt-1 font-heading text-xl font-black text-brandBlack">{formatArs(register.today_operated_ars)}</p>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-lightGray/55">Operado</p>
+                <p className="mt-1 font-heading text-xl font-black text-brandWhite">{formatArs(register.today_operated_ars)}</p>
               </div>
-              <div className="rounded-2xl border border-lightGray bg-lightGray/25 p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-mediumGray">Ultima actualizacion</p>
-                <p className="mt-1 font-heading text-xl font-black text-brandBlack">{formatDateTime(register.updated_at)}</p>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-lightGray/55">Ultima actualizacion</p>
+                <p className="mt-1 font-heading text-xl font-black text-brandWhite">{formatDateTime(register.updated_at)}</p>
               </div>
             </div>
 

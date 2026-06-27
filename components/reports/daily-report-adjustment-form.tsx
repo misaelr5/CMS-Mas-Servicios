@@ -32,7 +32,7 @@ export function DailyReportAdjustmentForm({
 
   if (!canWrite) {
     return (
-      <p className="text-sm text-mediumGray">
+      <p className="text-sm text-lightGray/55">
         Solo admin o encargado pueden crear ajustes.
       </p>
     );
@@ -40,7 +40,7 @@ export function DailyReportAdjustmentForm({
 
   if (isLocked) {
     return (
-      <p className="rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-semibold text-brandBlack">
+      <p className="rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-semibold text-brandWhite">
         Este reporte diario está cerrado. Reabrilo para modificarlo.
       </p>
     );

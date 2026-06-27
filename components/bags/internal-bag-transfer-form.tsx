@@ -89,13 +89,13 @@ export function InternalBagTransferForm({
       <input name="transfer_mode" type="hidden" value={transferMode} />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-md border border-lightGray bg-lightGray/30 p-4">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-mediumGray">Bolsa origen</p>
-          <p className="mt-2 font-heading text-xl font-black text-brandBlack">{originBag.display_label}</p>
-          <div className="mt-3 grid gap-2 text-sm text-mediumGray sm:grid-cols-3">
-            <p>Efectivo: <span className="font-semibold text-brandBlack">{formatArs(Number(originBag.current_cash_ars ?? 0))}</span></p>
-            <p>Cuenta: <span className="font-semibold text-brandBlack">{formatArs(Number(originBag.current_account_ars ?? 0))}</span></p>
-            <p>USD: <span className="font-semibold text-brandBlack">{formatUsd(Number(originBag.current_usd ?? 0))}</span></p>
+        <div className="rounded-md border border-white/10 bg-black/20 p-4">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-lightGray/55">Bolsa origen</p>
+          <p className="mt-2 font-heading text-xl font-black text-brandWhite">{originBag.display_label}</p>
+          <div className="mt-3 grid gap-2 text-sm text-lightGray/55 sm:grid-cols-3">
+            <p>Efectivo: <span className="font-semibold text-brandWhite">{formatArs(Number(originBag.current_cash_ars ?? 0))}</span></p>
+            <p>Cuenta: <span className="font-semibold text-brandWhite">{formatArs(Number(originBag.current_account_ars ?? 0))}</span></p>
+            <p>USD: <span className="font-semibold text-brandWhite">{formatUsd(Number(originBag.current_usd ?? 0))}</span></p>
           </div>
         </div>
 
@@ -136,8 +136,8 @@ export function InternalBagTransferForm({
       </div>
 
       <div className="rounded-md border border-brandYellow/35 bg-brandYellow/15 p-4">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-mediumGray">Total ARS</p>
-        <p className="mt-2 font-heading text-2xl font-black text-brandBlack">{formatArs(preview.totalArs)}</p>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-lightGray/55">Total ARS</p>
+        <p className="mt-2 font-heading text-2xl font-black text-brandWhite">{formatArs(preview.totalArs)}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -172,9 +172,9 @@ export function InternalBagTransferForm({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-md border border-lightGray bg-white p-4 text-sm text-brandBlack">
+        <div className="rounded-md border border-white/10 bg-white/[0.06] p-4 text-sm text-brandWhite">
           <p className="font-heading text-lg font-black">Vista previa de origen</p>
-          <p className="mt-1 text-mediumGray">{originBag.display_label}</p>
+          <p className="mt-1 text-lightGray/55">{originBag.display_label}</p>
           <div className="mt-4 space-y-2">
             <p>USD: {formatUsd(Number(originBag.current_usd ?? 0))} {" → "} {formatUsd(preview.originNextUsd)}</p>
             <p>Efectivo: {formatArs(Number(originBag.current_cash_ars ?? 0))} {" → "} {formatArs(preview.originNextCash)}</p>
@@ -184,9 +184,9 @@ export function InternalBagTransferForm({
           </div>
         </div>
 
-        <div className="rounded-md border border-lightGray bg-white p-4 text-sm text-brandBlack">
+        <div className="rounded-md border border-white/10 bg-white/[0.06] p-4 text-sm text-brandWhite">
           <p className="font-heading text-lg font-black">Vista previa de destino</p>
-          <p className="mt-1 text-mediumGray">{destinationBag?.display_label ?? "Sin bolsa destino"}</p>
+          <p className="mt-1 text-lightGray/55">{destinationBag?.display_label ?? "Sin bolsa destino"}</p>
           <div className="mt-4 space-y-2">
             <p>USD: {formatUsd(Number(destinationBag?.current_usd ?? 0))} {" → "} {formatUsd(preview.destinationNextUsd)}</p>
             <p>Efectivo: {formatArs(Number(destinationBag?.current_cash_ars ?? 0))} {" → "} {formatArs(preview.destinationNextCash)}</p>

@@ -102,7 +102,7 @@ function BranchSection({
             {group.registers.map((r) => `Caja ${r.register.register_number ?? "?"}`).join(" · ")}
           </p>
           {isLocked ? (
-            <div className="rounded-2xl border border-lightGray/10 bg-white/5 px-4 py-3 text-sm text-lightGray">
+            <div className="rounded-2xl border border-white/10/10 bg-white/5 px-4 py-3 text-sm text-lightGray">
               <p className="font-semibold text-brandWhite">
                 Cerrado: {formatDateTime(group.dailyReport?.closed_at)}
               </p>
@@ -158,8 +158,8 @@ function BranchSection({
             </p>
           </div>
           <div className="rounded-2xl border border-brandYellow/30 bg-brandYellow/15 p-4">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-mediumGray">Ganancia {branch.name}</p>
-            <p className="mt-2 text-2xl font-black text-brandBlack">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-lightGray/55">Ganancia {branch.name}</p>
+            <p className="mt-2 text-2xl font-black text-brandWhite">
               {formatArs(
                 group.totals.pfProfitArs +
                   group.totals.manualPfAdjArs +
@@ -178,20 +178,20 @@ function BranchSection({
         </summary>
         <div className="mt-4">
           <DataCard
-            className="bg-white text-brandBlack"
+            className="bg-white/[0.06] text-brandWhite"
             description={`Planilla de cargas por caja — Pago Facil ${branch.name}.`}
             title={`${branch.name} — Pago Facil`}
           >
-            <div className="overflow-x-auto rounded-2xl border border-lightGray">
+            <div className="overflow-x-auto rounded-2xl border border-white/10">
           <table className="min-w-full border-separate border-spacing-0 text-sm">
-            <thead className="bg-lightGray/80 text-brandBlack">
+            <thead className="bg-black/20 text-brandWhite">
               <tr>
-                <th className="sticky left-0 z-10 border-b border-lightGray bg-lightGray/90 px-4 py-3 text-left font-bold uppercase tracking-[0.16em]">
+                <th className="sticky left-0 z-10 border-b border-white/10 bg-black/20 px-4 py-3 text-left font-bold uppercase tracking-[0.16em]">
                   Cobros / Pagos
                 </th>
                 {group.registers.map((rs) => (
                   <th
-                    className="border-b border-lightGray px-4 py-3 text-center font-bold uppercase tracking-[0.16em]"
+                    className="border-b border-white/10 px-4 py-3 text-center font-bold uppercase tracking-[0.16em]"
                     key={rs.register.id}
                   >
                     <Link
@@ -209,31 +209,31 @@ function BranchSection({
             </thead>
             <tbody>
               {categories.map((category, index) => (
-                <tr className={index % 2 === 0 ? "bg-white" : "bg-lightGray/15"} key={category.id}>
-                  <th className="sticky left-0 z-10 border-b border-lightGray bg-inherit px-4 py-3 text-left font-semibold">
+                <tr className={index % 2 === 0 ? "bg-white/[0.06]" : "bg-black/20"} key={category.id}>
+                  <th className="sticky left-0 z-10 border-b border-white/10 bg-inherit px-4 py-3 text-left font-semibold">
                     {category.name}
                   </th>
                   {group.registers.map((rs) => {
                     const line = rs.lines.find((l) => l.category_id === category.id);
                     return (
                       <td
-                        className="border-b border-lightGray px-4 py-3 text-center align-top"
+                        className="border-b border-white/10 px-4 py-3 text-center align-top"
                         key={`${rs.register.id}-${category.id}`}
                       >
                         {line ? (
                           <div className="space-y-1">
                             <p className="text-base font-bold">{formatArs(Number(line.operated_amount_ars ?? 0))}</p>
                             {!isCashier ? (
-                              <p className="text-xs text-mediumGray">
+                              <p className="text-xs text-lightGray/55">
                                 Ganancia {formatArs(Number(line.profit_amount_ars ?? 0))}
                               </p>
                             ) : null}
                             {line.notes ? (
-                              <p className="text-xs italic text-mediumGray">{line.notes}</p>
+                              <p className="text-xs italic text-lightGray/55">{line.notes}</p>
                             ) : null}
                           </div>
                         ) : (
-                          <span className="text-mediumGray">-</span>
+                          <span className="text-lightGray/55">-</span>
                         )}
                       </td>
                     );
@@ -241,17 +241,17 @@ function BranchSection({
                 </tr>
               ))}
               <tr className="bg-brandYellow/15">
-                <th className="sticky left-0 z-10 border-t-2 border-lightGray bg-brandYellow/20 px-4 py-3 text-left font-black uppercase tracking-[0.16em]">
+                <th className="sticky left-0 z-10 border-t-2 border-white/10 bg-brandYellow/20 px-4 py-3 text-left font-black uppercase tracking-[0.16em]">
                   TOTAL
                 </th>
                 {group.registers.map((rs) => (
                   <td
-                    className="border-t-2 border-lightGray px-4 py-3 text-center"
+                    className="border-t-2 border-white/10 px-4 py-3 text-center"
                     key={`${rs.register.id}-total`}
                   >
                     <p className="text-base font-black">{formatArs(rs.totalOperatedArs)}</p>
                     {!isCashier ? (
-                      <p className="text-xs text-mediumGray">
+                      <p className="text-xs text-lightGray/55">
                         Ganancia {formatArs(rs.pfProfitArs)}
                       </p>
                     ) : null}
@@ -268,58 +268,58 @@ function BranchSection({
       {/* Divisas / Bags table */}
       {!isCashier && group.bags.length > 0 ? (
         <DataCard
-          className="bg-white text-brandBlack"
+          className="bg-white/[0.06] text-brandWhite"
           description={`Estado de divisas y bolsas de la sucursal ${branch.name}.`}
           title={`${branch.name} — Divisas`}
         >
-          <div className="overflow-x-auto rounded-2xl border border-lightGray">
+          <div className="overflow-x-auto rounded-2xl border border-white/10">
             <table className="min-w-full border-separate border-spacing-0 text-sm">
-              <thead className="bg-lightGray/80 text-brandBlack">
+              <thead className="bg-black/20 text-brandWhite">
                 <tr>
-                  <th className="border-b border-lightGray px-4 py-3 text-left font-bold uppercase tracking-[0.14em]">Bolsa</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Efectivo</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Cuenta</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">USD</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Comprados hoy</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Vendidos hoy</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Ganancia hoy</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-center font-bold uppercase tracking-[0.14em]">Internas</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left font-bold uppercase tracking-[0.14em]">Bolsa</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Efectivo</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Cuenta</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">USD</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Comprados hoy</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Vendidos hoy</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Ganancia hoy</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-center font-bold uppercase tracking-[0.14em]">Internas</th>
                 </tr>
               </thead>
               <tbody>
                 {group.bags.map((bs, index) => (
-                  <tr className={index % 2 === 0 ? "bg-white" : "bg-lightGray/15"} key={bs.bag.id}>
-                    <td className="border-b border-lightGray px-4 py-3">
+                  <tr className={index % 2 === 0 ? "bg-white/[0.06]" : "bg-black/20"} key={bs.bag.id}>
+                    <td className="border-b border-white/10 px-4 py-3">
                       <Link className="font-semibold hover:underline" href={`/bolsas/${bs.bag.id}`}>
                         {bs.bag.name}
                       </Link>
                       {bs.bag.responsible_name ? (
-                        <p className="text-xs text-mediumGray">{bs.bag.responsible_name}</p>
+                        <p className="text-xs text-lightGray/55">{bs.bag.responsible_name}</p>
                       ) : null}
                     </td>
-                    <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums">
+                    <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums">
                       {formatArs(Number(bs.bag.current_cash_ars ?? 0))}
                     </td>
-                    <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums">
+                    <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums">
                       {formatArs(Number(bs.bag.current_account_ars ?? 0))}
                     </td>
-                    <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums">
+                    <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums">
                       {formatUsd(Number(bs.bag.current_usd ?? 0))}
                     </td>
-                    <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums">
+                    <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums">
                       {formatUsd(bs.boughtUsdToday)}
                     </td>
-                    <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums">
+                    <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums">
                       {formatUsd(bs.soldUsdToday)}
                     </td>
-                    <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums font-semibold">
+                    <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums font-semibold">
                       {formatArs(bs.currencyProfitArs)}
                     </td>
-                    <td className="border-b border-lightGray px-4 py-3 text-center">
+                    <td className="border-b border-white/10 px-4 py-3 text-center">
                       {bs.internalOpsCount > 0 ? (
                         <Badge variant="neutral">{bs.internalOpsCount}</Badge>
                       ) : (
-                        <span className="text-mediumGray">-</span>
+                        <span className="text-lightGray/55">-</span>
                       )}
                     </td>
                   </tr>
@@ -334,7 +334,7 @@ function BranchSection({
       {!isCashier ? (
         <div className="grid gap-4 lg:grid-cols-2">
           <DataCard
-            className="bg-white text-brandBlack"
+            className="bg-white/[0.06] text-brandWhite"
             description="Ajustes manuales de PF y divisas."
             title="Ajustes manuales"
           >
@@ -355,16 +355,16 @@ function BranchSection({
               ) : (
                 group.adjustments.map((adjustment) => (
                   <div
-                    className="rounded-2xl border border-lightGray bg-lightGray/25 p-4"
+                    className="rounded-2xl border border-white/10 bg-black/20 p-4"
                     key={adjustment.id}
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <p className="font-semibold text-brandBlack">
+                        <p className="font-semibold text-brandWhite">
                           {dailyReportAdjustmentTypeLabels[adjustment.adjustment_type]}
                         </p>
-                        <p className="text-sm text-mediumGray">{adjustment.reason}</p>
-                        <p className="mt-1 text-sm font-semibold text-brandBlack">
+                        <p className="text-sm text-lightGray/55">{adjustment.reason}</p>
+                        <p className="mt-1 text-sm font-semibold text-brandWhite">
                           {formatArs(Number(adjustment.amount_ars ?? 0))}
                         </p>
                       </div>
@@ -385,7 +385,7 @@ function BranchSection({
           </DataCard>
 
           <DataCard
-            className="bg-white text-brandBlack"
+            className="bg-white/[0.06] text-brandWhite"
             description={`Notas internas del reporte ${branch.name}.`}
             title={`Notas ${branch.name}`}
           >
@@ -517,58 +517,58 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
       {/* General bags (no branch) */}
       {!isCashier && data.generalBags.length > 0 ? (
         <DataCard
-          className="bg-white text-brandBlack"
+          className="bg-white/[0.06] text-brandWhite"
           description="Bolsas sin sucursal asignada — operacion general."
           title="Bolsas generales"
         >
-          <div className="overflow-x-auto rounded-2xl border border-lightGray">
+          <div className="overflow-x-auto rounded-2xl border border-white/10">
             <table className="min-w-full border-separate border-spacing-0 text-sm">
-              <thead className="bg-lightGray/80 text-brandBlack">
+              <thead className="bg-black/20 text-brandWhite">
                 <tr>
-                  <th className="border-b border-lightGray px-4 py-3 text-left font-bold uppercase tracking-[0.14em]">Bolsa</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Efectivo</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Cuenta</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">USD</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Comprados hoy</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Vendidos hoy</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Ganancia hoy</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-center font-bold uppercase tracking-[0.14em]">Internas</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left font-bold uppercase tracking-[0.14em]">Bolsa</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Efectivo</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Cuenta</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">USD</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Comprados hoy</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Vendidos hoy</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-right font-bold uppercase tracking-[0.14em]">Ganancia hoy</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-center font-bold uppercase tracking-[0.14em]">Internas</th>
                 </tr>
               </thead>
               <tbody>
                 {data.generalBags.map((bs, index) => (
-                  <tr className={index % 2 === 0 ? "bg-white" : "bg-lightGray/15"} key={bs.bag.id}>
-                    <td className="border-b border-lightGray px-4 py-3">
+                  <tr className={index % 2 === 0 ? "bg-white/[0.06]" : "bg-black/20"} key={bs.bag.id}>
+                    <td className="border-b border-white/10 px-4 py-3">
                       <Link className="font-semibold hover:underline" href={`/bolsas/${bs.bag.id}`}>
                         {bs.bag.name}
                       </Link>
                       {bs.bag.responsible_name ? (
-                        <p className="text-xs text-mediumGray">{bs.bag.responsible_name}</p>
+                        <p className="text-xs text-lightGray/55">{bs.bag.responsible_name}</p>
                       ) : null}
                     </td>
-                    <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums">
+                    <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums">
                       {formatArs(Number(bs.bag.current_cash_ars ?? 0))}
                     </td>
-                    <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums">
+                    <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums">
                       {formatArs(Number(bs.bag.current_account_ars ?? 0))}
                     </td>
-                    <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums">
+                    <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums">
                       {formatUsd(Number(bs.bag.current_usd ?? 0))}
                     </td>
-                    <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums">
+                    <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums">
                       {formatUsd(bs.boughtUsdToday)}
                     </td>
-                    <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums">
+                    <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums">
                       {formatUsd(bs.soldUsdToday)}
                     </td>
-                    <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums font-semibold">
+                    <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums font-semibold">
                       {formatArs(bs.currencyProfitArs)}
                     </td>
-                    <td className="border-b border-lightGray px-4 py-3 text-center">
+                    <td className="border-b border-white/10 px-4 py-3 text-center">
                       {bs.internalOpsCount > 0 ? (
                         <Badge variant="neutral">{bs.internalOpsCount}</Badge>
                       ) : (
-                        <span className="text-mediumGray">-</span>
+                        <span className="text-lightGray/55">-</span>
                       )}
                     </td>
                   </tr>
@@ -587,86 +587,86 @@ export default async function ReporteDiarioPage({ searchParams }: { searchParams
         >
           <div className="overflow-x-auto">
             <table className="min-w-[640px] border-separate border-spacing-0 text-sm">
-              <thead className="bg-lightGray text-brandBlack">
+              <thead className="bg-black/20 text-brandWhite">
                 <tr>
-                  <th className="border-b border-lightGray px-4 py-3 text-left font-black uppercase tracking-[0.16em]">
+                  <th className="border-b border-white/10 px-4 py-3 text-left font-black uppercase tracking-[0.16em]">
                     Concepto
                   </th>
-                  <th className="border-b border-lightGray px-4 py-3 text-right font-black uppercase tracking-[0.16em]">
+                  <th className="border-b border-white/10 px-4 py-3 text-right font-black uppercase tracking-[0.16em]">
                     PF
                   </th>
-                  <th className="border-b border-lightGray px-4 py-3 text-right font-black uppercase tracking-[0.16em]">
+                  <th className="border-b border-white/10 px-4 py-3 text-right font-black uppercase tracking-[0.16em]">
                     Divisas
                   </th>
-                  <th className="border-b border-lightGray px-4 py-3 text-right font-black uppercase tracking-[0.16em]">
+                  <th className="border-b border-white/10 px-4 py-3 text-right font-black uppercase tracking-[0.16em]">
                     Total
                   </th>
                 </tr>
               </thead>
               <tbody>
-                <tr className="bg-white">
-                  <td className="border-b border-lightGray px-4 py-3 font-semibold text-brandBlack">Centro</td>
-                  <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums text-brandBlack">
+                <tr className="bg-white/[0.06]">
+                  <td className="border-b border-white/10 px-4 py-3 font-semibold text-brandWhite">Centro</td>
+                  <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums text-brandWhite">
                     {formatArs(grandTotals.pfProfitCentro)}
                   </td>
-                  <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums text-brandBlack">
+                  <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums text-brandWhite">
                     {formatArs(grandTotals.currencyProfitCentro)}
                   </td>
-                  <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums font-bold text-brandBlack">
+                  <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums font-bold text-brandWhite">
                     {formatArs(grandTotals.pfProfitCentro + grandTotals.currencyProfitCentro)}
                   </td>
                 </tr>
-                <tr className="bg-lightGray/15">
-                  <td className="border-b border-lightGray px-4 py-3 font-semibold text-brandBlack">Terminal</td>
-                  <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums text-brandBlack">
+                <tr className="bg-black/20">
+                  <td className="border-b border-white/10 px-4 py-3 font-semibold text-brandWhite">Terminal</td>
+                  <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums text-brandWhite">
                     {formatArs(grandTotals.pfProfitTerminal)}
                   </td>
-                  <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums text-brandBlack">
+                  <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums text-brandWhite">
                     {formatArs(grandTotals.currencyProfitTerminal)}
                   </td>
-                  <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums font-bold text-brandBlack">
+                  <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums font-bold text-brandWhite">
                     {formatArs(grandTotals.pfProfitTerminal + grandTotals.currencyProfitTerminal)}
                   </td>
                 </tr>
                 {grandTotals.currencyProfitGeneral !== 0 ? (
-                  <tr className="bg-white">
-                    <td className="border-b border-lightGray px-4 py-3 font-semibold text-brandBlack">General</td>
-                    <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums text-brandBlack">
+                  <tr className="bg-white/[0.06]">
+                    <td className="border-b border-white/10 px-4 py-3 font-semibold text-brandWhite">General</td>
+                    <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums text-brandWhite">
                       -
                     </td>
-                    <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums text-brandBlack">
+                    <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums text-brandWhite">
                       {formatArs(grandTotals.currencyProfitGeneral)}
                     </td>
-                    <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums font-bold text-brandBlack">
+                    <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums font-bold text-brandWhite">
                       {formatArs(grandTotals.currencyProfitGeneral)}
                     </td>
                   </tr>
                 ) : null}
                 <tr className="bg-brandYellow/10">
-                  <td className="border-b border-lightGray px-4 py-3 font-black text-brandBlack">TOTAL BRUTO</td>
-                  <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums font-black text-brandBlack">
+                  <td className="border-b border-white/10 px-4 py-3 font-black text-brandWhite">TOTAL BRUTO</td>
+                  <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums font-black text-brandWhite">
                     {formatArs(grandTotals.pfProfitTotal)}
                   </td>
-                  <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums font-black text-brandBlack">
+                  <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums font-black text-brandWhite">
                     {formatArs(grandTotals.currencyProfitTotal)}
                   </td>
-                  <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums font-black text-brandBlack">
+                  <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums font-black text-brandWhite">
                     {formatArs(grandTotals.grossProfitArs)}
                   </td>
                 </tr>
-                <tr className="bg-white">
-                  <td className="border-b border-lightGray px-4 py-3 font-semibold text-brandBlack">Gastos</td>
-                  <td className="border-b border-lightGray px-4 py-3 text-right text-brandBlack">-</td>
-                  <td className="border-b border-lightGray px-4 py-3 text-right text-brandBlack">-</td>
-                  <td className="border-b border-lightGray px-4 py-3 text-right tabular-nums font-semibold text-danger">
+                <tr className="bg-white/[0.06]">
+                  <td className="border-b border-white/10 px-4 py-3 font-semibold text-brandWhite">Gastos</td>
+                  <td className="border-b border-white/10 px-4 py-3 text-right text-brandWhite">-</td>
+                  <td className="border-b border-white/10 px-4 py-3 text-right text-brandWhite">-</td>
+                  <td className="border-b border-white/10 px-4 py-3 text-right tabular-nums font-semibold text-danger">
                     -{formatArs(grandTotals.expensesArs)}
                   </td>
                 </tr>
                 <tr className={grandTotals.freeProfitArs < 0 ? "bg-danger/10" : "bg-success/10"}>
-                  <td className="px-4 py-3 font-black text-brandBlack">GANANCIA LIBRE</td>
-                  <td className="px-4 py-3 text-right text-brandBlack">-</td>
-                  <td className="px-4 py-3 text-right text-brandBlack">-</td>
-                  <td className="px-4 py-3 text-right tabular-nums font-black text-brandBlack">
+                  <td className="px-4 py-3 font-black text-brandWhite">GANANCIA LIBRE</td>
+                  <td className="px-4 py-3 text-right text-brandWhite">-</td>
+                  <td className="px-4 py-3 text-right text-brandWhite">-</td>
+                  <td className="px-4 py-3 text-right tabular-nums font-black text-brandWhite">
                     {formatArs(grandTotals.freeProfitArs)}
                   </td>
                 </tr>
