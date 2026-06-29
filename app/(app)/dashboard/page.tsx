@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { cookies } from "next/headers";
 import {
   ArrowRight,
@@ -10,7 +10,6 @@ import {
   Landmark,
   NotebookText,
   ReceiptText,
-  Settings2,
   ShieldAlert,
   Store,
   TrendingUp,
@@ -22,11 +21,10 @@ import { DataCard } from "@/components/data-card";
 import { EmptyState } from "@/components/empty-state";
 import { NotesPanel } from "@/components/notes/notes-panel";
 import { SectionTitle } from "@/components/section-title";
-import { StatCard } from "@/components/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getServerAuthContext } from "@/lib/auth/server";
-import { canAccessPath, type Role, roleLabels } from "@/lib/auth/roles";
+import { canAccessPath, roleLabels, type Role } from "@/lib/auth/roles";
 import { getBagsOverview } from "@/lib/bags/bag-service";
 import { formatUsd } from "@/lib/bags/bag-calculations";
 import { getExpensePageData } from "@/lib/finance/expense-service";
@@ -36,14 +34,7 @@ import { getWeeklyCashClosureRange } from "@/lib/finance/weekly-cash-closure-cal
 import { getBuenosAiresDateString } from "@/lib/finance/report-dates";
 import { formatArs } from "@/lib/operations/seed-data";
 import { listImportantNotes } from "@/lib/notes/notes-service";
-
-type QuickAction = {
-  href: string;
-  label: string;
-  description: string;
-  icon: typeof ArrowRight;
-  priority?: "primary" | "secondary";
-};
+import { cn } from "@/lib/utils";
 
 type DashboardAlert = {
   title: string;
@@ -51,6 +42,13 @@ type DashboardAlert = {
   href: string;
   tone: "info" | "warning" | "critical";
   icon: typeof BellRing;
+};
+
+type QuickAction = {
+  href: string;
+  label: string;
+  icon: typeof ArrowRight;
+  priority?: "primary" | "secondary";
 };
 
 function formatSignedArs(value: number) {
@@ -75,10 +73,6 @@ function toneForAlert(tone: DashboardAlert["tone"]) {
   return "neutral" as const;
 }
 
-function filterVisibleActions(actions: QuickAction[], role: Role) {
-  return actions.filter((action) => canAccessPath(role, action.href));
-}
-
 function registerStatusBadge(status: string) {
   if (status === "cargado" || status === "revisado") return "success" as const;
   if (status === "parcial") return "warning" as const;
@@ -89,6 +83,38 @@ function bagStatusBadge(status: string) {
   if (status === "ok") return "success" as const;
   if (status === "revisar" || status === "pendiente_cierre") return "warning" as const;
   return "danger" as const;
+}
+
+function filterVisibleActions(actions: QuickAction[], role: Role) {
+  return actions.filter((action) => canAccessPath(role, action.href));
+}
+
+function MetricTile({
+  label,
+  value,
+  helper,
+  tone = "neutral"
+}: {
+  label: string;
+  value: string;
+  helper?: string;
+  tone?: "neutral" | "ok" | "warning" | "danger";
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border bg-black/20 p-3",
+        tone === "ok" && "border-success/20 bg-success/5",
+        tone === "warning" && "border-warning/20 bg-warning/5",
+        tone === "danger" && "border-danger/20 bg-danger/5",
+        tone === "neutral" && "border-white/10"
+      )}
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-lightGray/55">{label}</p>
+      <p className="mt-1 font-heading text-xl font-black leading-none text-brandWhite tabular-nums">{value}</p>
+      {helper ? <p className="mt-1 text-xs text-lightGray/55">{helper}</p> : null}
+    </div>
+  );
 }
 
 export default async function DashboardPage() {
@@ -109,7 +135,9 @@ export default async function DashboardPage() {
   ]);
 
   const { grandTotals, centro, terminal } = reportData;
-
+  const centroRegisters = centro.registers;
+  const terminalRegisters = terminal.registers;
+  const registersTotal = [...centroRegisters, ...terminalRegisters];
   const todayExpenses = expenseData.expenses.filter((e) => e.status !== "anulado");
   const pendingExpensesToday = expenseData.expenses.filter((e) => e.status === "pendiente");
 
@@ -122,6 +150,9 @@ export default async function DashboardPage() {
   const totalBagDifference = bags.reduce((acc, b) => acc + Number(b.difference_ars ?? 0), 0);
   const bagsToReview = bags.filter((b) => b.status !== "ok").length;
   const bagsWithDifference = activeBags.filter((b) => Number(b.difference_ars ?? 0) < 0);
+  const registersPending = registersTotal.filter(
+    (r) => r.status === "pendiente" || r.status === "parcial"
+  ).length;
 
   const overallReportStatus =
     reportData.dailyReports.length === 0
@@ -132,60 +163,45 @@ export default async function DashboardPage() {
           ? "Revisar"
           : "Abierto";
 
-  const centroRegisters = centro.registers;
-  const terminalRegisters = terminal.registers;
-  const registersTotal = [...centroRegisters, ...terminalRegisters];
-  const registersPending = registersTotal.filter(
-    (r) => r.status === "pendiente" || r.status === "parcial"
-  ).length;
-
   const firstBag = activeBags[0] ?? null;
   const firstRegister =
     registersTotal.find((r) => auth.role !== "cajero" || r.register.responsible_user_id === auth.userId) ??
     registersTotal[0] ??
     null;
 
-  const bagActions: QuickAction[] = [
-    {
-      href: firstBag ? `/bolsas/nueva-operacion?bagId=${firstBag.id}` : "/bolsas",
-      label: "Cargar operacion",
-      description: "Compra, venta o movimiento de una bolsa.",
-      icon: TrendingUp,
-      priority: "primary"
-    },
-    {
-      href: firstBag ? `/bolsas/${firstBag.id}/vender-a-bolsa` : "/bolsas",
-      label: "Mover entre bolsas",
-      description: "Operacion interna entre dos bolsas.",
-      icon: Boxes,
-      priority: "secondary"
-    }
-  ];
-
-  const operationalActions: QuickAction[] = [
-    {
-      href: firstRegister ? `/cajas/${firstRegister.register.id}/cargar` : "/cajas",
-      label: "Cargar caja",
-      description: "Registrar la carga diaria de la caja.",
-      icon: Store,
-      priority: "primary"
-    },
-    { href: "/reporte-diario", label: "Ver reporte", description: "Planilla diaria por sucursal.", icon: FileBarChart2, priority: "primary" },
-    { href: "/gastos", label: "Cargar gasto", description: "Registrar o revisar gastos.", icon: ReceiptText, priority: "primary" },
-    { href: "/cajas", label: "Ver cajas", description: "Listado de cajas Pago Facil.", icon: Landmark, priority: "secondary" },
-    { href: "/cierres", label: "Cierre semanal", description: "Control de semana operativa.", icon: CalendarRange, priority: "secondary" },
-    { href: "/exportaciones", label: "Exportar", description: "CSV e impresion de reportes.", icon: Download, priority: "secondary" },
-    { href: "/configuracion", label: "Ajustes", description: "Roles y datos generales.", icon: Settings2, priority: "secondary" }
-  ];
-
-  const visibleBagActions = filterVisibleActions(bagActions, auth.role);
-  const visiblePagoFacilActions = filterVisibleActions(operationalActions, auth.role);
+  const quickActions = filterVisibleActions(
+    [
+      {
+        href: firstBag ? `/bolsas/nueva-operacion?bagId=${firstBag.id}` : "/bolsas",
+        label: "Nueva operacion",
+        icon: TrendingUp,
+        priority: "primary"
+      },
+      {
+        href: firstBag ? `/bolsas/${firstBag.id}/vender-a-bolsa` : "/bolsas",
+        label: "Mover entre bolsas",
+        icon: Boxes,
+        priority: "secondary"
+      },
+      {
+        href: firstRegister ? `/cajas/${firstRegister.register.id}/cargar` : "/cajas",
+        label: "Cargar caja",
+        icon: Store,
+        priority: "primary"
+      },
+      { href: "/reporte-diario", label: "Reporte diario", icon: FileBarChart2, priority: "secondary" },
+      { href: "/gastos", label: "Gastos", icon: ReceiptText, priority: "secondary" },
+      { href: "/cierres", label: "Cierre semanal", icon: CalendarRange, priority: "secondary" },
+      { href: "/exportaciones", label: "Exportar", icon: Download, priority: "secondary" }
+    ],
+    auth.role
+  );
 
   const alerts: DashboardAlert[] = [];
 
   if (registersPending > 0) {
     alerts.push({
-      title: "Hay cajas pendientes hoy",
+      title: "Cajas pendientes",
       description: `${registersPending} cajas siguen sin carga completa.`,
       href: "/cajas",
       tone: "warning",
@@ -196,7 +212,7 @@ export default async function DashboardPage() {
   if (overallReportStatus !== "Cerrado") {
     alerts.push({
       title: "Reporte diario sin cerrar",
-      description: `El reporte de hoy sigue en estado ${overallReportStatus.toLowerCase()}.`,
+      description: `Estado actual: ${overallReportStatus.toLowerCase()}.`,
       href: "/reporte-diario",
       tone: overallReportStatus === "Revisar" ? "critical" : "warning",
       icon: CircleAlert
@@ -205,7 +221,7 @@ export default async function DashboardPage() {
 
   if (pendingExpensesToday.length > 0) {
     alerts.push({
-      title: "Hay gastos pendientes",
+      title: "Gastos pendientes",
       description: `${pendingExpensesToday.length} gastos todavia no fueron pagados o imputados.`,
       href: "/gastos",
       tone: "warning",
@@ -216,7 +232,7 @@ export default async function DashboardPage() {
   if (weeklyClosureData.status !== "cerrado") {
     alerts.push({
       title: "Cierre semanal pendiente",
-      description: `La semana ${weekRange.weekStartDate} a ${weekRange.weekEndDate} sigue en estado ${weeklyClosureData.status}.`,
+      description: `${weekRange.weekStartDate} a ${weekRange.weekEndDate}: ${weeklyClosureData.status}.`,
       href: "/cierres",
       tone: weeklyClosureData.status === "revisar" ? "critical" : "warning",
       icon: CalendarRange
@@ -225,7 +241,7 @@ export default async function DashboardPage() {
 
   if (bagsWithDifference.length > 0) {
     alerts.push({
-      title: "Hay bolsas con diferencia negativa",
+      title: "Bolsas con diferencia negativa",
       description: `${bagsWithDifference.length} bolsas estan por debajo de la base estimada.`,
       href: "/bolsas",
       tone: "critical",
@@ -253,20 +269,32 @@ export default async function DashboardPage() {
     });
   }
 
-  if (weeklyClosureData.branches.some((b) => b.status === "revisar")) {
-    alerts.push({
-      title: "Cierre semanal marcado para revisar",
-      description: "Una o mas cajas quedaron con estado revisar durante la semana.",
-      href: "/cierres",
-      tone: "warning",
-      icon: CalendarRange
-    });
-  }
+  const renderRegisterRows = (registers: typeof centroRegisters) =>
+    registers.map((rs) => (
+      <tr className="border-b border-white/10 last:border-0 hover:bg-white/[0.035]" key={rs.register.id}>
+        <td className="px-3 py-3">
+          <Link className="font-semibold text-brandWhite hover:text-brandYellow" href={`/cajas/${rs.register.id}`}>
+            {rs.register.name}
+          </Link>
+          <p className="text-xs text-lightGray/55">Caja {rs.register.register_number}</p>
+        </td>
+        <td className="px-3 py-3 text-right font-semibold tabular-nums text-brandWhite">
+          {formatArs(rs.totalOperatedArs)}
+        </td>
+        <td className="px-3 py-3 text-right font-semibold tabular-nums text-brandWhite">
+          {formatArs(rs.pfProfitArs)}
+        </td>
+        <td className="px-3 py-3 text-brandWhite">{formatDateTime(rs.register.updated_at)}</td>
+        <td className="px-3 py-3">
+          <Badge variant={registerStatusBadge(rs.status)}>{rs.status}</Badge>
+        </td>
+      </tr>
+    ));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <SectionTitle
-        description="Estado del dia, cajas, bolsas y alertas operativas."
+        description="Estado del dia, pendientes y accesos de trabajo."
         title="Dashboard"
         rightSlot={
           <>
@@ -280,275 +308,92 @@ export default async function DashboardPage() {
         }
       />
 
-      {/* Summary StatCards */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          helper="Comisiones PF hoy"
-          label="Ganancia PF"
-          status={grandTotals.pfProfitTotal >= 0 ? "ok" : "error"}
-          value={formatArs(grandTotals.pfProfitTotal)}
-        />
-        <StatCard
-          helper="Divisas hoy"
-          label="Ganancia divisas"
-          status={grandTotals.currencyProfitTotal >= 0 ? "ok" : "error"}
-          value={formatArs(grandTotals.currencyProfitTotal)}
-        />
-        <StatCard
-          helper="No incluye anulados"
-          label="Gastos"
-          status="neutral"
-          value={formatArs(grandTotals.expensesArs)}
-        />
-        <StatCard
-          helper="Bruto menos gastos"
-          label="Ganancia libre"
-          status={grandTotals.freeProfitArs < 0 ? "error" : "ok"}
-          value={formatArs(grandTotals.freeProfitArs)}
-        />
-      </div>
+      <DataCard
+        description="Primero lo importante: resultado del dia y pendientes que requieren accion."
+        title="Control del dia"
+        rightSlot={
+          <Badge
+            className="uppercase tracking-[0.16em]"
+            variant={alerts.some((a) => a.tone === "critical") ? "danger" : alerts.length > 0 ? "warning" : "success"}
+          >
+            {alerts.length === 0 ? "sin alertas" : `${alerts.length} alertas`}
+          </Badge>
+        }
+      >
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+          <MetricTile
+            helper="Bruto menos gastos"
+            label="Ganancia libre"
+            tone={grandTotals.freeProfitArs < 0 ? "danger" : "ok"}
+            value={formatArs(grandTotals.freeProfitArs)}
+          />
+          <MetricTile label="Pago Facil" tone="ok" value={formatArs(grandTotals.pfProfitTotal)} />
+          <MetricTile label="Divisas" tone="ok" value={formatArs(grandTotals.currencyProfitTotal)} />
+          <MetricTile
+            helper={`${todayExpenses.length} movimientos`}
+            label="Gastos"
+            value={formatArs(grandTotals.expensesArs)}
+          />
+          <MetricTile
+            helper={`${registersTotal.length} cajas activas`}
+            label="Cajas pendientes"
+            tone={registersPending > 0 ? "warning" : "ok"}
+            value={`${registersPending}`}
+          />
+          <MetricTile
+            helper={`${activeBags.length} bolsas activas`}
+            label="Bolsas a revisar"
+            tone={bagsToReview > 0 ? "warning" : "ok"}
+            value={`${bagsToReview}`}
+          />
+        </div>
 
-      {/* Per-branch register summary */}
-      <div className="grid gap-4 xl:grid-cols-2">
-        {/* Centro cajas */}
-        <DataCard
-          description="Estado de las cajas Centro para el dia."
-          title="Centro — Cajas"
-        >
-          {centroRegisters.length === 0 ? (
-            <EmptyState description="No hay cajas configuradas para Centro." title="Sin cajas" />
-          ) : (
-            <div className="space-y-3">
-              {centroRegisters.map((rs) => (
-                <div
-                  className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-soft"
-                  key={rs.register.id}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-lightGray/55">
-                        Caja {rs.register.register_number}
-                      </p>
-                      <h3 className="mt-0.5 font-heading text-lg font-black text-brandWhite">
-                        {rs.register.name}
-                      </h3>
-                    </div>
-                    <Badge variant={registerStatusBadge(rs.status)}>{rs.status}</Badge>
-                  </div>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                    <div className="rounded-xl bg-black/20 p-2.5">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Operado</p>
-                      <p className="mt-1 text-sm font-bold text-brandWhite tabular-nums">{formatArs(rs.totalOperatedArs)}</p>
-                    </div>
-                    <div className="rounded-xl bg-black/20 p-2.5">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Ganancia</p>
-                      <p className="mt-1 text-sm font-bold text-brandWhite tabular-nums">{formatArs(rs.pfProfitArs)}</p>
-                    </div>
-                    <div className="rounded-xl bg-black/20 p-2.5">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Ultima actualizacion</p>
-                      <p className="mt-1 text-sm font-bold text-brandWhite">{formatDateTime(rs.register.updated_at)}</p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex gap-2">
-                    <Button asChild size="sm">
-                      <Link href={`/cajas/${rs.register.id}`}>Ver caja</Link>
-                    </Button>
-                    <Button asChild size="sm" variant="secondary">
-                      <Link href={`/cajas/${rs.register.id}/cargar`}>Cargar dia</Link>
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <div className="rounded-2xl border border-brandYellow/25 bg-brandYellow/10 p-3">
-                <p className="text-xs uppercase tracking-[0.16em] text-brandYellow">Total Centro PF</p>
-                <p className="mt-1 text-xl font-black text-brandWhite">
-                  {formatArs(centro.totals.pfProfitArs + centro.totals.manualPfAdjArs)}
-                </p>
-              </div>
-            </div>
-          )}
-        </DataCard>
-
-        {/* Terminal cajas */}
-        <DataCard
-          description="Estado de las cajas Terminal para el dia."
-          title="Terminal — Cajas"
-        >
-          {terminalRegisters.length === 0 ? (
-            <EmptyState description="No hay cajas configuradas para Terminal." title="Sin cajas" />
-          ) : (
-            <div className="space-y-3">
-              {terminalRegisters.map((rs) => (
-                <div
-                  className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-soft"
-                  key={rs.register.id}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-lightGray/55">
-                        Caja {rs.register.register_number}
-                      </p>
-                      <h3 className="mt-0.5 font-heading text-lg font-black text-brandWhite">
-                        {rs.register.name}
-                      </h3>
-                    </div>
-                    <Badge variant={registerStatusBadge(rs.status)}>{rs.status}</Badge>
-                  </div>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                    <div className="rounded-xl bg-black/20 p-2.5">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Operado</p>
-                      <p className="mt-1 text-sm font-bold text-brandWhite tabular-nums">{formatArs(rs.totalOperatedArs)}</p>
-                    </div>
-                    <div className="rounded-xl bg-black/20 p-2.5">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Ganancia</p>
-                      <p className="mt-1 text-sm font-bold text-brandWhite tabular-nums">{formatArs(rs.pfProfitArs)}</p>
-                    </div>
-                    <div className="rounded-xl bg-black/20 p-2.5">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Ultima actualizacion</p>
-                      <p className="mt-1 text-sm font-bold text-brandWhite">{formatDateTime(rs.register.updated_at)}</p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex gap-2">
-                    <Button asChild size="sm">
-                      <Link href={`/cajas/${rs.register.id}`}>Ver caja</Link>
-                    </Button>
-                    <Button asChild size="sm" variant="secondary">
-                      <Link href={`/cajas/${rs.register.id}/cargar`}>Cargar dia</Link>
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <div className="rounded-2xl border border-brandYellow/25 bg-brandYellow/10 p-3">
-                <p className="text-xs uppercase tracking-[0.16em] text-brandYellow">Total Terminal PF</p>
-                <p className="mt-1 text-xl font-black text-brandWhite">
-                  {formatArs(terminal.totals.pfProfitArs + terminal.totals.manualPfAdjArs)}
-                </p>
-              </div>
-            </div>
-          )}
-        </DataCard>
-      </div>
-
-      {/* Bolsas per bag */}
-      <div className="rounded-[28px] border border-brandYellow/20 bg-brandYellow/10 p-4">
-        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-brandYellow">Modulo Bolsas</p>
-        <h2 className="mt-1 font-heading text-2xl font-black text-brandWhite">Divisas y saldos separados</h2>
-      </div>
-
-      <DataCard description="Estado operativo de cada bolsa para el dia." title="Bolsas de divisas">
-        <div className="grid gap-4 xl:grid-cols-2">
-          {activeBags.map((bag) => {
-            const bagSheet = reportData.bags.find((b) => b.bag.id === bag.id);
-            const difference = Number(bag.difference_ars ?? 0);
+        <div className="mt-4 flex flex-wrap gap-2">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
             return (
-              <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-4 shadow-soft" key={bag.id}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.22em] text-lightGray/55">Bolsa</p>
-                    <h3 className="mt-1 font-heading text-xl font-black text-brandWhite">{bag.name}</h3>
-                    <p className="text-sm text-lightGray/55">{bag.responsible_name ?? "Sin asignar"}</p>
-                    {bagSheet?.branchName ? (
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brandYellow/80">
-                        {bagSheet.branchName}
-                      </p>
-                    ) : null}
-                  </div>
-                  <Badge variant={bagStatusBadge(bag.status)}>{bag.status}</Badge>
-                </div>
-
-                <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                  <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Efectivo</p>
-                    <p className="mt-1 text-sm font-semibold text-brandWhite tabular-nums">
-                      {formatArs(Number(bag.current_cash_ars ?? 0))}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Cuenta</p>
-                    <p className="mt-1 text-sm font-semibold text-brandWhite tabular-nums">
-                      {formatArs(Number(bag.current_account_ars ?? 0))}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">USD</p>
-                    <p className="mt-1 text-sm font-semibold text-brandWhite tabular-nums">
-                      {formatUsd(Number(bag.current_usd ?? 0))}
-                    </p>
-                  </div>
-                  {bagSheet ? (
-                    <div className="rounded-xl border border-white/10 bg-brandYellow/10 p-2.5 sm:col-span-3">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-brandYellow">Resumen de hoy</p>
-                      <p className="mt-1 text-sm font-semibold text-brandWhite">
-                        {formatUsd(bagSheet.boughtUsdToday)} comprados · {formatUsd(bagSheet.soldUsdToday)} vendidos ·{" "}
-                        {formatArs(bagSheet.currencyProfitArs)} de ganancia
-                      </p>
-                    </div>
-                  ) : null}
-                  <div className="rounded-xl border border-white/10 bg-black/20 p-2.5 sm:col-span-3">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-lightGray/55">Diferencia estimada</p>
-                    <p className={`mt-1 text-sm font-semibold tabular-nums ${difference < 0 ? "text-danger" : "text-brandWhite"}`}>
-                      {formatSignedArs(difference)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button asChild className="shadow-yellowGlow" size="sm">
-                    <Link href={`/bolsas/${bag.id}`}>Ver detalles</Link>
-                  </Button>
-                  <Button asChild size="sm" variant="secondary">
-                    <Link href={`/bolsas/nueva-operacion?bagId=${bag.id}`}>Nueva operacion</Link>
-                  </Button>
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={`/bolsas/${bag.id}/vender-a-bolsa`}>Vender a otra bolsa</Link>
-                  </Button>
-                </div>
-              </div>
+              <Button
+                asChild
+                key={action.label}
+                size="sm"
+                variant={action.priority === "primary" ? "default" : "secondary"}
+              >
+                <Link href={action.href}>
+                  <Icon className="h-4 w-4" />
+                  {action.label}
+                </Link>
+              </Button>
             );
           })}
         </div>
       </DataCard>
 
-      <DataCard description="Ganancia consolidada sin tabla pesada." title="Totales del dia">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="PF total" status="ok" value={formatArs(grandTotals.pfProfitTotal)} />
-          <StatCard label="Divisas total" status="ok" value={formatArs(grandTotals.currencyProfitTotal)} />
-          <StatCard label="Gastos" status="neutral" value={formatArs(grandTotals.expensesArs)} />
-          <StatCard label="Ganancia libre" status={grandTotals.freeProfitArs < 0 ? "error" : "ok"} value={formatArs(grandTotals.freeProfitArs)} />
-        </div>
-      </DataCard>
-
-
-      {/* Alerts */}
-      <DataCard description="Alertas que requieren revision operativa." title="Alertas operativas">
+      <DataCard description="Acciones concretas antes del detalle." title="Alertas operativas">
         {alerts.length === 0 ? (
           <EmptyState description="No hay alertas activas para la jornada actual." title="Todo en orden" />
         ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid gap-2 lg:grid-cols-2">
             {alerts.map((alert) => {
               const Icon = alert.icon;
               return (
                 <Link
-                  className="group rounded-3xl border border-white/10 bg-white/[0.06] p-4 shadow-soft transition hover:-translate-y-0.5 hover:shadow-medium"
+                  className="group flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/20 px-3 py-3 transition hover:border-brandYellow/25 hover:bg-white/[0.04]"
                   href={alert.href}
                   key={alert.title}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brandYellow/20 text-brandWhite">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="font-heading text-base font-bold text-brandWhite">{alert.title}</h3>
-                        <Badge variant={toneForAlert(alert.tone)}>{alert.tone}</Badge>
-                      </div>
-                      <p className="mt-1 text-sm text-lightGray/55">{alert.description}</p>
-                      <p className="mt-3 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.18em] text-brandWhite">
-                        Ir a revisar
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </p>
-                    </div>
-                  </div>
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white/[0.06] text-brandYellow">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-semibold text-brandWhite">{alert.title}</span>
+                      <span className="block truncate text-sm text-lightGray/55">{alert.description}</span>
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    <Badge variant={toneForAlert(alert.tone)}>{alert.tone}</Badge>
+                    <ArrowRight className="h-4 w-4 text-lightGray/55 transition group-hover:translate-x-0.5 group-hover:text-brandYellow" />
+                  </span>
                 </Link>
               );
             })}
@@ -556,148 +401,293 @@ export default async function DashboardPage() {
         )}
       </DataCard>
 
-      {/* Expenses + weekly closure */}
       <div className="grid gap-4 xl:grid-cols-2">
-        <DataCard description="Gastos de hoy y su estado de pago." title="Pago Facil — gastos">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard
-              className="shadow-none"
-              helper="No se cuentan anulados"
-              label="Gastos del dia"
-              value={formatArs(todayExpenses.reduce((acc, e) => acc + Number(e.amount_ars ?? 0), 0))}
-            />
-            <StatCard
-              className="shadow-none"
-              helper="Aun no resueltos"
-              label="Pendientes"
-              value={formatArs(pendingExpensesToday.reduce((acc, e) => acc + Number(e.amount_ars ?? 0), 0))}
-            />
-            <StatCard
-              className="shadow-none"
-              helper="Cantidad de registros"
-              label="Movimientos"
-              value={`${todayExpenses.length}`}
-            />
-          </div>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Button asChild>
-              <Link href="/gastos">Ir a gastos</Link>
-            </Button>
-          </div>
-        </DataCard>
-
-        <DataCard description="Estado del cierre semanal de Pago Facil." title="Pago Facil — cierre semanal">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <StatCard
-              className="shadow-none"
-              helper="Viernes a jueves"
-              label="Semana"
-              value={`${weeklyClosureData.weekStartDate} / ${weeklyClosureData.weekEndDate}`}
-            />
-            <StatCard
-              className="shadow-none"
-              helper="Estado general"
-              label="Cierre"
-              status={weeklyClosureData.status === "cerrado" ? "ok" : weeklyClosureData.status === "revisar" ? "revisar" : "pendiente"}
-              value={weeklyClosureData.status.toUpperCase()}
-            />
-            <StatCard
-              className="shadow-none"
-              helper="Total operado"
-              label="Operado"
-              value={formatArs(weeklyClosureData.totals.totalOperatedArs)}
-            />
-            <StatCard
-              className="shadow-none"
-              helper="Ganancia Pago Facil"
-              label="Ganancia"
-              value={formatArs(weeklyClosureData.totals.totalProfitArs)}
-            />
-          </div>
-          <div className="mt-4">
-            <Button asChild>
-              <Link href="/cierres">Ver cierre semanal</Link>
-            </Button>
-          </div>
-        </DataCard>
-      </div>
-
-      {/* Resumen operativo + notas */}
-      <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
-        <DataCard description="Estado general de bolsas y saldos." title="Resumen operativo">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <StatCard className="shadow-none" helper="Con diferencia estimada" label="Bolsas para revisar" value={`${bagsToReview}`} />
-            <StatCard className="shadow-none" helper="Prestado total" label="Total prestado" value={formatArs(totalBorrowed)} />
-            <StatCard className="shadow-none" helper="Efectivo total" label="Efectivo" value={formatArs(totalCash)} />
-            <StatCard className="shadow-none" helper="Cuenta total" label="Cuenta" value={formatArs(totalAccount)} />
-            <StatCard className="shadow-none" helper="USD total disponible" label="USD" value={formatUsd(totalUsd)} />
-            <StatCard className="shadow-none" helper="Ganancia acumulada" label="Bolsas" value={formatArs(totalBagProfit)} />
-          </div>
-        </DataCard>
-
-        <div className="space-y-4">
-          <DataCard description="Notas importantes y urgentes abiertas." title="Notas importantes">
-            {notes.length === 0 ? (
-              <EmptyState
-                description="No hay notas urgentes o importantes abiertas en este momento."
-                title="Sin notas importantes"
-              />
-            ) : (
-              <div className="space-y-3">
-                {notes.map((note) => (
+        <DataCard
+          description={`${centroRegisters.length} cajas - Total PF ${formatArs(centro.totals.pfProfitArs + centro.totals.manualPfAdjArs)}`}
+          title="Centro - Cajas"
+        >
+          {centroRegisters.length === 0 ? (
+            <EmptyState description="No hay cajas configuradas para Centro." title="Sin cajas" />
+          ) : (
+            <>
+              <div className="hidden overflow-hidden rounded-lg border border-white/10 md:block">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-black/20 text-[10px] uppercase tracking-[0.14em] text-lightGray/55">
+                    <tr>
+                      <th className="px-3 py-2.5 font-bold">Caja</th>
+                      <th className="px-3 py-2.5 text-right font-bold">Operado</th>
+                      <th className="px-3 py-2.5 text-right font-bold">Ganancia</th>
+                      <th className="px-3 py-2.5 font-bold">Actualizada</th>
+                      <th className="px-3 py-2.5 font-bold">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white/[0.035]">{renderRegisterRows(centroRegisters)}</tbody>
+                </table>
+              </div>
+              <div className="grid gap-2 md:hidden">
+                {centroRegisters.map((rs) => (
                   <Link
-                    className="block rounded-2xl border border-white/10 bg-black/20 p-4 transition hover:bg-black/20"
-                    href={note.entity_href || "/dashboard"}
-                    key={note.id}
+                    className="rounded-lg border border-white/10 bg-black/20 p-3"
+                    href={`/cajas/${rs.register.id}`}
+                    key={rs.register.id}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-brandWhite">{note.title}</p>
-                        <p className="mt-1 text-sm text-lightGray/55">{note.body}</p>
-                        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-lightGray/55">
-                          {note.entity_label ?? note.entity_type}
-                        </p>
+                      <div>
+                        <p className="font-semibold text-brandWhite">{rs.register.name}</p>
+                        <p className="text-xs text-lightGray/55">Caja {rs.register.register_number}</p>
                       </div>
-                      <Badge variant={note.priority === "urgente" ? "danger" : "warning"}>
-                        {note.priority}
-                      </Badge>
+                      <Badge variant={registerStatusBadge(rs.status)}>{rs.status}</Badge>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <MetricTile label="Operado" value={formatArs(rs.totalOperatedArs)} />
+                      <MetricTile label="Ganancia" value={formatArs(rs.pfProfitArs)} />
                     </div>
                   </Link>
                 ))}
               </div>
-            )}
-          </DataCard>
+            </>
+          )}
+        </DataCard>
 
-          <NotesPanel
-            description="Notas generales del sistema para seguimiento interno."
-            entityHref="/dashboard"
-            entityLabel="Dashboard"
-            entityType="general"
-            title="Notas generales"
-          />
-        </div>
+        <DataCard
+          description={`${terminalRegisters.length} cajas - Total PF ${formatArs(terminal.totals.pfProfitArs + terminal.totals.manualPfAdjArs)}`}
+          title="Terminal - Cajas"
+        >
+          {terminalRegisters.length === 0 ? (
+            <EmptyState description="No hay cajas configuradas para Terminal." title="Sin cajas" />
+          ) : (
+            <>
+              <div className="hidden overflow-hidden rounded-lg border border-white/10 md:block">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-black/20 text-[10px] uppercase tracking-[0.14em] text-lightGray/55">
+                    <tr>
+                      <th className="px-3 py-2.5 font-bold">Caja</th>
+                      <th className="px-3 py-2.5 text-right font-bold">Operado</th>
+                      <th className="px-3 py-2.5 text-right font-bold">Ganancia</th>
+                      <th className="px-3 py-2.5 font-bold">Actualizada</th>
+                      <th className="px-3 py-2.5 font-bold">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white/[0.035]">{renderRegisterRows(terminalRegisters)}</tbody>
+                </table>
+              </div>
+              <div className="grid gap-2 md:hidden">
+                {terminalRegisters.map((rs) => (
+                  <Link
+                    className="rounded-lg border border-white/10 bg-black/20 p-3"
+                    href={`/cajas/${rs.register.id}`}
+                    key={rs.register.id}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-brandWhite">{rs.register.name}</p>
+                        <p className="text-xs text-lightGray/55">Caja {rs.register.register_number}</p>
+                      </div>
+                      <Badge variant={registerStatusBadge(rs.status)}>{rs.status}</Badge>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <MetricTile label="Operado" value={formatArs(rs.totalOperatedArs)} />
+                      <MetricTile label="Ganancia" value={formatArs(rs.pfProfitArs)} />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+        </DataCard>
       </div>
 
-      {/* Quick actions */}
-      <div className="flex flex-wrap gap-3">
-        {canAccessPath(auth.role, "/bolsas") ? (
-          <Button asChild>
-            <Link href="/bolsas">Ir a bolsas</Link>
+      <DataCard
+        description={`Saldos consolidados: efectivo ${formatArs(totalCash)}, cuenta ${formatArs(totalAccount)}, USD ${formatUsd(totalUsd)}.`}
+        title="Bolsas de divisas"
+        rightSlot={
+          <Button asChild size="sm" variant="secondary">
+            <Link href="/bolsas">Ver modulo</Link>
           </Button>
-        ) : null}
+        }
+      >
+        {activeBags.length === 0 ? (
+          <EmptyState description="No hay bolsas activas configuradas." title="Sin bolsas" />
+        ) : (
+          <>
+            <div className="hidden overflow-hidden rounded-lg border border-white/10 lg:block">
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-black/20 text-[10px] uppercase tracking-[0.14em] text-lightGray/55">
+                  <tr>
+                    <th className="px-3 py-2.5 font-bold">Bolsa</th>
+                    <th className="px-3 py-2.5 font-bold">Sucursal</th>
+                    <th className="px-3 py-2.5 text-right font-bold">Efectivo</th>
+                    <th className="px-3 py-2.5 text-right font-bold">Cuenta</th>
+                    <th className="px-3 py-2.5 text-right font-bold">USD</th>
+                    <th className="px-3 py-2.5 text-right font-bold">Hoy</th>
+                    <th className="px-3 py-2.5 text-right font-bold">Diferencia</th>
+                    <th className="px-3 py-2.5 font-bold">Estado</th>
+                    <th className="px-3 py-2.5 text-right font-bold">Accion</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white/[0.035]">
+                  {activeBags.map((bag) => {
+                    const bagSheet = reportData.bags.find((b) => b.bag.id === bag.id);
+                    const difference = Number(bag.difference_ars ?? 0);
+                    return (
+                      <tr className="border-b border-white/10 last:border-0 hover:bg-white/[0.035]" key={bag.id}>
+                        <td className="px-3 py-3">
+                          <p className="font-semibold text-brandWhite">{bag.name}</p>
+                          <p className="text-xs text-lightGray/55">{bag.responsible_name ?? "Sin asignar"}</p>
+                        </td>
+                        <td className="px-3 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-brandYellow">
+                          {bagSheet?.branchName ?? "-"}
+                        </td>
+                        <td className="px-3 py-3 text-right font-semibold tabular-nums text-brandWhite">
+                          {formatArs(Number(bag.current_cash_ars ?? 0))}
+                        </td>
+                        <td className="px-3 py-3 text-right font-semibold tabular-nums text-brandWhite">
+                          {formatArs(Number(bag.current_account_ars ?? 0))}
+                        </td>
+                        <td className="px-3 py-3 text-right font-semibold tabular-nums text-brandWhite">
+                          {formatUsd(Number(bag.current_usd ?? 0))}
+                        </td>
+                        <td className="px-3 py-3 text-right text-xs text-lightGray/70">
+                          {bagSheet
+                            ? `${formatUsd(bagSheet.boughtUsdToday)} / ${formatUsd(bagSheet.soldUsdToday)}`
+                            : "-"}
+                        </td>
+                        <td
+                          className={cn(
+                            "px-3 py-3 text-right font-semibold tabular-nums",
+                            difference < 0 ? "text-danger" : "text-brandWhite"
+                          )}
+                        >
+                          {formatSignedArs(difference)}
+                        </td>
+                        <td className="px-3 py-3">
+                          <Badge variant={bagStatusBadge(bag.status)}>{bag.status}</Badge>
+                        </td>
+                        <td className="px-3 py-3 text-right">
+                          <Button asChild size="sm" variant="outline">
+                            <Link href={`/bolsas/${bag.id}`}>Ver</Link>
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="grid gap-2 lg:hidden">
+              {activeBags.map((bag) => {
+                const bagSheet = reportData.bags.find((b) => b.bag.id === bag.id);
+                const difference = Number(bag.difference_ars ?? 0);
+                return (
+                  <Link
+                    className="rounded-lg border border-white/10 bg-black/20 p-3"
+                    href={`/bolsas/${bag.id}`}
+                    key={bag.id}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-brandWhite">{bag.name}</p>
+                        <p className="text-xs text-lightGray/55">{bag.responsible_name ?? "Sin asignar"}</p>
+                      </div>
+                      <Badge variant={bagStatusBadge(bag.status)}>{bag.status}</Badge>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <MetricTile label="Efectivo" value={formatArs(Number(bag.current_cash_ars ?? 0))} />
+                      <MetricTile label="Cuenta" value={formatArs(Number(bag.current_account_ars ?? 0))} />
+                      <MetricTile label="USD" value={formatUsd(Number(bag.current_usd ?? 0))} />
+                      <MetricTile
+                        label="Diferencia"
+                        tone={difference < 0 ? "danger" : "neutral"}
+                        value={formatSignedArs(difference)}
+                      />
+                    </div>
+                    {bagSheet ? (
+                      <p className="mt-2 text-xs text-lightGray/55">
+                        Hoy: {formatUsd(bagSheet.boughtUsdToday)} comprados / {formatUsd(bagSheet.soldUsdToday)} vendidos
+                      </p>
+                    ) : null}
+                  </Link>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </DataCard>
+
+      <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+        <DataCard description="Numeros operativos que no requieren accion inmediata." title="Resumen ampliado">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <MetricTile helper="Prestado total" label="Prestado" value={formatArs(totalBorrowed)} />
+            <MetricTile helper="Ganancia acumulada" label="Bolsas" value={formatArs(totalBagProfit)} />
+            <MetricTile
+              helper="Base estimada"
+              label="Diferencia bolsas"
+              tone={totalBagDifference < 0 ? "danger" : "neutral"}
+              value={formatSignedArs(totalBagDifference)}
+            />
+            <MetricTile helper="Semana operativa" label="Cierre semanal" value={weeklyClosureData.status.toUpperCase()} />
+            <MetricTile helper="Viernes a jueves" label="Rango" value={`${weeklyClosureData.weekStartDate} / ${weeklyClosureData.weekEndDate}`} />
+            <MetricTile helper="No incluye anulados" label="Gastos del dia" value={formatArs(todayExpenses.reduce((acc, e) => acc + Number(e.amount_ars ?? 0), 0))} />
+          </div>
+        </DataCard>
+
+        <DataCard description="Notas importantes y urgentes abiertas." title="Notas importantes">
+          {notes.length === 0 ? (
+            <EmptyState
+              description="No hay notas urgentes o importantes abiertas en este momento."
+              title="Sin notas importantes"
+            />
+          ) : (
+            <div className="space-y-2">
+              {notes.map((note) => (
+                <Link
+                  className="block rounded-lg border border-white/10 bg-black/20 p-3 transition hover:border-brandYellow/25"
+                  href={note.entity_href || "/dashboard"}
+                  key={note.id}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-brandWhite">{note.title}</p>
+                      <p className="mt-1 line-clamp-2 text-sm text-lightGray/55">{note.body}</p>
+                    </div>
+                    <Badge variant={note.priority === "urgente" ? "danger" : "warning"}>{note.priority}</Badge>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </DataCard>
+      </div>
+
+      <NotesPanel
+        description="Notas generales del sistema para seguimiento interno."
+        entityHref="/dashboard"
+        entityLabel="Dashboard"
+        entityType="general"
+        title="Notas generales"
+      />
+
+      <div className="flex flex-wrap gap-2">
         {canAccessPath(auth.role, "/cajas") ? (
           <Button asChild variant="secondary">
-            <Link href="/cajas">Ir a cajas</Link>
+            <Link href="/cajas">
+              <Landmark className="h-4 w-4" />
+              Ver cajas
+            </Link>
+          </Button>
+        ) : null}
+        {canAccessPath(auth.role, "/bolsas") ? (
+          <Button asChild>
+            <Link href="/bolsas">
+              <Boxes className="h-4 w-4" />
+              Ver bolsas
+            </Link>
           </Button>
         ) : null}
         {canAccessPath(auth.role, "/reporte-diario") ? (
           <Button asChild variant="outline">
             <Link href="/reporte-diario">Ver reporte diario</Link>
-          </Button>
-        ) : null}
-        {canAccessPath(auth.role, "/exportaciones") ? (
-          <Button asChild variant="outline">
-            <Link href="/exportaciones">Exportaciones</Link>
           </Button>
         ) : null}
       </div>
