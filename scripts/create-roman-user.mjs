@@ -15,13 +15,13 @@ const supabase = createClient(url, serviceRoleKey, {
   }
 });
 
-const email = process.env.ROMAN_EMAIL ?? "roman@maservicios.com";
-const legacyEmails = (process.env.ROMAN_LEGACY_EMAILS ?? "roman@masservicios.com")
+const email = process.env.ROMAN_EMAIL ?? "roman@maservicios.ar";
+const legacyEmails = (process.env.ROMAN_LEGACY_EMAILS ?? "roman@maservicios.com,roman@masservicios.com")
   .split(",")
   .map((value) => value.trim().toLowerCase())
   .filter(Boolean);
 const fullName = process.env.ROMAN_FULL_NAME ?? "Roman";
-const password = process.env.ROMAN_PASSWORD ?? "1234";
+const password = process.env.ROMAN_PASSWORD ?? "Rom5an";
 const role = process.env.ROMAN_ROLE ?? "admin";
 const status = process.env.ROMAN_STATUS ?? "active";
 
@@ -111,4 +111,7 @@ try {
   console.warn(`No se pudieron sincronizar tablas de perfil: ${error instanceof Error ? error.message : "error desconocido"}`);
 }
 
-console.log(`Usuario listo: ${fullName} <${email}> con contraseña ${password}`);
+console.log(`Usuario listo: ${fullName} <${email}>. Perfil y rol sincronizados.`);
+
+
+

@@ -7,8 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "test": "vitest run",
     "seed:roman": "node scripts/create-roman-user.mjs",
-    "seed:operational": "node scripts/seed-operational-data.mjs"
+    "seed:operational": "node scripts/seed-operational-data.mjs",
+    "e2e": "playwright test",
+    "predeploy": "next build && eslint . && vitest run"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.6",
@@ -25,6 +28,7 @@
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
@@ -33,6 +37,8 @@
     "eslint-config-next": "latest",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.2"
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.9"
   }
 }

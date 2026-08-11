@@ -56,9 +56,9 @@ export default async function UsuariosPage() {
         rightSlot={<Badge variant="outline">Admin</Badge>}
       />
 
-      <div className="rounded-3xl border border-border bg-white p-5 text-brandBlack shadow-soft">
+      <div className="rounded-3xl border border-border bg-white/[0.06] p-5 text-brandWhite shadow-soft">
         <h3 className="font-heading text-lg font-bold">Crear usuario</h3>
-        <p className="mt-1 text-sm text-mediumGray">
+        <p className="mt-1 text-sm text-lightGray/55">
           Alta interna para usuarios de la empresa. No hay registro público.
         </p>
 
@@ -73,7 +73,7 @@ export default async function UsuariosPage() {
             <label className="text-sm font-semibold" htmlFor="email">
               Email
             </label>
-            <Input id="email" name="email" type="email" placeholder="usuario@maservicios.com" required />
+            <Input id="email" name="email" type="email" placeholder="usuario@maservicios.ar" required />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-semibold" htmlFor="password">
@@ -86,7 +86,7 @@ export default async function UsuariosPage() {
               Rol
             </label>
             <select
-              className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="flex h-11 w-full rounded-md border border-border bg-white/[0.06] px-3 py-2 text-sm text-brandWhite shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               id="role"
               name="role"
               defaultValue="viewer"
@@ -102,7 +102,7 @@ export default async function UsuariosPage() {
               Estado
             </label>
             <select
-              className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="flex h-11 w-full rounded-md border border-border bg-white/[0.06] px-3 py-2 text-sm text-brandWhite shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               id="status"
               name="status"
               defaultValue="active"
@@ -119,9 +119,9 @@ export default async function UsuariosPage() {
         </form>
       </div>
 
-      <div className="overflow-hidden rounded-3xl border border-border bg-white shadow-soft">
-        <div className="border-b border-lightGray px-5 py-4">
-          <h3 className="font-heading text-lg font-bold text-brandBlack">Listado</h3>
+      <div className="overflow-hidden rounded-3xl border border-border bg-white/[0.06] shadow-soft">
+        <div className="border-b border-white/10 px-5 py-4">
+          <h3 className="font-heading text-lg font-bold text-brandWhite">Listado</h3>
         </div>
         {rows.length === 0 ? (
           <div className="p-5">
@@ -132,8 +132,8 @@ export default async function UsuariosPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-lightGray text-left text-sm text-brandBlack">
-              <thead className="bg-lightGray/40">
+            <table className="min-w-full divide-y divide-white/10 text-left text-sm text-brandWhite">
+              <thead className="bg-black/20">
                 <tr>
                   <th className="px-5 py-3 font-semibold">Nombre</th>
                   <th className="px-5 py-3 font-semibold">Email</th>
@@ -141,11 +141,11 @@ export default async function UsuariosPage() {
                   <th className="px-5 py-3 font-semibold">Estado</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-lightGray">
+              <tbody className="divide-y divide-white/10">
                 {rows.map((row) => (
                   <tr key={row.id}>
                     <td className="px-5 py-4 font-semibold">{row.full_name ?? "Sin nombre"}</td>
-                    <td className="px-5 py-4 text-mediumGray">{row.email ?? "Sin email"}</td>
+                    <td className="px-5 py-4 text-lightGray/55">{row.email ?? "Sin email"}</td>
                     <td className="px-5 py-4">
                       <Badge variant="neutral">{row.role ?? "viewer"}</Badge>
                     </td>

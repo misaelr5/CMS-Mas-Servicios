@@ -2,48 +2,135 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogOut } from "lucide-react";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { AppLogo } from "@/components/app-logo";
 import { navItems } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
+const navGroups = [
+  {
+    label: null,
+    hrefs: ["/dashboard"]
+  },
+  {
+    label: "Operaciones",
+    hrefs: ["/bolsas", "/cajas", "/reporte-diario", "/gastos", "/cierres"]
+  },
+  {
+    label: "Reportes",
+    hrefs: ["/exportaciones"]
+  },
+  {
+    label: "Admin",
+    hrefs: ["/usuarios", "/configuracion"]
+  }
+];
+
 export function Sidebar() {
   const pathname = usePathname();
   const auth = useAuth();
 
+  const visibleItems = navItems.filter(
+    (item) => !item.roles || item.roles.includes(auth.role)
+  );
+
+  const initials = auth.fullName
+    ? auth.fullName
+        .split(" ")
+        .slice(0, 2)
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+    : (auth.email?.[0] ?? "U").toUpperCase();
+
   return (
-    <aside className="hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:w-72 lg:flex-col">
-      <div className="flex h-full flex-col border-r border-white/8 bg-darkSurface/95 px-5 py-6 backdrop-blur">
-        <AppLogo href={auth.role === "cajero" ? "/bolsas" : "/dashboard"} />
-        <div className="mt-8 flex-1 space-y-2 overflow-y-auto pr-1">
-          {navItems.filter((item) => !item.roles || item.roles.includes(auth.role)).map((item) => {
-            const Icon = item.icon;
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+    <aside className="hidden print:hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:w-72 lg:flex-col">
+      <div className="flex h-full flex-col border-r border-white/8 bg-darkSurface/95 px-4 py-5 backdrop-blur-xl">
+        <div className="px-1">
+          <AppLogo href={auth.role === "cajero" ? "/bolsas" : "/dashboard"} />
+        </div>
+
+        <nav className="mt-7 flex-1 space-y-5 overflow-y-auto pr-1">
+          {navGroups.map((group) => {
+            const groupItems = visibleItems.filter((item) =>
+              group.hrefs.includes(item.href)
+            );
+            if (groupItems.length === 0) return null;
 
             return (
-              <Link
-                key={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold transition-all",
-                  active
-                    ? "border-brandYellow/50 bg-brandYellow text-brandBlack shadow-yellowGlow"
-                    : "border-white/6 bg-white/4 text-lightGray hover:border-brandYellow/30 hover:bg-white/8 hover:text-white"
-                )}
-                href={item.href}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                <span>{item.label}</span>
-              </Link>
+              <div key={group.label ?? "main"}>
+                {group.label ? (
+                  <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-lightGray/35">
+                    {group.label}
+                  </p>
+                ) : null}
+                <div className="space-y-1">
+                  {groupItems.map((item) => {
+                    const Icon = item.icon;
+                    const active =
+                      pathname === item.href ||
+                      pathname.startsWith(`${item.href}/`);
+
+                    return (
+                      <Link
+                        key={item.href}
+                        className={cn(
+                          "group/nav relative flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all duration-200",
+                          active
+                            ? "border-brandYellow/35 bg-brandYellow text-brandBlack shadow-yellowGlow animate-pulse-glow"
+                            : "border-transparent bg-transparent text-lightGray/65 hover:border-white/10 hover:bg-white/6 hover:text-white"
+                        )}
+                        href={item.href}
+                      >
+                        {!active && (
+                          <span className="absolute left-0 top-1/2 h-0 w-0.5 -translate-y-1/2 rounded-r-full bg-brandYellow/50 transition-all duration-200 group-hover/nav:h-4" />
+                        )}
+                        <Icon
+                          className={cn(
+                            "h-[17px] w-[17px] shrink-0 transition-transform duration-200",
+                            active ? "text-brandBlack" : "text-lightGray/55 group-hover/nav:text-brandYellow group-hover/nav:scale-110"
+                          )}
+                        />
+                        <span className="transition-colors duration-150">{item.label}</span>
+                        {active && (
+                          <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brandBlack/25" />
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
-        </div>
-        <div className="rounded-2xl border border-brandYellow/25 bg-brandYellow/10 p-4 text-sm text-lightGray">
-          <p className="font-heading text-base font-bold text-white">Más Servicios</p>
-          <p className="mt-2 text-xs leading-relaxed text-lightGray/80">
-            Base interna preparada para operar ordenadamente.
-          </p>
-        </div>
+        </nav>
+
+        {/* User card */}
+        {auth.status === "authenticated" ? (
+          <div className="mt-4 rounded-xl border border-white/8 bg-white/4 p-3 transition-all duration-200 hover:border-white/14 hover:bg-white/6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brandYellow text-xs font-black text-brandBlack shadow-yellowGlow transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,212,0,0.45)]">
+                {initials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-white">
+                  {auth.fullName ?? auth.email ?? "Usuario interno"}
+                </p>
+                <span className="inline-block rounded-full bg-brandYellow/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-brandYellow">
+                  {auth.role}
+                </span>
+              </div>
+              <button
+                onClick={() => void auth.logout()}
+                title="Cerrar sesión"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-lightGray/50 transition-all duration-150 hover:bg-danger/15 hover:text-danger active:scale-95"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </aside>
   );

@@ -1,4 +1,5 @@
 import type { CashDailyReportLine, CashDailyReportStatus, CashRegister, CashReportCategory } from "@/lib/db/types";
+import { calculateCashDailyReportTotals as calculateCashDailyReportTotalsDomain } from "@/src/modules/cash-registers/domain/cash-report-rules";
 
 export const cashDailyReportStatuses: CashDailyReportStatus[] = ["pendiente", "parcial", "cargado", "revisado"];
 
@@ -24,14 +25,7 @@ export function getCashRegisterShortLabel(register: Pick<CashRegister, "register
 }
 
 export function calculateCashDailyReportTotals(lines: Array<Pick<CashDailyReportLine, "operated_amount_ars" | "profit_amount_ars">>) {
-  return lines.reduce(
-    (acc, line) => {
-      acc.operated += Number(line.operated_amount_ars ?? 0);
-      acc.profit += Number(line.profit_amount_ars ?? 0);
-      return acc;
-    },
-    { operated: 0, profit: 0 }
-  );
+  return calculateCashDailyReportTotalsDomain(lines);
 }
 
 export function sortCashReportCategories(categories: CashReportCategory[]) {

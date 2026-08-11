@@ -9,6 +9,14 @@ const variants = {
   neutral: "outline"
 } as const;
 
+const labels = {
+  ok: "OK",
+  revisar: "Revisar",
+  error: "Error",
+  pendiente: "Pendiente",
+  neutral: "Sin estado"
+} as const;
+
 export type StatusBadgeTone = keyof typeof variants;
 
 export function StatusBadge({
@@ -19,8 +27,14 @@ export function StatusBadge({
   className?: string;
 }) {
   const variant = variants[status];
-  const label =
-    status === "ok" ? "OK" : status === "revisar" ? "Revisar" : status === "error" ? "Error" : status === "pendiente" ? "Pendiente" : "Estado";
 
-  return <Badge className={cn("rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.18em]", className)} variant={variant}>{label}</Badge>;
+  return (
+    <Badge
+      className={cn("rounded-full px-2.5 py-0.5 text-[10px] uppercase tracking-[0.16em]", className)}
+      variant={variant}
+      dot
+    >
+      {labels[status]}
+    </Badge>
+  );
 }

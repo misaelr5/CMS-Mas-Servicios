@@ -19,6 +19,8 @@ import {
   isDailyReportLockedStatus,
   recalculateDailyReportBranch
 } from "@/lib/finance/daily-report-service";
+import { getFriendlySupabaseErrorMessage } from "@/lib/errors/user-facing";
+import { getString, getNumber } from "@/lib/forms/form-data";
 
 type ActionState = {
   ok: boolean;
@@ -26,16 +28,6 @@ type ActionState = {
 };
 
 const canWriteReports = (role: Role) => role === "admin" || role === "encargado";
-
-function getString(formData: FormData, key: string) {
-  const value = formData.get(key);
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function getNumber(formData: FormData, key: string) {
-  const value = Number(getString(formData, key));
-  return Number.isFinite(value) ? value : 0;
-}
 
 function safePath(path: string) {
   return path.startsWith("/") ? path : "/reporte-diario";
@@ -208,6 +200,23 @@ export async function createDailyReportAdjustmentAction(_prevState: ActionState,
     return { ok: false, message: "No se pudo resolver el reporte diario." };
   }
 
+  const recentAdjustmentCutoff = new Date(Date.now() - 10_000).toISOString();
+  const { data: duplicateAdjustment } = await (admin.from("report_adjustments") as any)
+    .select("*")
+    .eq("daily_report_id", dailyReportId)
+    .eq("adjustment_type", adjustmentType)
+    .eq("amount_ars", amount)
+    .eq("reason", reason)
+    .eq("created_by", auth.userId)
+    .gte("created_at", recentAdjustmentCutoff)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (duplicateAdjustment) {
+    return { ok: true, message: "El ajuste ya estaba registrado." };
+  }
+
   const { data, error } = await (admin.from("report_adjustments") as any)
     .insert({
       daily_report_id: dailyReportId,
@@ -226,7 +235,7 @@ export async function createDailyReportAdjustmentAction(_prevState: ActionState,
         message: "Falta aplicar la migracion de reporte diario. Ejecuta supabase/migrations/20260613_daily_reports_expenses.sql."
       };
     }
-    return { ok: false, message: `No se pudo crear el ajuste: ${error.message}` };
+    return { ok: false, message: getFriendlySupabaseErrorMessage(error, "No se pudo crear el ajuste.") };
   }
 
   await createAuditLog({
@@ -275,6 +284,14 @@ export async function annulDailyReportAdjustmentAction(_prevState: ActionState, 
   if (!oldData || oldData.annulled_at) {
     return { ok: false, message: "El ajuste no existe o ya fue anulado." };
   }
+  // report_adjustments no tiene branch_id propio; la sucursal vive en el daily_report padre.
+  const { data: parentReport } = await (admin.from("daily_reports") as any)
+    .select("branch_id")
+    .eq("id", oldData.daily_report_id)
+    .maybeSingle();
+  if (!parentReport || parentReport.branch_id !== branchId) {
+    return { ok: false, message: "No podés anular ajustes de otra sucursal." };
+  }
 
   const { data, error } = await (admin.from("report_adjustments") as any)
     .update({
@@ -287,7 +304,7 @@ export async function annulDailyReportAdjustmentAction(_prevState: ActionState, 
     .single();
 
   if (error) {
-    return { ok: false, message: `No se pudo anular el ajuste: ${error.message}` };
+    return { ok: false, message: getFriendlySupabaseErrorMessage(error, "No se pudo anular el ajuste.") };
   }
 
   await createAuditLog({
@@ -338,6 +355,26 @@ export async function createExpenseAction(_prevState: ActionState, formData: For
     return { ok: false, message: reportLockedMessage() };
   }
 
+  const recentExpenseCutoff = new Date(Date.now() - 10_000).toISOString();
+  const { data: duplicateExpense } = await (admin.from("expenses") as any)
+    .select("*")
+    .eq("branch_id", branchId)
+    .eq("date", date)
+    .eq("amount_ars", amount)
+    .eq("category", category)
+    .eq("detail", detail)
+    .eq("status", status)
+    .eq("paid_from", paidFrom)
+    .eq("created_by", auth.userId)
+    .gte("created_at", recentExpenseCutoff)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (duplicateExpense) {
+    return { ok: true, message: "El gasto ya estaba registrado." };
+  }
+
   const { data, error } = await (admin.from("expenses") as any)
     .insert({
       branch_id: branchId,
@@ -359,7 +396,7 @@ export async function createExpenseAction(_prevState: ActionState, formData: For
         message: "Falta aplicar la migracion de reporte diario y gastos. Ejecuta supabase/migrations/20260613_daily_reports_expenses.sql."
       };
     }
-    return { ok: false, message: `No se pudo crear el gasto: ${error.message}` };
+    return { ok: false, message: getFriendlySupabaseErrorMessage(error, "No se pudo crear el gasto.") };
   }
 
   await createAuditLog({
@@ -436,6 +473,9 @@ export async function annulExpenseAction(_prevState: ActionState, formData: Form
   if (!oldData || oldData.status === "anulado") {
     return { ok: false, message: "El gasto no existe o ya fue anulado." };
   }
+  if (oldData.branch_id !== branchId) {
+    return { ok: false, message: "No podés anular gastos de otra sucursal." };
+  }
 
   const { data, error } = await (admin.from("expenses") as any)
     .update({
@@ -449,7 +489,7 @@ export async function annulExpenseAction(_prevState: ActionState, formData: Form
     .single();
 
   if (error) {
-    return { ok: false, message: `No se pudo anular el gasto: ${error.message}` };
+    return { ok: false, message: getFriendlySupabaseErrorMessage(error, "No se pudo anular el gasto.") };
   }
 
   await createAuditLog({

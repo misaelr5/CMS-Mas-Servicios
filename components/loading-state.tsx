@@ -5,7 +5,7 @@ export function LoadingState({ rows = 3 }: { rows?: number }) {
   return (
     <div className="space-y-4">
       {Array.from({ length: rows }).map((_, index) => (
-        <Card key={index} className="bg-white/95 text-brandBlack shadow-soft">
+        <Card key={index} className="bg-white/[0.05] text-brandWhite shadow-soft">
           <CardHeader className="space-y-3">
             <Skeleton className="h-4 w-40" />
             <Skeleton className="h-3 w-72 max-w-full" />

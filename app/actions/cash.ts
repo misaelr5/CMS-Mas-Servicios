@@ -21,6 +21,8 @@ import {
   isDailyReportLockedStatus
 } from "@/lib/finance/daily-report-service";
 import { getWeeklyCashClosureLockState } from "@/lib/finance/weekly-cash-closure-service";
+import { getFriendlySupabaseErrorMessage } from "@/lib/errors/user-facing";
+import { getString } from "@/lib/forms/form-data";
 
 type ActionState = {
   ok: boolean;
@@ -30,11 +32,6 @@ type ActionState = {
 
 const canWrite = (role: Role) => role === "admin" || role === "encargado" || role === "cajero";
 const canReview = (role: Role) => role === "admin" || role === "encargado";
-
-function getString(formData: FormData, key: string) {
-  const value = formData.get(key);
-  return typeof value === "string" ? value.trim() : "";
-}
 
 function todayIsoInBuenosAires() {
   return new Intl.DateTimeFormat("en-CA", {
@@ -240,41 +237,29 @@ export async function saveCashDailyReportAction(_prevState: ActionState, formDat
   let reportId = existingReport?.id ?? null;
   let savedReport = existingReport ?? null;
 
-  if (existingReport) {
-    const { data, error } = await (admin.from("cash_daily_reports") as any)
-      .update(reportPayload)
-      .eq("id", existingReport.id)
-      .select("*")
-      .single();
-
-    if (error || !data) {
-      return { ok: false, message: `No se pudo actualizar el reporte: ${error?.message ?? "error desconocido"}` };
-    }
-
-    savedReport = data as typeof existingReport;
-    reportId = data.id;
-  } else {
-    const { data, error } = await (admin.from("cash_daily_reports") as any)
-      .insert({
+  const { data, error } = await (admin.from("cash_daily_reports") as any)
+    .upsert(
+      {
         ...reportPayload,
-        created_by: auth.userId
-      })
-      .select("*")
-      .single();
+        created_by: existingReport?.created_by ?? auth.userId
+      },
+      { onConflict: "cash_register_id,report_date" }
+    )
+    .select("*")
+    .single();
 
-    if (error || !data) {
-      if (error && isMissingCashTablesError(error)) {
-        return {
-          ok: false,
-          message: "Falta aplicar la migracion de cajas. Ejecuta supabase/migrations/20260612_cash_pay_facil.sql."
-        };
-      }
-      return { ok: false, message: `No se pudo crear el reporte: ${error?.message ?? "error desconocido"}` };
+  if (error || !data) {
+    if (error && isMissingCashTablesError(error)) {
+      return {
+        ok: false,
+        message: "Falta aplicar la migracion de cajas. Ejecuta supabase/migrations/20260612_cash_pay_facil.sql."
+      };
     }
-
-    savedReport = data as typeof existingReport;
-    reportId = data.id;
+    return { ok: false, message: getFriendlySupabaseErrorMessage(error, "No se pudo guardar el reporte.") };
   }
+
+  savedReport = data as typeof existingReport;
+  reportId = data.id;
 
   if (!reportId) {
     return { ok: false, message: "No se pudo identificar el reporte guardado." };

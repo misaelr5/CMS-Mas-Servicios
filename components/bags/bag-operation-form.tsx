@@ -6,23 +6,42 @@ import { usePathname } from "next/navigation";
 import { createBagOperationAction } from "@/app/actions/bags";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { FormField } from "@/components/ui/form-field";
+import type { Role } from "@/lib/auth/roles";
 import type { BagOverview } from "@/lib/bags/bag-service";
 import { bagOperationTypes, formatUsd } from "@/lib/bags/bag-calculations";
 import { formatArs } from "@/lib/operations/seed-data";
 
 const initialState = { ok: false, message: "" };
+const simpleOperationTypes = ["compra_usd", "venta_usd"] as const;
+const operationLabels: Record<string, string> = {
+  compra_usd: "Comprar USD",
+  venta_usd: "Vender USD",
+  ingreso_pesos_efectivo: "Ingresar efectivo",
+  egreso_pesos_efectivo: "Retirar efectivo",
+  ingreso_pesos_cuenta: "Ingresar transferencia",
+  egreso_pesos_cuenta: "Retirar transferencia",
+  prestamo_entregado: "Préstamo entregado",
+  prestamo_recibido: "Préstamo recibido",
+  devolucion_prestamo: "Devolución de préstamo",
+  ajuste_manual: "Ajuste manual",
+  anulacion_operacion: "Anular operación"
+};
 
 export function BagOperationForm({
   bags,
   defaultBagId,
   lockedBagId,
   lockedBagName,
-  submitLabel = "Guardar operacion"
+  userRole,
+  submitLabel = "Guardar operación"
 }: {
   bags: BagOverview[];
   defaultBagId?: string;
   lockedBagId?: string | null;
   lockedBagName?: string | null;
+  userRole?: Role;
   submitLabel?: string;
 }) {
   const pathname = usePathname();
@@ -41,6 +60,7 @@ export function BagOperationForm({
   const [usdDelta, setUsdDelta] = useState("");
   const [borrowedDelta, setBorrowedDelta] = useState("");
   const [profitDelta, setProfitDelta] = useState("");
+  const availableOperationTypes = userRole === "cajero" ? simpleOperationTypes : bagOperationTypes;
 
   const selectedBag = bags.find((bag) => bag.id === bagId) ?? bags[0];
   const parsedUsd = Number(amountUsd || 0);
@@ -85,21 +105,17 @@ export function BagOperationForm({
     <form action={formAction} className="space-y-4">
       <input name="current_path" type="hidden" value={pathname} />
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="bag_id">
-            Bolsa
-          </label>
+        <FormField label="Bolsa" htmlFor="bag_id">
           {isLocked ? (
             <>
               <input name="bag_id" type="hidden" value={bagId} />
-              <div className="flex h-11 items-center rounded-md border border-border bg-lightGray/40 px-3 text-sm font-semibold text-brandBlack shadow-sm">
+              <div className="flex h-11 items-center rounded-md border border-border bg-black/20 px-3 text-sm font-semibold text-brandWhite shadow-sm">
                 {lockedBagName ?? selectedBag?.name ?? "Bolsa asignada"}
               </div>
-              <p className="text-xs text-mediumGray">La bolsa queda fija para tu usuario.</p>
+              <p className="text-xs text-lightGray/55">La bolsa queda fija para tu usuario.</p>
             </>
           ) : (
-            <select
-              className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
+            <Select
               id="bag_id"
               name="bag_id"
               value={bagId}
@@ -110,51 +126,44 @@ export function BagOperationForm({
                   {bag.name}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="operation_type">
-            Tipo de operacion
-          </label>
-          <select
-            className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
+        </FormField>
+        <FormField label="Tipo de operación" htmlFor="operation_type">
+          <Select
             id="operation_type"
             name="operation_type"
             value={operationType}
             onChange={(event) => setOperationType(event.target.value as typeof operationType)}
           >
-            {bagOperationTypes.map((type) => (
+            {availableOperationTypes.map((type) => (
               <option key={type} value={type}>
-                {type.replaceAll("_", " ")}
+                {operationLabels[type] ?? type.replaceAll("_", " ")}
               </option>
             ))}
-          </select>
-        </div>
+          </Select>
+          {userRole === "cajero" ? <p className="text-xs text-lightGray/55">Tu carga normal es comprar o vender USD sobre tu bolsa.</p> : null}
+        </FormField>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="amount_usd">
+          <label className="text-sm font-semibold text-brandWhite" htmlFor="amount_usd">
             Cantidad USD
           </label>
           <Input id="amount_usd" name="amount_usd" placeholder="0" value={amountUsd} onChange={(event) => setAmountUsd(event.target.value)} />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="rate_ars">
-            Cotizacion ARS
+          <label className="text-sm font-semibold text-brandWhite" htmlFor="rate_ars">
+            Cotización ARS
           </label>
           <Input id="rate_ars" name="rate_ars" placeholder="0" value={rateArs} onChange={(event) => setRateArs(event.target.value)} />
         </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="money_source">
-            Origen
-          </label>
-          <select
-            className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
+        <FormField label="Origen" htmlFor="money_source">
+          <Select
             id="money_source"
             name="money_source"
             value={moneySource}
@@ -162,14 +171,10 @@ export function BagOperationForm({
           >
             <option value="efectivo">Efectivo</option>
             <option value="cuenta">Cuenta</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-brandBlack" htmlFor="money_destination">
-            Destino
-          </label>
-          <select
-            className="flex h-11 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
+          </Select>
+        </FormField>
+        <FormField label="Destino" htmlFor="money_destination">
+          <Select
             id="money_destination"
             name="money_destination"
             value={moneyDestination}
@@ -177,37 +182,65 @@ export function BagOperationForm({
           >
             <option value="efectivo">Efectivo</option>
             <option value="cuenta">Cuenta</option>
-          </select>
-        </div>
+          </Select>
+        </FormField>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <Input id="cash_delta" name="cash_delta" placeholder="Ajuste efectivo" value={cashDelta} onChange={(event) => setCashDelta(event.target.value)} />
-        <Input id="account_delta" name="account_delta" placeholder="Ajuste cuenta" value={accountDelta} onChange={(event) => setAccountDelta(event.target.value)} />
-        <Input id="usd_delta" name="usd_delta" placeholder="Ajuste USD" value={usdDelta} onChange={(event) => setUsdDelta(event.target.value)} />
-        <Input id="borrowed_delta" name="borrowed_delta" placeholder="Ajuste prestado" value={borrowedDelta} onChange={(event) => setBorrowedDelta(event.target.value)} />
+      {userRole !== "cajero" ? (
+        <details className="rounded-3xl border border-white/10 bg-black/20 p-4">
+          <summary className="cursor-pointer text-sm font-black uppercase tracking-[0.18em] text-brandWhite">
+            Opciones avanzadas
+          </summary>
+          <p className="mt-2 text-sm text-lightGray/55">
+            Usar solo para ajustes, prestamos, anulaciones o correcciones autorizadas.
+          </p>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-brandWhite" htmlFor="cash_delta">Ajuste efectivo (ARS)</label>
+              <Input id="cash_delta" name="cash_delta" placeholder="0" value={cashDelta} onChange={(event) => setCashDelta(event.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-brandWhite" htmlFor="account_delta">Ajuste cuenta (ARS)</label>
+              <Input id="account_delta" name="account_delta" placeholder="0" value={accountDelta} onChange={(event) => setAccountDelta(event.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-brandWhite" htmlFor="usd_delta">Ajuste USD</label>
+              <Input id="usd_delta" name="usd_delta" placeholder="0" value={usdDelta} onChange={(event) => setUsdDelta(event.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-brandWhite" htmlFor="borrowed_delta">Ajuste prestado (ARS)</label>
+              <Input id="borrowed_delta" name="borrowed_delta" placeholder="0" value={borrowedDelta} onChange={(event) => setBorrowedDelta(event.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-brandWhite" htmlFor="profit_delta">Ajuste ganancia (ARS)</label>
+              <Input id="profit_delta" name="profit_delta" placeholder="0" value={profitDelta} onChange={(event) => setProfitDelta(event.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-brandWhite" htmlFor="base_limit_adjustment">Ajuste base / límite (ARS)</label>
+              <Input id="base_limit_adjustment" name="base_limit_adjustment" placeholder="0" />
+            </div>
+          </div>
+          <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-brandWhite">
+            <input checked={confirmReview} name="confirm_review" type="checkbox" onChange={(event) => setConfirmReview(event.target.checked)} />
+            Confirmar como revisar
+          </label>
+        </details>
+      ) : null}
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-semibold text-brandWhite" htmlFor="notes">Motivo u observación</label>
+        <textarea
+          className="min-h-24 w-full rounded-md border border-border bg-white/[0.06] px-3 py-2 text-sm text-brandWhite shadow-sm"
+          id="notes"
+          name="notes"
+          placeholder="Motivo u observacion"
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+        />
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <Input id="profit_delta" name="profit_delta" placeholder="Ajuste ganancia" value={profitDelta} onChange={(event) => setProfitDelta(event.target.value)} />
-        <Input id="base_limit_adjustment" name="base_limit_adjustment" placeholder="Ajuste base / limite" />
-      </div>
-
-      <textarea
-        className="min-h-24 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm"
-        name="notes"
-        placeholder="Motivo u observacion"
-        value={notes}
-        onChange={(event) => setNotes(event.target.value)}
-      />
-
-      <label className="flex items-center gap-2 text-sm font-semibold text-brandBlack">
-        <input checked={confirmReview} name="confirm_review" type="checkbox" onChange={(event) => setConfirmReview(event.target.checked)} />
-        Confirmar como revisar
-      </label>
-
-      <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm text-mediumGray">
-        <p className="font-semibold text-brandBlack">Vista previa</p>
+      <div className="rounded-md border border-white/10 bg-black/20 p-4 text-sm text-lightGray/55">
+        <p className="font-semibold text-brandWhite">Vista previa</p>
         {selectedBag ? (
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             <p>Saldo efectivo nuevo: {formatArs(preview?.nextCash ?? Number(selectedBag.current_cash_ars ?? 0))}</p>

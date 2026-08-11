@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindAnimate from "tailwindcss-animate";
 
 const config: Config = {
   darkMode: ["class"],
@@ -44,7 +45,44 @@ const config: Config = {
       boxShadow: {
         soft: "0 8px 24px rgba(0, 0, 0, 0.12)",
         medium: "0 14px 40px rgba(0, 0, 0, 0.20)",
-        yellowGlow: "0 0 24px rgba(255, 212, 0, 0.28)"
+        yellowGlow: "0 0 24px rgba(255, 212, 0, 0.28)",
+        lift: "0 16px 40px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(255, 212, 0, 0.07)",
+        "glow-sm": "0 0 12px rgba(255, 212, 0, 0.18)",
+        "inner-yellow": "inset 0 1px 0 rgba(255, 212, 0, 0.12)"
+      },
+      keyframes: {
+        "fade-in-up": {
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to:   { opacity: "1", transform: "translateY(0)" }
+        },
+        "fade-in": {
+          from: { opacity: "0" },
+          to:   { opacity: "1" }
+        },
+        "scale-in": {
+          from: { opacity: "0", transform: "scale(0.97)" },
+          to:   { opacity: "1", transform: "scale(1)" }
+        },
+        "slide-in-left": {
+          from: { opacity: "0", transform: "translateX(-10px)" },
+          to:   { opacity: "1", transform: "translateX(0)" }
+        },
+        "pulse-glow": {
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(255, 212, 0, 0)" },
+          "50%":       { boxShadow: "0 0 20px 4px rgba(255, 212, 0, 0.15)" }
+        },
+        shimmer: {
+          from: { backgroundPosition: "200% center" },
+          to:   { backgroundPosition: "-200% center" }
+        }
+      },
+      animation: {
+        "fade-in-up":    "fade-in-up 0.38s ease-out both",
+        "fade-in":       "fade-in 0.25s ease-out both",
+        "scale-in":      "scale-in 0.22s ease-out both",
+        "slide-in-left": "slide-in-left 0.28s ease-out both",
+        "pulse-glow":    "pulse-glow 2.4s ease-in-out infinite",
+        shimmer:         "shimmer 2.2s linear infinite"
       },
       fontFamily: {
         sans: ["var(--font-inter)", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
@@ -56,7 +94,7 @@ const config: Config = {
       }
     }
   },
-  plugins: []
+  plugins: [tailwindAnimate]
 };
 
 export default config;

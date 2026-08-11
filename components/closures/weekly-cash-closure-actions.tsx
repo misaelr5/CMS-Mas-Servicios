@@ -32,7 +32,7 @@ export function WeeklyCashClosureCloseForm({
             Nota opcional
           </label>
           <textarea
-            className="min-h-24 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm placeholder:text-mediumGray focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="min-h-24 w-full rounded-md border border-border bg-white/[0.06] px-3 py-2 text-sm text-brandWhite shadow-sm placeholder:text-lightGray/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             id="close_note"
             name="close_note"
             placeholder="Observacion de cierre semanal"
@@ -85,7 +85,7 @@ export function WeeklyCashClosureReopenForm({
           Motivo de reapertura
         </label>
         <textarea
-          className="min-h-24 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm placeholder:text-mediumGray focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="min-h-24 w-full rounded-md border border-border bg-white/[0.06] px-3 py-2 text-sm text-brandWhite shadow-sm placeholder:text-lightGray/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           id="reopen_reason"
           name="reopen_reason"
           placeholder="Explicá por qué se necesita reabrir la semana"
@@ -98,7 +98,7 @@ export function WeeklyCashClosureReopenForm({
           Nota obligatoria
         </label>
         <textarea
-          className="min-h-24 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm placeholder:text-mediumGray focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="min-h-24 w-full rounded-md border border-border bg-white/[0.06] px-3 py-2 text-sm text-brandWhite shadow-sm placeholder:text-lightGray/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           id="reopen_note"
           name="reopen_note"
           placeholder="Detalle interno de la reapertura"

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { DataCard } from "@/components/data-card";
 import { EmptyState } from "@/components/empty-state";
 import { SectionTitle } from "@/components/section-title";
 import { StatCard } from "@/components/stat-card";
@@ -57,38 +56,50 @@ export default async function BolsasPage() {
 
       <div className="grid gap-4 xl:grid-cols-2">
         {visibleBags.map((bag) => (
-          <DataCard key={bag.id} description={`Responsable: ${bag.responsible_name ?? "Sin asignar"}`} title={bag.name}>
-            <div className="space-y-4">
+          <article
+            key={bag.id}
+            className="group/bolsa overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.035] text-brandWhite shadow-lift backdrop-blur-xl transition-all duration-200 hover:border-brandYellow/25 hover:bg-white/[0.06]"
+          >
+            <div className="flex items-start justify-between gap-3 p-5 pb-4">
+              <div className="min-w-0">
+                <h3 className="font-heading text-xl font-black text-brandWhite">{bag.name}</h3>
+                <p className="text-sm text-lightGray/55">Responsable: {bag.responsible_name ?? "Sin asignar"}</p>
+              </div>
+              {!isCashier ? (
+                <Badge variant={bag.status === "ok" ? "success" : bag.status === "revisar" ? "warning" : "danger"}>{bag.status}</Badge>
+              ) : null}
+            </div>
+
+            <div className="space-y-4 border-t border-white/10 p-5">
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
-                  <p className="text-mediumGray">Base</p>
-                  <p className="font-semibold text-brandBlack">{formatArs(Number(bag.base_limit_ars ?? 0))}</p>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm">
+                  <p className="text-lightGray/50">Base</p>
+                  <p className="font-semibold text-brandWhite tabular-nums">{formatArs(Number(bag.base_limit_ars ?? 0))}</p>
                 </div>
-                <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
-                  <p className="text-mediumGray">Efectivo</p>
-                  <p className="font-semibold text-brandBlack">{formatArs(Number(bag.current_cash_ars ?? 0))}</p>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm">
+                  <p className="text-lightGray/50">Efectivo</p>
+                  <p className="font-semibold text-brandWhite tabular-nums">{formatArs(Number(bag.current_cash_ars ?? 0))}</p>
                 </div>
-                <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
-                  <p className="text-mediumGray">Cuenta</p>
-                  <p className="font-semibold text-brandBlack">{formatArs(Number(bag.current_account_ars ?? 0))}</p>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm">
+                  <p className="text-lightGray/50">Cuenta</p>
+                  <p className="font-semibold text-brandWhite tabular-nums">{formatArs(Number(bag.current_account_ars ?? 0))}</p>
                 </div>
-                <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
-                  <p className="text-mediumGray">USD</p>
-                  <p className="font-semibold text-brandBlack">{formatUsd(Number(bag.current_usd ?? 0))}</p>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm">
+                  <p className="text-lightGray/50">USD</p>
+                  <p className="font-semibold text-brandWhite tabular-nums">{formatUsd(Number(bag.current_usd ?? 0))}</p>
                 </div>
-                <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
-                  <p className="text-mediumGray">Prestado</p>
-                  <p className="font-semibold text-brandBlack">{formatArs(Number(bag.borrowed_ars ?? 0))}</p>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm">
+                  <p className="text-lightGray/50">Prestado</p>
+                  <p className="font-semibold text-brandWhite tabular-nums">{formatArs(Number(bag.borrowed_ars ?? 0))}</p>
                 </div>
-                <div className="rounded-2xl border border-lightGray bg-lightGray/30 p-4 text-sm">
-                  <p className="text-mediumGray">Ganancia</p>
-                  <p className="font-semibold text-brandBlack">{formatArs(Number(bag.accumulated_profit_ars ?? 0))}</p>
+                <div className="rounded-2xl border border-brandYellow/20 bg-brandYellow/[0.07] p-4 text-sm">
+                  <p className="text-lightGray/50">Ganancia</p>
+                  <p className="font-semibold text-brandYellow tabular-nums">{formatArs(Number(bag.accumulated_profit_ars ?? 0))}</p>
                 </div>
               </div>
 
               {!isCashier ? (
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={bag.status === "ok" ? "success" : bag.status === "revisar" ? "warning" : "danger"}>{bag.status}</Badge>
                   <Badge variant="neutral">Diferencia: {formatArs(Number(bag.difference_ars ?? 0))}</Badge>
                   {bag.responsible_name ? <Badge variant="outline">{bag.responsible_name}</Badge> : null}
                 </div>
@@ -103,7 +114,7 @@ export default async function BolsasPage() {
                 </Button>
               </div>
             </div>
-          </DataCard>
+          </article>
         ))}
       </div>
 

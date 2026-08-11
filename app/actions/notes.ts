@@ -9,7 +9,9 @@ import { ensureCurrentUserProfile } from "@/lib/auth/profile";
 import { type Role } from "@/lib/auth/roles";
 import type { NoteEntityType, NotePriority } from "@/lib/db/types";
 import { isUuid, normalizePriority } from "@/lib/notes/notes-service";
+import { getFriendlySupabaseErrorMessage } from "@/lib/errors/user-facing";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
+import { getString } from "@/lib/forms/form-data";
 
 type ActionState = {
   ok: boolean;
@@ -19,11 +21,6 @@ type ActionState = {
 const canWriteNotes = (role: Role) => role === "admin" || role === "encargado" || role === "cajero";
 const canResolveNotes = (role: Role) => role === "admin" || role === "encargado";
 const canAnnulNotes = (role: Role) => role === "admin" || role === "encargado";
-
-function getString(formData: FormData, key: string) {
-  const value = formData.get(key);
-  return typeof value === "string" ? value.trim() : "";
-}
 
 function getEntityType(value: string): NoteEntityType {
   const allowed: NoteEntityType[] = [
@@ -79,7 +76,8 @@ export async function createNoteAction(_prevState: ActionState, formData: FormDa
     entity_type: entityType,
     entity_id: isUuid(entityId) ? entityId : null,
     entity_label: entityLabel || null,
-    entity_href: entityHref || null,
+    // Solo aceptar rutas internas relativas; evita hrefs tipo javascript: o URLs externas.
+    entity_href: entityHref.startsWith("/") ? entityHref : null,
     title,
     body,
     priority,
@@ -95,7 +93,7 @@ export async function createNoteAction(_prevState: ActionState, formData: FormDa
         message: "Falta aplicar la migracion de notas en Supabase. Ejecuta supabase/migrations/20260611_operational_notes.sql."
       };
     }
-    return { ok: false, message: `No se pudo crear la nota: ${error.message}` };
+    return { ok: false, message: getFriendlySupabaseErrorMessage(error, "No se pudo crear la nota.") };
   }
 
   await createAuditLog({

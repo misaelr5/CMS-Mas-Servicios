@@ -11,12 +11,17 @@ export const roleLabels: Record<Role, string> = {
 
 const routePermissions: Array<{ pattern: RegExp; roles: Role[] }> = [
   { pattern: /^\/dashboard(?:\/.*)?$/, roles: ["admin", "encargado", "viewer"] },
-  { pattern: /^\/bolsas(?:\/.*)?$/, roles: ["admin", "encargado", "cajero", "viewer"] },
+  { pattern: /^\/bolsas\/nueva-operacion$/, roles: ["admin", "encargado", "cajero"] },
+  { pattern: /^\/bolsas\/[^/]+\/vender-a-bolsa$/, roles: ["admin", "encargado", "cajero"] },
+  { pattern: /^\/bolsas\/[^/]+\/cierre-diario$/, roles: ["admin", "encargado", "cajero"] },
+  { pattern: /^\/bolsas\/[^/]+$/, roles: ["admin", "encargado", "cajero", "viewer"] },
+  { pattern: /^\/bolsas$/, roles: ["admin", "encargado", "cajero", "viewer"] },
   { pattern: /^\/cajas\/[^/]+\/cargar$/, roles: ["admin", "encargado", "cajero"] },
   { pattern: /^\/cajas(?:\/.*)?$/, roles: ["admin", "encargado", "cajero", "viewer"] },
   { pattern: /^\/reporte-diario(?:\/.*)?$/, roles: ["admin", "encargado", "cajero", "viewer"] },
   { pattern: /^\/gastos(?:\/.*)?$/, roles: ["admin", "encargado", "cajero", "viewer"] },
   { pattern: /^\/cierres(?:\/.*)?$/, roles: ["admin", "encargado", "viewer"] },
+  { pattern: /^\/exportaciones(?:\/.*)?$/, roles: ["admin", "encargado", "cajero", "viewer"] },
   { pattern: /^\/usuarios(?:\/.*)?$/, roles: ["admin"] },
   { pattern: /^\/configuracion(?:\/.*)?$/, roles: ["admin"] }
 ];
@@ -37,10 +42,10 @@ export function getHomePathForRole(role: Role) {
 export function canAccessPath(role: Role, pathname: string) {
   if (isAdmin(role)) return true;
   const match = routePermissions.find((entry) => entry.pattern.test(pathname));
-  if (!match) return true;
+  if (!match) return false;
   return match.roles.includes(role);
 }
 
 export function allowedRolesForPath(pathname: string) {
-  return routePermissions.find((entry) => entry.pattern.test(pathname))?.roles ?? roles;
+  return routePermissions.find((entry) => entry.pattern.test(pathname))?.roles ?? [];
 }

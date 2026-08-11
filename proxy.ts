@@ -2,11 +2,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 import { SESSION_WINDOW_COOKIE, isSessionExpired, parseSessionWindow } from "@/lib/auth/session";
+import { canAccessPath, getHomePathForRole, normalizeRole } from "@/lib/auth/roles";
+import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const protectedPath = /^\/(dashboard|bolsas|cajas|reporte-diario|gastos|cierres|usuarios|configuracion)(?:\/.*)?$/;
+const protectedPath = /^\/(dashboard|bolsas|cajas|reporte-diario|gastos|cierres|exportaciones|usuarios|configuracion)(?:\/.*)?$/;
 
 function buildSupabaseClient(request: NextRequest, response: NextResponse) {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
@@ -64,6 +66,18 @@ export async function proxy(request: NextRequest) {
     const redirectResponse = redirectToLogin(request);
     redirectResponse.cookies.delete(SESSION_WINDOW_COOKIE);
     return redirectResponse;
+  }
+
+  const admin = getSupabaseAdminClient();
+  if (admin) {
+    const { data: roleData } = await admin.from("user_roles").select("role").eq("user_id", user.id).maybeSingle();
+    const role = normalizeRole((roleData as { role?: string | null } | null)?.role ?? user.user_metadata?.role);
+    if (!canAccessPath(role, pathname)) {
+      const homeUrl = request.nextUrl.clone();
+      homeUrl.pathname = getHomePathForRole(role);
+      homeUrl.search = "";
+      return NextResponse.redirect(homeUrl);
+    }
   }
 
   return response;

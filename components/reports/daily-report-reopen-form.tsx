@@ -32,7 +32,7 @@ export function DailyReportReopenForm({
             Motivo de reapertura
           </label>
           <textarea
-            className="min-h-28 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-brandBlack shadow-sm placeholder:text-mediumGray focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="min-h-28 w-full rounded-md border border-border bg-white/[0.06] px-3 py-2 text-sm text-brandWhite shadow-sm placeholder:text-lightGray/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             id={`reopen_reason_${branchId}`}
             name="reopen_reason"
             placeholder="Explicá por qué hace falta reabrir este reporte"

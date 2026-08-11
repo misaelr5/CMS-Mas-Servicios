@@ -24,14 +24,14 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <Card className={cn("border-dashed border-lightGray/50 bg-white/96 p-6 text-brandBlack shadow-medium", className)}>
+    <Card className={cn("border-dashed border-white/10/50 bg-white/[0.06] p-6 text-brandWhite shadow-medium", className)}>
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brandYellow/18 text-brandBlack">
+        <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-brandYellow/18 text-brandWhite">
           <Inbox className="h-7 w-7" />
         </div>
         <div className="flex-1">
           <h3 className="font-heading text-lg font-bold">{title}</h3>
-          <p className="mt-1 max-w-2xl text-sm text-mediumGray">{description}</p>
+          <p className="mt-1 max-w-2xl text-sm text-lightGray/55">{description}</p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           {actionLabel ? (

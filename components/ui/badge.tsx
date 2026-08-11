@@ -4,11 +4,11 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors",
+  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-all duration-150",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-brandYellow text-brandBlack",
+        default: "border-transparent bg-brandYellow text-brandBlack shadow-glow-sm",
         neutral: "border-border bg-white/5 text-foreground",
         success: "border-transparent bg-success/15 text-success",
         warning: "border-transparent bg-warning/15 text-warning",
@@ -22,10 +22,37 @@ const badgeVariants = cva(
   }
 );
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
+const dotColorByVariant: Record<string, string> = {
+  default: "bg-brandBlack/40",
+  neutral: "bg-foreground/40",
+  success: "bg-success",
+  warning: "bg-warning",
+  danger: "bg-danger",
+  outline: "bg-foreground/40"
+};
 
-function Badge({ className, variant, ...props }: BadgeProps) {
-  return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
+export interface BadgeProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof badgeVariants> {
+  dot?: boolean;
+}
+
+function Badge({ className, variant, dot, children, ...props }: BadgeProps) {
+  const resolvedVariant = variant ?? "default";
+  return (
+    <div className={cn(badgeVariants({ variant }), className)} {...props}>
+      {dot ? (
+        <span
+          className={cn(
+            "h-1.5 w-1.5 shrink-0 rounded-full",
+            dotColorByVariant[resolvedVariant] ?? "bg-foreground/40"
+          )}
+          aria-hidden="true"
+        />
+      ) : null}
+      {children}
+    </div>
+  );
 }
 
 export { Badge, badgeVariants };

@@ -10,7 +10,13 @@ import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getServerAuthContext } from "@/lib/auth/server";
-import { cashReportStatusLabels, getCashRegisterDisplayLabel, getCashReportStatusTone } from "@/lib/cash/cash-calculations";
+import {
+  calculateCashDailyReportTotals,
+  cashReportStatusLabels,
+  getCashRegisterDisplayLabel,
+  getCashReportStatusTone,
+  sortCashReportCategories
+} from "@/lib/cash/cash-calculations";
 import { getCashRegisterData } from "@/lib/cash/cash-service";
 import { formatArs } from "@/lib/operations/seed-data";
 
@@ -34,11 +40,30 @@ export default async function CajaDetallePage({ params }: { params: Promise<{ id
   }
 
   const canWrite = auth?.role === "admin" || auth?.role === "encargado" || auth?.role === "cajero";
+  const todayReport = register.today_report;
+  const summaryTotals = calculateCashDailyReportTotals(todayReport?.lines ?? []);
+  const summaryRows = sortCashReportCategories(cashData.categories).map((category) => {
+    const line = todayReport?.lines.find((item) => item.category_id === category.id) ?? null;
+    const operated = Number(line?.operated_amount_ars ?? 0);
+    const profit = Number(line?.profit_amount_ars ?? 0);
+    const hasMovement = operated > 0 || profit > 0 || Boolean(line?.notes);
+
+    return {
+      category,
+      line,
+      operated,
+      profit,
+      hasMovement
+    };
+  });
+  const categoriesWithMovement = summaryRows.filter((row) => row.hasMovement).length;
+  const recentHistory = register.history.slice(0, 5);
+  const hasMoreHistory = register.history.length > recentHistory.length;
 
   return (
     <div className="space-y-6">
       <SectionTitle
-        description="Detalle operativo de la caja, con resumen tipo planilla e historial de cargas."
+        description="Detalle operativo de la caja con una vista superior de todo lo cargado hoy."
         title={getCashRegisterDisplayLabel(register)}
         rightSlot={
           <div className="flex flex-wrap items-center gap-2">
@@ -48,100 +73,176 @@ export default async function CajaDetallePage({ params }: { params: Promise<{ id
             </Button>
             {canWrite ? (
               <Button asChild className="shadow-yellowGlow" size="sm">
-                <Link href={`/cajas/${register.id}/cargar`}>Cargar día</Link>
+                <Link href={`/cajas/${register.id}/cargar`}>Cargar dia</Link>
               </Button>
             ) : null}
           </div>
         }
       />
 
-      <DataCard description="Resumen de hoy en formato tabla." title="Resumen de hoy">
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-separate border-spacing-0 text-sm">
-            <thead className="bg-lightGray text-brandBlack">
-              <tr>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Campo</th>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Valor</th>
-                <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Detalle</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="bg-white">
-                <th className="border-b border-lightGray px-4 py-3 text-left font-semibold">Caja</th>
-                <td className="border-b border-lightGray px-4 py-3">{register.register_number ? `Caja ${register.register_number}` : register.name}</td>
-                <td className="border-b border-lightGray px-4 py-3 text-mediumGray">{register.slug}</td>
-              </tr>
-              <tr className="bg-lightGray/15">
-                <th className="border-b border-lightGray px-4 py-3 text-left font-semibold">Responsable</th>
-                <td className="border-b border-lightGray px-4 py-3">{register.responsible_name ?? register.name}</td>
-                <td className="border-b border-lightGray px-4 py-3 text-mediumGray">Asignación de usuario</td>
-              </tr>
-              <tr className="bg-white">
-                <th className="border-b border-lightGray px-4 py-3 text-left font-semibold">Sucursal</th>
-                <td className="border-b border-lightGray px-4 py-3">{register.branch_name}</td>
-                <td className="border-b border-lightGray px-4 py-3 text-mediumGray">Caja Pago Fácil</td>
-              </tr>
-              <tr className="bg-lightGray/15">
-                <th className="border-b border-lightGray px-4 py-3 text-left font-semibold">Estado</th>
-                <td className="border-b border-lightGray px-4 py-3">
-                  <StatusBadge status={getCashReportStatusTone(register.today_status)} />
-                </td>
-                <td className="border-b border-lightGray px-4 py-3 text-mediumGray">{cashReportStatusLabels[register.today_status]}</td>
-              </tr>
-              <tr className="bg-white">
-                <th className="border-b border-lightGray px-4 py-3 text-left font-semibold">Operado hoy</th>
-                <td className="border-b border-lightGray px-4 py-3 font-semibold">{formatArs(register.today_operated_ars)}</td>
-                <td className="border-b border-lightGray px-4 py-3 text-mediumGray">Volumen total del día</td>
-              </tr>
-              <tr className="bg-lightGray/15">
-                <th className="border-b border-lightGray px-4 py-3 text-left font-semibold">Ganancia hoy</th>
-                <td className="border-b border-lightGray px-4 py-3 font-semibold">{formatArs(register.today_profit_ars)}</td>
-                <td className="border-b border-lightGray px-4 py-3 text-mediumGray">Comisión / utilidad</td>
-              </tr>
-              <tr className="bg-white">
-                <th className="px-4 py-3 text-left font-semibold">Fuente</th>
-                <td className="px-4 py-3">{cashData.source === "database" ? "Supabase" : "Seeds locales"}</td>
-                <td className="px-4 py-3 text-mediumGray">Origen de los datos</td>
-              </tr>
-            </tbody>
-          </table>
+      <DataCard description="Vista ejecutiva de todo lo cargado hoy, resumido por categoria." title="Resumen operativo de hoy">
+        <div className="space-y-6">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-soft">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Caja</p>
+              <p className="mt-1 font-heading text-lg font-black text-brandWhite">{register.register_number ? `Caja ${register.register_number}` : register.name}</p>
+              <p className="text-sm text-lightGray/55">{register.slug}</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-soft">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Responsable</p>
+              <p className="mt-1 font-heading text-lg font-black text-brandWhite">{register.responsible_name ?? register.name}</p>
+              <p className="text-sm text-lightGray/55">Asignacion de usuario</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-soft">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Estado</p>
+              <div className="mt-2">
+                <StatusBadge status={getCashReportStatusTone(register.today_status)} />
+              </div>
+              <p className="mt-2 text-sm text-lightGray/55">{cashReportStatusLabels[register.today_status]}</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-soft">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Operado total</p>
+              <p className="mt-1 font-heading text-2xl font-black text-brandWhite">{formatArs(summaryTotals.operated)}</p>
+              <p className="text-sm text-lightGray/55">Volumen del dia</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-soft">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Comision total</p>
+              <p className="mt-1 font-heading text-2xl font-black text-brandWhite">{formatArs(summaryTotals.profit)}</p>
+              <p className="text-sm text-lightGray/55">Utilidad del dia</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-soft">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Categorias con movimiento</p>
+              <p className="mt-1 font-heading text-2xl font-black text-brandWhite">{categoriesWithMovement}</p>
+              <p className="text-sm text-lightGray/55">{cashData.categories.length} categorias cargadas</p>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-white/[0.06] shadow-soft">
+            <div className="border-b border-white/10 px-4 py-4">
+              <h3 className="font-heading text-lg font-black text-brandWhite">Detalle por categoria</h3>
+              <p className="text-sm text-lightGray/55">Cada fila resume cuanto se opero, cuanto dejo y si quedo observacion.</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-separate border-spacing-0 text-sm">
+                <thead className="bg-black/20 text-brandWhite">
+                  <tr>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Categoria</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Comision</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Observacion</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summaryRows.map((row, index) => (
+                    <tr key={row.category.id} className={index % 2 === 0 ? "bg-white/[0.06]" : "bg-black/20"}>
+                      <td className="border-b border-white/10 px-4 py-4 align-top">
+                        <p className="font-semibold text-brandWhite">{row.category.name}</p>
+                        <p className="text-xs text-lightGray/55">Orden {row.category.sort_order}</p>
+                      </td>
+                      <td className="border-b border-white/10 px-4 py-4 align-top font-semibold text-brandWhite">{formatArs(row.operated)}</td>
+                      <td className="border-b border-white/10 px-4 py-4 align-top font-semibold text-brandWhite">{formatArs(row.profit)}</td>
+                      <td className="border-b border-white/10 px-4 py-4 align-top text-lightGray/55">
+                        {row.line?.notes ? row.line.notes : "Sin observacion"}
+                      </td>
+                      <td className="border-b border-white/10 px-4 py-4 align-top">
+                        <StatusBadge status={row.hasMovement ? "ok" : "pendiente"} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="border-t border-white/10 bg-black/20 px-4 py-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-white bg-white/[0.06] p-4 shadow-soft">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Fuente</p>
+                  <p className="mt-1 font-semibold text-brandWhite">{cashData.source === "database" ? "Supabase" : "Seeds locales"}</p>
+                </div>
+                <div className="rounded-2xl border border-white bg-white/[0.06] p-4 shadow-soft">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Carga de hoy</p>
+                  <p className="mt-1 font-semibold text-brandWhite">{register.today_report ? cashReportStatusLabels[register.today_status] : "Pendiente"}</p>
+                </div>
+                <div className="rounded-2xl border border-white bg-white/[0.06] p-4 shadow-soft">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-lightGray/55">Lectura</p>
+                  <p className="mt-1 font-semibold text-brandWhite">Vista superior para controlar la caja sin entrar al historial.</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </DataCard>
 
-      <DataCard description="Historial de cargas por fecha, con detalle por categoría, en formato de planilla." title="Historial de cargas">
-        {register.history.length === 0 ? (
-          <EmptyState description="Aún no se guardaron cargas para esta caja." title="Sin historial" />
+      <DataCard description="Mostramos solo las ultimas cargas para que la lectura sea rapida." title="Historial reciente">
+        {recentHistory.length === 0 ? (
+          <EmptyState description="Aun no se guardaron cargas para esta caja." title="Sin historial" />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-[980px] border-separate border-spacing-0 text-sm">
-              <thead className="bg-lightGray text-brandBlack">
+            <table className="min-w-[860px] border-separate border-spacing-0 text-sm">
+              <thead className="bg-black/20 text-brandWhite">
                 <tr>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Fecha</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Ganancia</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Categorías</th>
-                  <th className="border-b border-lightGray px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Cargado por</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Fecha</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Ganancia</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Categorias</th>
+                  <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Cargado por</th>
                 </tr>
               </thead>
               <tbody>
-                {register.history.map((report, index) => (
-                  <tr key={report.id} className={index % 2 === 0 ? "bg-white" : "bg-lightGray/15"}>
-                    <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatReportDate(report.report_date)}</td>
-                    <td className="border-b border-lightGray px-4 py-4">
+                {recentHistory.map((report, index) => (
+                  <tr key={report.id} className={index % 2 === 0 ? "bg-white/[0.06]" : "bg-black/20"}>
+                    <td className="border-b border-white/10 px-4 py-4 font-semibold">{formatReportDate(report.report_date)}</td>
+                    <td className="border-b border-white/10 px-4 py-4">
                       <StatusBadge status={getCashReportStatusTone(report.status)} />
-                      <p className="mt-1 text-xs text-mediumGray">{cashReportStatusLabels[report.status]}</p>
+                      <p className="mt-1 text-xs text-lightGray/55">{cashReportStatusLabels[report.status]}</p>
                     </td>
-                    <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(Number(report.total_operated_ars ?? 0))}</td>
-                    <td className="border-b border-lightGray px-4 py-4 font-semibold">{formatArs(Number(report.total_profit_ars ?? 0))}</td>
-                    <td className="border-b border-lightGray px-4 py-4 text-mediumGray">{report.lines.length}</td>
-                    <td className="border-b border-lightGray px-4 py-4 text-mediumGray">{report.created_by_name ?? "-"}</td>
+                    <td className="border-b border-white/10 px-4 py-4 font-semibold">{formatArs(Number(report.total_operated_ars ?? 0))}</td>
+                    <td className="border-b border-white/10 px-4 py-4 font-semibold">{formatArs(Number(report.total_profit_ars ?? 0))}</td>
+                    <td className="border-b border-white/10 px-4 py-4 text-lightGray/55">{report.lines.length}</td>
+                    <td className="border-b border-white/10 px-4 py-4 text-lightGray/55">{report.created_by_name ?? "-"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
+        {hasMoreHistory ? (
+          <details className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
+            <summary className="cursor-pointer list-none text-sm font-semibold text-brandWhite">
+              Ver historial completo
+            </summary>
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-[980px] border-separate border-spacing-0 text-sm">
+                <thead className="bg-black/20 text-brandWhite">
+                  <tr>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Fecha</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Estado</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Operado</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Ganancia</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Categorias</th>
+                    <th className="border-b border-white/10 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.2em]">Cargado por</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {register.history.map((report, index) => (
+                    <tr key={report.id} className={index % 2 === 0 ? "bg-white/[0.06]" : "bg-black/20"}>
+                      <td className="border-b border-white/10 px-4 py-4 font-semibold">{formatReportDate(report.report_date)}</td>
+                      <td className="border-b border-white/10 px-4 py-4">
+                        <StatusBadge status={getCashReportStatusTone(report.status)} />
+                        <p className="mt-1 text-xs text-lightGray/55">{cashReportStatusLabels[report.status]}</p>
+                      </td>
+                      <td className="border-b border-white/10 px-4 py-4 font-semibold">{formatArs(Number(report.total_operated_ars ?? 0))}</td>
+                      <td className="border-b border-white/10 px-4 py-4 font-semibold">{formatArs(Number(report.total_profit_ars ?? 0))}</td>
+                      <td className="border-b border-white/10 px-4 py-4 text-lightGray/55">{report.lines.length}</td>
+                      <td className="border-b border-white/10 px-4 py-4 text-lightGray/55">{report.created_by_name ?? "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        ) : null}
       </DataCard>
 
       <NotesPanel
