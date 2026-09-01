@@ -1,0 +1,23 @@
+name: cms-pgledger-spike
+
+services:
+  postgres:
+    image: postgres:17.6-alpine@sha256:747d5ed1fdeeb124b880fbe3d7c6557d2c4064ae41d6b6297d417882effce4be
+    container_name: cms_pgledger_spike
+    environment:
+      POSTGRES_DB: pgledger_spike
+      POSTGRES_USER: spike_admin
+      POSTGRES_PASSWORD: spike_only
+    ports:
+      - "127.0.0.1:55432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    volumes:
+      - ./.cache/upstream:/workspace/upstream:ro
+      - ./sql:/workspace/sql:ro
+      - ./scripts:/workspace/scripts:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spike_admin -d pgledger_spike"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
